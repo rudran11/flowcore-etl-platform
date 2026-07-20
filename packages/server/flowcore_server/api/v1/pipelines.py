@@ -21,4 +21,4 @@ async def execute_pipeline(
     Asynchronously executes a specific version of a pipeline with the provided runtime parameters.
     Returns a 202 Accepted status along with the run ID for status tracking.
     """
-    return app.start_pipeline_execution(pipeline_id, version, request)
+    return await app.start_pipeline_execution(pipeline_id, version, request)

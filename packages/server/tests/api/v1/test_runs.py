@@ -1,23 +1,48 @@
 import pytest
+import asyncio
 from fastapi.testclient import TestClient
 from flowcore_server.main import app
-from flowcore_server.dependencies.core import get_pipeline_repository
+from flowcore_server.dependencies.core import get_uow
+from flowcore_server.repositories.in_memory.uow import InMemoryUnitOfWork
+from flowcore_shared.schemas.pipeline.pipeline import Pipeline
 from flowcore_shared.schemas.pipeline.pipeline_version import PipelineVersion
 from flowcore_shared.schemas.dependencies.dependency_graph import DependencyGraph
+import uuid
 
 client = TestClient(app)
 
 @pytest.fixture(autouse=True)
 def setup_dummy_pipeline():
-    repo = get_pipeline_repository()
-    pipeline = PipelineVersion(
-        id="pv-1",
-        pipeline_id="pipe-1",
-        version="1.0.0",
-        steps=[]
-    )
-    graph = DependencyGraph(nodes={}, edges=[])
-    repo.seed(pipeline, graph)
+    uow = InMemoryUnitOfWork()
+    app.dependency_overrides[get_uow] = lambda: uow
+    
+    # Mock background strategy to prevent TestClient from blocking on execution
+    class MockBackgroundStrategy:
+        def submit(self, run_id, func, *args, **kwargs):
+            pass
+        def shutdown(self):
+            pass
+            
+    from flowcore_server.dependencies.core import get_background_strategy
+    app.dependency_overrides[get_background_strategy] = lambda: MockBackgroundStrategy()
+
+    
+    async def seed():
+        async with uow:
+            p = Pipeline(id="pipe-1", name="test", owner="test")
+            await uow.pipelines.create_pipeline(p)
+            pv = PipelineVersion(
+                id=str(uuid.uuid4()),
+                pipeline_id="pipe-1",
+                version="1.0.0",
+                steps=[]
+            )
+            await uow.pipelines.create_pipeline_version(pv)
+            await uow.commit()
+
+    asyncio.run(seed())
+    yield
+    app.dependency_overrides.clear()
 
 def test_get_run_status():
     # 1. Create run
@@ -50,4 +75,4 @@ def test_cancel_run_idempotency():
 
 def test_get_unknown_run():
     res = client.get("/api/v1/runs/unknown-run-id")
-    assert res.status_code in (400, 404)
+    assert res.status_code == 404

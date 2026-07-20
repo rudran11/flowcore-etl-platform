@@ -18,7 +18,7 @@ async def get_run_status(
     """
     Retrieves the current state and outputs of an execution run.
     """
-    return app.get_run_status(run_id)
+    return await app.get_run_status(run_id)
 
 @router.post(
     "/{run_id}/cancel",
@@ -33,4 +33,4 @@ async def cancel_run(
     """
     Cancels an ongoing execution run.
     """
-    return app.cancel_run(run_id)
+    return await app.cancel_run(run_id)

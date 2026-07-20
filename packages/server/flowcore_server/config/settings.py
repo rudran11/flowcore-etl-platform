@@ -12,4 +12,10 @@ class Settings(BaseSettings):
     environment: str = "dev"
     cors_origins: List[str] = ["*"]
     
+    # Database Settings
+    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/flowcore"
+    db_pool_size: int = 20
+    db_max_overflow: int = 10
+    db_pool_timeout: int = 30
+    
 settings = Settings()

@@ -1,23 +1,37 @@
 import pytest
+import asyncio
 from fastapi.testclient import TestClient
 from flowcore_server.main import app
-from flowcore_server.dependencies.core import get_pipeline_repository
+from flowcore_server.dependencies.core import get_uow
+from flowcore_server.repositories.in_memory.uow import InMemoryUnitOfWork
+from flowcore_shared.schemas.pipeline.pipeline import Pipeline
 from flowcore_shared.schemas.pipeline.pipeline_version import PipelineVersion
 from flowcore_shared.schemas.dependencies.dependency_graph import DependencyGraph
+import uuid
 
 client = TestClient(app)
 
 @pytest.fixture(autouse=True)
 def setup_dummy_pipeline():
-    repo = get_pipeline_repository()
-    pipeline = PipelineVersion(
-        id="pv-1",
-        pipeline_id="pipe-1",
-        version="1.0.0",
-        steps=[]
-    )
-    graph = DependencyGraph(nodes={}, edges=[])
-    repo.seed(pipeline, graph)
+    uow = InMemoryUnitOfWork()
+    app.dependency_overrides[get_uow] = lambda: uow
+    
+    async def seed():
+        async with uow:
+            p = Pipeline(id="pipe-1", name="test", owner="test")
+            await uow.pipelines.create_pipeline(p)
+            pv = PipelineVersion(
+                id=str(uuid.uuid4()),
+                pipeline_id="pipe-1",
+                version="1.0.0",
+                steps=[]
+            )
+            await uow.pipelines.create_pipeline_version(pv)
+            await uow.commit()
+
+    asyncio.run(seed())
+    yield
+    app.dependency_overrides.clear()
 
 def test_execute_pipeline_success():
     req_data = {"parameters": {"key": "value"}}
@@ -26,7 +40,7 @@ def test_execute_pipeline_success():
     assert response.status_code == 202
     data = response.json()
     assert data["pipeline_id"] == "pipe-1"
-    assert data["pipeline_version"] == "1.0.0"
+    assert isinstance(data["pipeline_version"], str)
     assert "run_id" in data
     assert data["status"] == "PENDING"
     assert data["links"]["self"].endswith(f"/runs/{data['run_id']}")

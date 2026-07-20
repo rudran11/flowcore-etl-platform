@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from flowcore_server.application.registry import AbstractRunRegistry
+from flowcore_server.repositories.interfaces.uow import AbstractUnitOfWork
 from flowcore_shared.schemas.base.enums import ExecutionState
 
 class CancellationStrategy(ABC):
@@ -7,18 +7,16 @@ class CancellationStrategy(ABC):
     Abstract strategy for cancelling an execution run.
     """
     @abstractmethod
-    def cancel(self, run_id: str) -> None:
+    async def cancel(self, run_id: str, uow: AbstractUnitOfWork) -> None:
         pass
 
-class InMemoryCancellationStrategy(CancellationStrategy):
+class DefaultCancellationStrategy(CancellationStrategy):
     """
-    Milestone 4 placeholder. Simply marks the run as CANCELED in the registry.
+    Cancels a run by updating its status in the persistence layer.
     """
-    def __init__(self, registry: AbstractRunRegistry):
-        self.registry = registry
-
-    def cancel(self, run_id: str) -> None:
-        run = self.registry.get_run(run_id)
-        if run.status not in [ExecutionState.COMPLETED, ExecutionState.FAILED, ExecutionState.CANCELLED]:
-            updated_run = run.model_copy(update={"status": ExecutionState.CANCELLED})
-            self.registry.save(updated_run)
+    async def cancel(self, run_id: str, uow: AbstractUnitOfWork) -> None:
+        async with uow:
+            run = await uow.executions.get_run(run_id)
+            if run and run.status not in [ExecutionState.COMPLETED, ExecutionState.FAILED, ExecutionState.CANCELLED]:
+                await uow.executions.update_run_status(run_id, ExecutionState.CANCELLED)
+            await uow.commit()
