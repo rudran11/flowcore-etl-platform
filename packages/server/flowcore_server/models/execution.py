@@ -15,9 +15,12 @@ class ExecutionResponse(BaseModel):
     """
     run_id: str = Field(..., description="Unique identifier for the execution run.")
     pipeline_id: str = Field(..., description="ID of the pipeline being executed.")
+    pipeline_version: str = Field(..., description="Version of the pipeline being executed.")
     status: str = Field(..., description="Current status of the execution (e.g. PENDING, RUNNING, COMPLETED, FAILED).")
+    submitted_at: datetime = Field(..., description="Timestamp when the execution request was submitted.")
     started_at: Optional[datetime] = Field(None, description="Timestamp when execution started.")
     finished_at: Optional[datetime] = Field(None, description="Timestamp when execution finished.")
     duration_ms: Optional[int] = Field(None, description="Total execution duration in milliseconds.")
     error: Optional[str] = Field(None, description="Error message if the execution failed.")
     outputs: Dict[str, Any] = Field(default_factory=dict, description="Outputs collected from the execution steps.")
+    links: Dict[str, str] = Field(default_factory=dict, description="HATEOAS navigation links.")

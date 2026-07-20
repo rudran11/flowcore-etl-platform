@@ -8,9 +8,9 @@ def test_fastapi_background_strategy():
     bt = BackgroundTasks()
     strategy = FastAPIBackgroundStrategy(bt)
     
-    handle = strategy.submit(dummy_task)
+    handle = strategy.submit("test-run-id", dummy_task)
     assert isinstance(handle, TaskHandle)
-    assert handle.task_id == "fastapi-task"
+    assert handle.task_id == "fastapi-task-test-run-id"
     assert handle.status == "PENDING"
     
     assert len(bt.tasks) == 1
