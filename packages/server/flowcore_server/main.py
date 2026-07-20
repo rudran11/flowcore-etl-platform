@@ -3,7 +3,7 @@ from pydantic import ValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from flowcore_engine.exceptions.plugin import PluginLoadError
-from .config import settings
+from .config.settings import settings
 from .api.v1.router import api_router
 from .exceptions.handlers import (
     plugin_load_error_handler,
@@ -19,7 +19,7 @@ def create_app() -> FastAPI:
         description="REST API gateway and control plane for FlowCore."
     )
 
-    # Middleware
+    # Middleware (Last added = Outermost/First executed)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
@@ -27,6 +27,8 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    from flowcore_server.middleware.tracing import TracingMiddleware
+    app.add_middleware(TracingMiddleware)
 
     # Exception Handlers
     app.add_exception_handler(PluginLoadError, plugin_load_error_handler)
@@ -39,5 +41,8 @@ def create_app() -> FastAPI:
     app.include_router(api_router)
 
     return app
+
+from .config.logging_setup import setup_logging
+setup_logging()
 
 app = create_app()
