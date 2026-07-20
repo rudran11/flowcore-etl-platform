@@ -1,0 +1,19 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "flowcore-server"
+version = "1.0.0"
+description = "REST API gateway and control plane for FlowCore."
+authors = ["Rudran <rudran@example.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{ include = "flowcore_server" }]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.110.0"
+uvicorn = "^0.29.0"
+flowcore-engine = { path = "../engine", develop = true }
+flowcore-shared = { path = "../shared", develop = true }
