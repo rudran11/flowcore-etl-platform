@@ -46,6 +46,18 @@ async def value_error_handler(request: Request, exc: ValueError):
     )
     return JSONResponse(status_code=400, content=err.model_dump())
 
+async def resource_not_found_handler(request: Request, exc: Exception):
+    req_id = get_request_id()
+    err = RFC7807Error(
+        type="about:blank",
+        title="Not Found",
+        status=404,
+        flowcore_code="FLOWCORE-4004",
+        detail=str(exc),
+        instance=req_id
+    )
+    return JSONResponse(status_code=404, content=err.model_dump())
+
 async def global_exception_handler(request: Request, exc: Exception):
     req_id = get_request_id()
     err = RFC7807Error(

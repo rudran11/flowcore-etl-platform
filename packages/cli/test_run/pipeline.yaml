@@ -1,0 +1,11 @@
+
+version: '1.0'
+pipeline:
+  name: test_pipe
+  owner: test
+steps:
+  - step_id: s1
+    connector_id: dummy
+  - step_id: s2
+    connector_id: dummy
+    depends_on: [s1]

@@ -41,3 +41,6 @@ class InMemoryPipelineRepository(AbstractPipelineRepository):
             if v.id == version_id:
                 return v
         return None
+
+    async def count_pipelines(self) -> int:
+        return len(self._pipelines)

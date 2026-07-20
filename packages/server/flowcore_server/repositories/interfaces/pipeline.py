@@ -39,3 +39,7 @@ class AbstractPipelineRepository(abc.ABC):
     @abc.abstractmethod
     async def get_pipeline_version_by_id(self, version_id: str) -> Optional[PipelineVersion]:
         pass
+
+    @abc.abstractmethod
+    async def count_pipelines(self) -> int:
+        pass

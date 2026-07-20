@@ -118,3 +118,59 @@ async def test_execution_run_contract(any_uow):
     runs = await uow.executions.list_runs_for_pipeline(p.id)
     assert len(runs) == 1
     assert runs[0].id == run.id
+
+@pytest.mark.asyncio
+async def test_dashboard_aggregations(any_uow):
+    """Test dashboard aggregation methods on both in-memory and postgres UoWs."""
+    from datetime import datetime, timedelta
+    
+    # Needs a pipeline version due to foreign keys in postgres
+    pipe_uuid = str(uuid.uuid4())
+    pv = PipelineVersion(
+        id=str(uuid.uuid4()),
+        pipeline_id=pipe_uuid,
+        version="1.0.0",
+        steps=[]
+    )
+    
+    async with any_uow as uow:
+        await uow.pipelines.create_pipeline(Pipeline(id=pipe_uuid, name="t1", owner="u"))
+        await uow.pipelines.create_pipeline_version(pv)
+        
+        now = datetime.utcnow()
+        # Create 3 runs: 1 running, 1 completed (duration 1 min), 1 failed (duration 5 min)
+        r1 = ExecutionRun(id=str(uuid.uuid4()), pipeline_id=pipe_uuid, pipeline_version_id=pv.id, status=ExecutionState.RUNNING, start_time=now - timedelta(minutes=10), trigger_type="MANUAL")
+        r2 = ExecutionRun(id=str(uuid.uuid4()), pipeline_id=pipe_uuid, pipeline_version_id=pv.id, status=ExecutionState.COMPLETED, start_time=now - timedelta(minutes=5), end_time=now - timedelta(minutes=4), trigger_type="MANUAL")
+        r3 = ExecutionRun(id=str(uuid.uuid4()), pipeline_id=pipe_uuid, pipeline_version_id=pv.id, status=ExecutionState.FAILED, start_time=now - timedelta(minutes=6), end_time=now - timedelta(minutes=1), trigger_type="MANUAL")
+        
+        await uow.executions.create_run(r1)
+        await uow.executions.create_run(r2)
+        await uow.executions.create_run(r3)
+        await uow.commit()
+
+        # Test count_pipelines
+        assert await uow.pipelines.count_pipelines() >= 1
+
+        # Test execution_summary
+        summary = await uow.executions.execution_summary()
+        assert summary[ExecutionState.RUNNING.value] >= 1
+        assert summary[ExecutionState.COMPLETED.value] >= 1
+        assert summary[ExecutionState.FAILED.value] >= 1
+        assert summary[ExecutionState.CANCELLED.value] >= 0
+        assert summary[ExecutionState.QUEUED.value] >= 0
+
+        # Test daily_execution_counts
+        counts = await uow.executions.daily_execution_counts(days=7)
+        assert len(counts) == 7
+        today_stats = counts[-1] # the last one is today
+        assert today_stats[ExecutionState.COMPLETED.value] >= 1
+        assert today_stats[ExecutionState.FAILED.value] >= 1
+
+        # Test average_duration_ms
+        # r2 completed in 1 min (60000ms)
+        avg = await uow.executions.average_duration_ms()
+        assert avg == 60000.0
+
+        # Test recent_runs
+        recent = await uow.executions.recent_runs(limit=10)
+        assert len(recent) >= 3

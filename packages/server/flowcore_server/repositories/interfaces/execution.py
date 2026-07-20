@@ -29,3 +29,23 @@ class AbstractExecutionRepository(abc.ABC):
     async def save(self, run: ExecutionRun) -> ExecutionRun:
         """Upsert operation for saving an entire run object."""
         pass
+
+    @abc.abstractmethod
+    async def execution_summary(self) -> dict:
+        """Returns a dict of counts by ExecutionState."""
+        pass
+
+    @abc.abstractmethod
+    async def daily_execution_counts(self, days: int = 7) -> List[dict]:
+        """Returns a list of dicts with 'date' and counts by state."""
+        pass
+
+    @abc.abstractmethod
+    async def average_duration_ms(self) -> float:
+        """Returns the average duration in milliseconds of all completed runs."""
+        pass
+
+    @abc.abstractmethod
+    async def recent_runs(self, limit: int = 10, offset: int = 0) -> List[ExecutionRun]:
+        """Returns the most recent runs across all pipelines."""
+        pass

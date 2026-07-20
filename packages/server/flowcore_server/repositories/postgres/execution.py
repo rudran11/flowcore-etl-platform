@@ -81,3 +81,74 @@ class PostgresExecutionRepository(AbstractExecutionRepository):
             return map_orm_to_execution_run(orm_obj)
         else:
             return await self.create_run(run)
+
+    async def execution_summary(self) -> dict:
+        from sqlalchemy import func
+        stmt = select(OrmExecutionRun.status, func.count(OrmExecutionRun.id)).group_by(OrmExecutionRun.status)
+        result = await self.session.execute(stmt)
+        summary = {state.value: 0 for state in ExecutionState}
+        for status, count in result.all():
+            if status in summary:
+                summary[status] = count
+        return summary
+
+    async def daily_execution_counts(self, days: int = 7) -> List[dict]:
+        from sqlalchemy import func, Date, cast
+        from datetime import datetime, timedelta
+        
+        start_date = datetime.utcnow() - timedelta(days=days-1)
+        day_expr = cast(OrmExecutionRun.started_at, Date)
+        
+        stmt = (
+            select(day_expr, OrmExecutionRun.status, func.count(OrmExecutionRun.id))
+            .where(OrmExecutionRun.started_at >= start_date)
+            .group_by(day_expr, OrmExecutionRun.status)
+        )
+        result = await self.session.execute(stmt)
+        
+        date_counts = {}
+        for row in result.all():
+            date_obj, status, count = row
+            if date_obj is None:
+                continue
+            date_str = date_obj.strftime("%Y-%m-%d") if hasattr(date_obj, 'strftime') else str(date_obj)
+            if date_str not in date_counts:
+                date_counts[date_str] = {state.value: 0 for state in ExecutionState}
+            if status in date_counts[date_str]:
+                date_counts[date_str][status] = count
+                
+        res = []
+        now = datetime.utcnow()
+        for i in range(days):
+            d = (now - timedelta(days=i)).strftime("%Y-%m-%d")
+            day_dict = {"date": d}
+            if d in date_counts:
+                day_dict.update(date_counts[d])
+            else:
+                day_dict.update({state.value: 0 for state in ExecutionState})
+            res.append(day_dict)
+            
+        return res[::-1]
+
+    async def average_duration_ms(self) -> float:
+        from sqlalchemy import func
+        stmt = select(func.avg(
+            func.extract('epoch', OrmExecutionRun.completed_at) - 
+            func.extract('epoch', OrmExecutionRun.started_at)
+        )).where(OrmExecutionRun.status == ExecutionState.COMPLETED.value)
+        result = await self.session.execute(stmt)
+        avg_sec = result.scalar_one_or_none()
+        if avg_sec is not None:
+            return float(avg_sec) * 1000
+        return 0.0
+
+    async def recent_runs(self, limit: int = 10, offset: int = 0) -> List[ExecutionRun]:
+        stmt = (
+            select(OrmExecutionRun)
+            .options(selectinload(OrmExecutionRun.pipeline_version))
+            .order_by(OrmExecutionRun.created_at.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        result = await self.session.execute(stmt)
+        return [map_orm_to_execution_run(obj) for obj in result.scalars().all()]

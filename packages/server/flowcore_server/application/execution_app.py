@@ -23,8 +23,8 @@ class ExecutionApp:
     async def get_run_status(self, run_id: str) -> ExecutionResponse:
         run = await self.service.get_execution(run_id)
         if not run:
-            from fastapi import HTTPException
-            raise HTTPException(status_code=404, detail="Run not found")
+            from flowcore_server.application.exceptions import ResourceNotFoundError
+            raise ResourceNotFoundError("Run not found")
         return map_execution_to_response(run)
 
     async def cancel_run(self, run_id: str) -> ExecutionResponse:

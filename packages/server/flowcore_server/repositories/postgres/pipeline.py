@@ -85,3 +85,9 @@ class PostgresPipelineRepository(AbstractPipelineRepository):
         if orm_obj:
             return map_orm_to_pipeline_version(orm_obj)
         return None
+
+    async def count_pipelines(self) -> int:
+        from sqlalchemy import func
+        stmt = select(func.count(OrmPipeline.id)).where(OrmPipeline.is_deleted == False)
+        result = await self.session.execute(stmt)
+        return result.scalar_one()
