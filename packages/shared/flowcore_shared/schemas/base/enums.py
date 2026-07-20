@@ -9,11 +9,12 @@ from enum import Enum
 class ExecutionState(str, Enum):
     """Defines the state machine for an execution run or step."""
     PENDING = "PENDING"
-    INITIALIZING = "INITIALIZING"
+    QUEUED = "QUEUED"
     RUNNING = "RUNNING"
-    SUCCESS = "SUCCESS"
+    RETRYING = "RETRYING"
     FAILED = "FAILED"
     CANCELLED = "CANCELLED"
+    COMPLETED = "COMPLETED"
 
 class EnvironmentType(str, Enum):
     """Defines the targeted execution environment profile."""
