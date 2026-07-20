@@ -4,9 +4,10 @@
 
 """Execution step metadata schema."""
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from pydantic import Field
 from flowcore_shared.schemas.base.models import FlowCoreBaseModel
+from .retry import RetryPolicy
 
 class ExecutionStep(FlowCoreBaseModel):
     """
@@ -21,4 +22,8 @@ class ExecutionStep(FlowCoreBaseModel):
     parameters: Dict[str, Any] = Field(
         default_factory=dict, 
         description="Step-specific execution parameters provided to the connector at runtime."
+    )
+    retry_policy: Optional[RetryPolicy] = Field(
+        default=None,
+        description="Optional retry policy that overrides pipeline defaults."
     )

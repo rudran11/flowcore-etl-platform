@@ -22,3 +22,9 @@ class EnvironmentType(str, Enum):
     QA = "QA"
     STAGING = "STAGING"
     PRODUCTION = "PRODUCTION"
+
+class RetryStrategy(str, Enum):
+    """Defines the backoff calculation strategy."""
+    FIXED = "FIXED"
+    LINEAR = "LINEAR"
+    EXPONENTIAL = "EXPONENTIAL"

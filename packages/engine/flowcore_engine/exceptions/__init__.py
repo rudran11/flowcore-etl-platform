@@ -2,6 +2,8 @@
 # Licensed under the MIT License.
 # See LICENSE file in the project root for full license information.
 
-from .state import EngineError, StateTransitionError
+from .base import EngineError
+from .state import StateTransitionError
+from .plugin import RecoverablePluginError, FatalPluginError
 
-__all__ = ["EngineError", "StateTransitionError"]
+__all__ = ["EngineError", "StateTransitionError", "RecoverablePluginError", "FatalPluginError"]

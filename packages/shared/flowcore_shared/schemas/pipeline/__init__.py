@@ -6,5 +6,6 @@ from .pipeline import Pipeline
 from .execution_step import ExecutionStep
 from .pipeline_version import PipelineVersion
 from .template import Template
+from .retry import RetryPolicy
 
-__all__ = ["Pipeline", "ExecutionStep", "PipelineVersion", "Template"]
+__all__ = ["Pipeline", "ExecutionStep", "PipelineVersion", "Template", "RetryPolicy"]

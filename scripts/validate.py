@@ -36,6 +36,7 @@ def validate_repository_structure():
         "packages/engine/flowcore_engine/exceptions",
         "packages/engine/flowcore_engine/context",
         "packages/engine/flowcore_engine/state",
+        "packages/engine/flowcore_engine/retry",
         "plugins/connectors",
         "plugins/transformers",
         "tests/e2e",
