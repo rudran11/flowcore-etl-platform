@@ -1,0 +1,11 @@
+# FlowCore Code Owners
+
+* @rudran11
+
+/packages/engine/ @engine-squad
+/packages/server/ @server-squad
+/packages/studio/ @frontend-squad
+/packages/cli/ @devex-squad
+/packages/sdk/ @devex-squad
+/packages/shared/ @architecture-board
+/plugins/ @integration-squad
