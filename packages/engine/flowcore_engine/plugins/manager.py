@@ -112,6 +112,10 @@ class PluginManager:
             raise PluginLoadError(f"Plugin {plugin_id} not found in registry.")
         return self._instance_registry[plugin_id]
 
+    def list_plugins(self) -> List[PluginMetadata]:
+        """Retrieves a list of all registered plugin metadata."""
+        return list(self._metadata_registry.values())
+
     def get_metadata(self, plugin_id: str) -> PluginMetadata:
         """Retrieves plugin metadata independently of the plugin instance."""
         if plugin_id not in self._metadata_registry:
