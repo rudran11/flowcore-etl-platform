@@ -43,6 +43,7 @@ def validate_repository_structure():
         "packages/engine/flowcore_engine/coordinator",
         "packages/engine/flowcore_engine/executor",
         "packages/engine/flowcore_engine/plugins",
+        "packages/engine/flowcore_engine/runner",
         "plugins/connectors",
         "plugins/transformers",
         "tests/e2e",

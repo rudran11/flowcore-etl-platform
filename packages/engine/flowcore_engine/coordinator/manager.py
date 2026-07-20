@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 # See LICENSE file in the project root for full license information.
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from flowcore_shared.schemas.pipeline.pipeline_version import PipelineVersion
 from flowcore_shared.schemas.dependencies.dependency_graph import DependencyGraph
 from flowcore_shared.schemas.operational.execution import ExecutionRun
@@ -72,9 +72,61 @@ class ExecutionCoordinator:
         """
         return self.scheduler.queue_size() > 0 or self.scheduler.running_tasks() > 0
 
-    def get_next_runnable_step(self) -> Optional[str]:
-        """Retrieves the next unblocked step. Defers to ExecutionScheduler."""
-        return self.scheduler.get_next_task()
+    def get_next_task(self) -> Optional["ExecutionTask"]:
+        """Retrieves the next unblocked step as an ExecutionTask."""
+        step_id = self.scheduler.get_next_task()
+        if not step_id:
+            return None
+            
+        step_metadata = next((s for s in self.pipeline.steps if s.step_id == step_id), None)
+        if not step_metadata:
+            # Failsafe
+            return None
+            
+        from flowcore_engine.context.runtime import RuntimeContext
+        from flowcore_engine.runner.models import ExecutionTask
+        from datetime import datetime
+        import logging
+        
+        context = RuntimeContext(
+            run_id=self._run.id if self._run else "unknown",
+            pipeline_id=self.pipeline.pipeline_id,
+            pipeline_version=self.pipeline.version,
+            step_id=step_id,
+            execution_start_time=datetime.now(),
+            environment="default",
+            working_directory="/tmp/flowcore/work",
+            temporary_directory="/tmp/flowcore/temp",
+            parameters=step_metadata.parameters,
+            retry_attempt=self._attempts[step_id],
+            logger=logging.getLogger(f"flowcore.step.{step_id}")
+        )
+        
+        return ExecutionTask(
+            step_id=step_id,
+            plugin_id=step_metadata.connector_id,
+            runtime_context=context,
+            retry_attempt=self._attempts[step_id],
+            timeout_seconds=None # Future enhancement
+        )
+
+    def handle_event(self, event_type: "ExecutionEventType", task: "ExecutionTask", payload: Any = None) -> None:
+        """
+        Consumes lightweight internal events emitted by the EngineRunner.
+        """
+        from flowcore_engine.runner.events import ExecutionEventType
+        
+        if event_type == ExecutionEventType.TASK_STARTED:
+            self.on_step_started(task.step_id)
+        elif event_type == ExecutionEventType.TASK_COMPLETED:
+            self.on_step_completed(task.step_id)
+        elif event_type == ExecutionEventType.TASK_FAILED:
+            # payload is the EngineError
+            self.on_step_failed(task.step_id, payload)
+        elif event_type == ExecutionEventType.TASK_TIMEOUT:
+            # Future enhancement
+            from flowcore_engine.exceptions.plugin import RecoverablePluginError
+            self.on_step_failed(task.step_id, RecoverablePluginError("Task timeout exceeded"))
 
     def on_step_started(self, step_id: str) -> None:
         """Called when an executor acquires a step."""

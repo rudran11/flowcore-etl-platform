@@ -35,14 +35,14 @@ def test_linear_graph_orchestration():
     run = ExecutionRun(id="run1", pipeline_id="pipe1", pipeline_version_id="1.0.0", trigger_type="MANUAL")
     
     run = coord.initialize_run(run)
-    assert run.status == ExecutionState.QUEUED
+    assert coord._run.status == ExecutionState.QUEUED
     assert coord.get_step_state("A") == ExecutionState.QUEUED
     assert coord.get_step_state("B") == ExecutionState.PENDING
     
     assert coord.has_pending_work()
     
-    step_a = coord.get_next_runnable_step()
-    assert step_a == "A"
+    task_a = coord.get_next_task()
+    assert task_a.step_id == "A"
     
     coord.on_step_started("A")
     assert coord.get_step_state("A") == ExecutionState.RUNNING
@@ -51,13 +51,13 @@ def test_linear_graph_orchestration():
     assert coord.get_step_state("A") == ExecutionState.COMPLETED
     assert coord.get_step_state("B") == ExecutionState.QUEUED
     
-    step_b = coord.get_next_runnable_step()
-    assert step_b == "B"
+    task_b = coord.get_next_task()
+    assert task_b.step_id == "B"
     coord.on_step_started("B")
     coord.on_step_completed("B")
     
-    step_c = coord.get_next_runnable_step()
-    assert step_c == "C"
+    task_c = coord.get_next_task()
+    assert task_c.step_id == "C"
     coord.on_step_started("C")
     coord.on_step_completed("C")
     
@@ -70,30 +70,30 @@ def test_diamond_dag_orchestration():
     run = ExecutionRun(id="run1", pipeline_id="pipe1", pipeline_version_id="1.0.0", trigger_type="MANUAL")
     
     run = coord.initialize_run(run)
-    step_a = coord.get_next_runnable_step()
-    coord.on_step_started(step_a)
-    coord.on_step_completed(step_a)
+    task_a = coord.get_next_task()
+    coord.on_step_started(task_a.step_id)
+    coord.on_step_completed(task_a.step_id)
     
     # B and C should now be queued
-    step1 = coord.get_next_runnable_step()
-    step2 = coord.get_next_runnable_step()
-    assert {step1, step2} == {"B", "C"}
+    task1 = coord.get_next_task()
+    task2 = coord.get_next_task()
+    assert {task1.step_id, task2.step_id} == {"B", "C"}
     
     # D is blocked
-    assert coord.get_next_runnable_step() is None
+    assert coord.get_next_task() is None
     
     # Complete B, D should still be blocked waiting for C
     coord.on_step_started("B")
     coord.on_step_completed("B")
-    assert coord.get_next_runnable_step() is None
+    assert coord.get_next_task() is None
     assert coord.get_step_state("D") == ExecutionState.PENDING
     
     # Complete C, D should unblock
     coord.on_step_started("C")
     coord.on_step_completed("C")
     
-    step_d = coord.get_next_runnable_step()
-    assert step_d == "D"
+    task_d = coord.get_next_task()
+    assert task_d.step_id == "D"
     assert coord.get_step_state("D") == ExecutionState.QUEUED
 
 def test_fatal_plugin_error_fail_fast():
@@ -102,19 +102,19 @@ def test_fatal_plugin_error_fail_fast():
     run = ExecutionRun(id="run1", pipeline_id="pipe1", pipeline_version_id="1.0.0", trigger_type="MANUAL")
     
     run = coord.initialize_run(run)
-    step_a = coord.get_next_runnable_step()
-    coord.on_step_started(step_a)
+    task_a = coord.get_next_task()
+    coord.on_step_started(task_a.step_id)
     
     # Fail A with fatal error
     error = FatalPluginError("Bad auth")
-    backoff = coord.on_step_failed(step_a, error)
+    backoff = coord.on_step_failed(task_a.step_id, error)
     
     assert backoff is None
     assert coord.get_step_state("A") == ExecutionState.FAILED
     assert coord.get_step_state("B") == ExecutionState.PENDING
     
     # Queue is empty, B is stuck
-    assert coord.get_next_runnable_step() is None
+    assert coord.get_next_task() is None
     assert not coord.has_pending_work()
 
 def test_recoverable_plugin_error():
@@ -123,11 +123,11 @@ def test_recoverable_plugin_error():
     run = ExecutionRun(id="run1", pipeline_id="pipe1", pipeline_version_id="1.0.0", trigger_type="MANUAL")
     
     run = coord.initialize_run(run)
-    step_a = coord.get_next_runnable_step()
-    coord.on_step_started(step_a)
+    task_a = coord.get_next_task()
+    coord.on_step_started(task_a.step_id)
     
     error = RecoverablePluginError("Timeout")
-    backoff = coord.on_step_failed(step_a, error)
+    backoff = coord.on_step_failed(task_a.step_id, error)
     
     assert backoff is not None
     assert coord.get_step_state("A") == ExecutionState.RETRYING
