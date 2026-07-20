@@ -1,0 +1,15 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "flowcore-shared"
+version = "1.0.0"
+description = "Shared components and utilities for FlowCore."
+authors = ["Rudran <rudran@example.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{ include = "flowcore_shared" }]
+
+[tool.poetry.dependencies]
+python = "^3.11"
