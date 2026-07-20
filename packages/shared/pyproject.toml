@@ -13,3 +13,8 @@ packages = [{ include = "flowcore_shared" }]
 
 [tool.poetry.dependencies]
 python = "^3.11"
+pydantic = "^2.0.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+pytest-cov = "^4.0.0"

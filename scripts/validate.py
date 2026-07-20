@@ -25,6 +25,8 @@ def validate_repository_structure():
         "packages/cli/flowcore_cli",
         "packages/sdk/flowcore_sdk",
         "packages/shared/flowcore_shared",
+        "packages/shared/flowcore_shared/exceptions",
+        "packages/shared/flowcore_shared/schemas/base",
         "plugins/connectors",
         "plugins/transformers",
         "tests/e2e",
@@ -45,7 +47,8 @@ def validate_documentation():
         "README.md",
         "docs/architecture/adrs/001-metadata-first.md",
         "docs/architecture/adrs/002-configuration-over-code.md",
-        "docs/architecture/adrs/003-plugin-first.md"
+        "docs/architecture/adrs/003-plugin-first.md",
+        "docs/architecture/adrs/004-pydantic-v2.md"
     ]
     all_exist = True
     for r in required:
