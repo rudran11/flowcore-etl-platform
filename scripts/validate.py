@@ -144,9 +144,10 @@ def validate_sdk():
 
 def validate_server():
     server_path = ROOT_DIR / "packages/server/flowcore_server/main.py"
-    if server_path.exists():
+    system_path = ROOT_DIR / "packages/server/flowcore_server/api/v1/system.py"
+    if server_path.exists() and system_path.exists():
         # Check if health endpoint exists in code
-        content = server_path.read_text(encoding='utf-8')
+        content = system_path.read_text(encoding='utf-8')
         if "/health" in content:
             print_result("Server", "PASS", "Health endpoint found")
             return True

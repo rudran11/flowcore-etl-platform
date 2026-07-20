@@ -3,6 +3,7 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 from flowcore_engine.exceptions.plugin import PluginLoadError
 from pydantic import ValidationError
+from fastapi.exceptions import RequestValidationError
 from .models import RFC7807Error
 
 async def plugin_load_error_handler(request: Request, exc: PluginLoadError):
@@ -17,7 +18,7 @@ async def plugin_load_error_handler(request: Request, exc: PluginLoadError):
     )
     return JSONResponse(status_code=500, content=err.model_dump())
 
-async def validation_error_handler(request: Request, exc: ValidationError):
+async def validation_error_handler(request: Request, exc: ValidationError | RequestValidationError):
     req_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
     err = RFC7807Error(
         type="about:blank",
