@@ -31,6 +31,7 @@ def validate_repository_structure():
         "packages/shared/flowcore_shared/schemas/connectors",
         "packages/shared/flowcore_shared/schemas/pipeline",
         "packages/shared/flowcore_shared/schemas/dependencies",
+        "packages/shared/flowcore_shared/schemas/operational",
         "plugins/connectors",
         "plugins/transformers",
         "tests/e2e",
