@@ -39,6 +39,7 @@ def validate_repository_structure():
         "packages/engine/flowcore_engine/retry",
         "packages/engine/flowcore_engine/scheduler",
         "packages/engine/flowcore_engine/coordinator",
+        "packages/engine/flowcore_engine/executor",
         "plugins/connectors",
         "plugins/transformers",
         "tests/e2e",
