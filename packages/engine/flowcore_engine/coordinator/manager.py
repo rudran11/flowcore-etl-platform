@@ -1,0 +1,126 @@
+# Copyright (c) 2026 Rudran
+# Licensed under the MIT License.
+# See LICENSE file in the project root for full license information.
+
+from typing import Dict, List, Optional
+from flowcore_shared.schemas.pipeline.pipeline_version import PipelineVersion
+from flowcore_shared.schemas.dependencies.dependency_graph import DependencyGraph
+from flowcore_shared.schemas.operational.execution import ExecutionRun
+from flowcore_shared.schemas.base.enums import ExecutionState
+from flowcore_shared.schemas.pipeline.retry import RetryPolicy
+from flowcore_engine.scheduler.manager import ExecutionScheduler
+from flowcore_engine.state.manager import StateManager
+from flowcore_engine.retry.manager import RetryManager
+from flowcore_engine.exceptions.base import EngineError
+
+class ExecutionCoordinator:
+    """
+    The orchestrator that acts as the brain of the Execution Engine.
+    It manages the lifecycle of a single PipelineVersion execution by
+    coordinating the StateManager, RetryManager, and ExecutionScheduler.
+
+    FUTURE EXTENSION:
+    ExecutionSummary support will be added in a future milestone containing:
+    - total_steps, completed_steps, failed_steps, retried_steps, execution_duration
+
+    FAILURE POLICY:
+    Milestone 3 implements a strict "Fail Fast" policy.
+    A FatalPluginError (or exhausting retries) prevents downstream scheduling.
+    """
+
+    def __init__(self, pipeline: PipelineVersion, graph: DependencyGraph, max_concurrent: int = 10) -> None:
+        self.pipeline = pipeline
+        self.graph = graph
+        self.scheduler = ExecutionScheduler(max_concurrent_tasks=max_concurrent)
+        
+        # Private working structures to preserve immutability of the metadata layer
+        self._step_states: Dict[str, ExecutionState] = {}
+        self._remaining_indegree: Dict[str, int] = {}
+        self._adj_list: Dict[str, List[str]] = {}
+        self._attempts: Dict[str, int] = {}
+        self._run: Optional[ExecutionRun] = None
+        
+        # Hydrate adjacency and in-degrees from the graph
+        for node_id in self.graph.nodes:
+            self._step_states[node_id] = ExecutionState.PENDING
+            self._remaining_indegree[node_id] = 0
+            self._adj_list[node_id] = []
+            self._attempts[node_id] = 0
+            
+        for edge in self.graph.edges:
+            self._remaining_indegree[edge.target] += 1
+            self._adj_list[edge.source].append(edge.target)
+
+    def initialize_run(self, run: ExecutionRun) -> ExecutionRun:
+        """Initializes runtime state and primes the scheduler with initial steps."""
+        self._run = run.model_copy(update={
+            "status": StateManager.transition(run.status, ExecutionState.QUEUED)
+        })
+        
+        # Push all 0-degree steps to the scheduler
+        for step_id, degree in self._remaining_indegree.items():
+            if degree == 0:
+                self._transition_step(step_id, ExecutionState.QUEUED)
+                self.scheduler.submit_task(step_id)
+                
+        return self._run
+
+    def has_pending_work(self) -> bool:
+        """
+        Returns True if there are tasks still executing or waiting to execute.
+        This allows an external executor loop to iterate cleanly.
+        """
+        return self.scheduler.queue_size() > 0 or self.scheduler.running_tasks() > 0
+
+    def get_next_runnable_step(self) -> Optional[str]:
+        """Retrieves the next unblocked step. Defers to ExecutionScheduler."""
+        return self.scheduler.get_next_task()
+
+    def on_step_started(self, step_id: str) -> None:
+        """Called when an executor acquires a step."""
+        self._transition_step(step_id, ExecutionState.RUNNING)
+        self._attempts[step_id] += 1
+
+    def on_step_completed(self, step_id: str) -> None:
+        """Called when an executor finishes a step successfully."""
+        self._transition_step(step_id, ExecutionState.COMPLETED)
+        self.scheduler.complete_task(step_id)
+        
+        # Eagerly unblock downstream neighbors
+        for neighbor in self._adj_list.get(step_id, []):
+            self._remaining_indegree[neighbor] -= 1
+            if self._remaining_indegree[neighbor] == 0:
+                self._transition_step(neighbor, ExecutionState.QUEUED)
+                self.scheduler.submit_task(neighbor)
+
+    def on_step_failed(self, step_id: str, error: EngineError) -> Optional[float]:
+        """
+        Called when a step fails. Evaluates retry eligibility.
+        Returns the backoff duration (float) if the step will be retried, None otherwise.
+        """
+        # Resolve policy
+        step_metadata = next((s for s in self.pipeline.steps if s.step_id == step_id), None)
+        policy = (step_metadata.retry_policy if step_metadata and step_metadata.retry_policy else RetryPolicy())
+        
+        current_attempt = self._attempts[step_id]
+        
+        if RetryManager.should_retry(error, current_attempt, policy):
+            self._transition_step(step_id, ExecutionState.RETRYING)
+            self.scheduler.fail_task(step_id) # Release concurrency slot
+            backoff = RetryManager.calculate_backoff(current_attempt, policy)
+            # Future: the executor uses this backoff, then re-queues the step.
+            return backoff
+        else:
+            self._transition_step(step_id, ExecutionState.FAILED)
+            self.scheduler.fail_task(step_id)
+            # Fail fast: Downstream steps remain PENDING indefinitely (blocking execution).
+            return None
+
+    def _transition_step(self, step_id: str, target: ExecutionState) -> None:
+        """Internal helper to safely transition a step's state."""
+        current = self._step_states[step_id]
+        self._step_states[step_id] = StateManager.transition(current, target)
+        
+    def get_step_state(self, step_id: str) -> ExecutionState:
+        """Returns the current state of a step."""
+        return self._step_states[step_id]
