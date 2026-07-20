@@ -5,17 +5,21 @@
 """FlowCore Exceptions Module."""
 
 from .base import FlowCoreError
-from .metadata import MetadataError
-from .validation import ValidationError, DSLParseError
-from .plugins import PluginError, ConnectorError
+from .metadata import MetadataError, MetadataNotFoundError, MetadataValidationError
+from .validation import ValidationError
 from .configuration import ConfigurationError
+from .plugins import PluginError, PluginInitializationError, PluginExecutionError
+from .parsing import DSLParseError
 
 __all__ = [
     "FlowCoreError",
-    "MetadataError",
     "ValidationError",
-    "DSLParseError",
+    "ConfigurationError",
     "PluginError",
-    "ConnectorError",
-    "ConfigurationError"
+    "PluginInitializationError",
+    "PluginExecutionError",
+    "MetadataError",
+    "MetadataNotFoundError",
+    "MetadataValidationError",
+    "DSLParseError",
 ]
