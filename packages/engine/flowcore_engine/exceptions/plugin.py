@@ -11,3 +11,7 @@ class RecoverablePluginError(EngineError):
 class FatalPluginError(EngineError):
     """Unrecoverable failure that should bypass retries entirely."""
     pass
+
+class PluginLoadError(EngineError):
+    """Error encountered during plugin discovery, loading, or validation."""
+    pass
