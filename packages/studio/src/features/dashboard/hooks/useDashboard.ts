@@ -5,6 +5,8 @@ export const useDashboard = () => {
   return useQuery({
     queryKey: ['dashboard'],
     queryFn: dashboardApi.getDashboard,
-    refetchInterval: 5000, // Poll every 5 seconds for live dashboard updates
+    refetchInterval: 30000, // Poll every 30 seconds
+    staleTime: 30000,
+    gcTime: 300000,
   });
 };
