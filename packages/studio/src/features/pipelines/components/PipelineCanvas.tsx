@@ -46,14 +46,12 @@ const PipelineCanvasInner: React.FC = () => {
       const draggedData = event.dataTransfer.getData('application/reactflow');
       if (!draggedData) return;
       
-      let type = 'plugin';
       let pluginId = draggedData;
       let config = {};
       
       try {
         const parsed = JSON.parse(draggedData);
         if (parsed.type) {
-          type = parsed.type;
           pluginId = parsed.plugin_id;
           if (parsed.config) config = parsed.config;
         }

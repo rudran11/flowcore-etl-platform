@@ -59,6 +59,8 @@ async def resource_not_found_handler(request: Request, exc: Exception):
     return JSONResponse(status_code=404, content=err.model_dump())
 
 async def global_exception_handler(request: Request, exc: Exception):
+    import traceback
+    traceback.print_exc()
     req_id = get_request_id()
     err = RFC7807Error(
         type="about:blank",

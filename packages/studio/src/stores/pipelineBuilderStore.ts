@@ -153,6 +153,7 @@ export const usePipelineBuilderStore = create<PipelineBuilderState>((set, get) =
   rawYaml: '',
   isDirty: false,
   isValid: true,
+  validationErrors: [],
   clipboard: [],
   isTemplateDialogOpen: false,
   templateNodeToSave: null,

@@ -22,6 +22,10 @@ export interface Schedule {
   expression?: string;
   timezone: string;
   status: ScheduleStatus;
+  max_retries?: number;
+  retry_delay_seconds?: number;
+  holiday_calendar?: string;
+  blackout_windows?: any[];
   next_run_at?: string;
   last_run_at?: string;
   created_at: string;

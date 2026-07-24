@@ -1,12 +1,14 @@
 from flowcore_server.repositories.interfaces.uow import AbstractUnitOfWork
 from flowcore_server.repositories.in_memory.pipeline import InMemoryPipelineRepository
 from flowcore_server.repositories.in_memory.execution import InMemoryExecutionRepository
+from flowcore_server.repositories.in_memory.schedule import InMemoryScheduleRepository
 
 class InMemoryUnitOfWork(AbstractUnitOfWork):
     def __init__(self):
         # We instantiate them once so state persists across UoW contexts
         self._pipelines = InMemoryPipelineRepository()
         self._executions = InMemoryExecutionRepository()
+        self._schedules = InMemoryScheduleRepository()
         self.committed = False
         
     async def __aenter__(self) -> "InMemoryUnitOfWork":
@@ -29,3 +31,7 @@ class InMemoryUnitOfWork(AbstractUnitOfWork):
     @property
     def executions(self):
         return self._executions
+
+    @property
+    def schedules(self):
+        return self._schedules

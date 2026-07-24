@@ -116,7 +116,6 @@ export const ScheduleFormDialog: React.FC<ScheduleFormDialogProps> = ({ onClose,
               holidayCalendar={holidayCalendar}
               onHolidayCalendarChange={setHolidayCalendar}
               blackoutWindows={blackoutWindows}
-              onBlackoutWindowsChange={setBlackoutWindows}
             />
           </div>
 

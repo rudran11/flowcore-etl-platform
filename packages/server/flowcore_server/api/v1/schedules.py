@@ -1,6 +1,6 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
-from flowcore_shared.schemas.operational.schedule import Schedule, ScheduleCreate, ScheduleUpdate, SchedulerMetrics
+from flowcore_server.models.schedule import Schedule, ScheduleCreate, ScheduleUpdate, SchedulerMetrics
 from flowcore_server.services.scheduler import SchedulerService
 from flowcore_server.repositories.factory import RepositoryFactory
 from flowcore_server.repositories.interfaces.uow import AbstractUnitOfWork

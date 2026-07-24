@@ -14,7 +14,6 @@ interface ScheduleBuilderProps {
   holidayCalendar?: string;
   onHolidayCalendarChange?: (val: string) => void;
   blackoutWindows?: any[];
-  onBlackoutWindowsChange?: (val: any[]) => void;
 }
 
 export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ 
@@ -22,7 +21,7 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({
   maxRetries = 0, onMaxRetriesChange,
   retryDelaySeconds = 300, onRetryDelaySecondsChange,
   holidayCalendar = '', onHolidayCalendarChange,
-  blackoutWindows = [], onBlackoutWindowsChange
+  blackoutWindows = []
 }) => {
   const [cronExpression, setCronExpression] = useState(type === ScheduleType.CRON ? value : '* * * * *');
   const [intervalMinutes, setIntervalMinutes] = useState(type === ScheduleType.INTERVAL ? String(Number(value) / 60) : '60');

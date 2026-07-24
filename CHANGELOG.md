@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [0.7.0] - 2026-07-24
+### Added
+- **FlowCore Studio (Frontend)**
+  - Beautiful Premium Enterprise UI (Shadcn UI, Tailwind, Framer Motion)
+  - Visual Pipeline Builder with drag-and-drop ReactFlow canvas
+  - Monaco YAML Editor with two-way sync
+  - Interactive Live DAG Monitoring for active executions
+  - Enterprise Scheduler (Cron builder, Holiday calendars, Retry policies, Blackout windows)
+  - Interactive Monthly Calendar view for upcoming schedules
+  - Autosave, crash recovery, and undo/redo capabilities in the builder
+  - Pipeline Versioning and restore functionality
+  - Node Templates and reusable plugin blocks
+
 ## [0.6.0] - 2026-07-20
 ### Added
 - **Developer Experience (CLI)**

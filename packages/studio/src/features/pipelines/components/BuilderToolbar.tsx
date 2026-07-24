@@ -139,7 +139,7 @@ export const BuilderToolbar: React.FC = () => {
                 }}
               >
                 <span>{v.version}</span>
-                <span className="text-xs text-zinc-500">{new Date(v.created_at).toLocaleDateString()}</span>
+                <span className="text-xs text-zinc-500">{v.created_at ? new Date(v.created_at).toLocaleDateString() : ''}</span>
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>

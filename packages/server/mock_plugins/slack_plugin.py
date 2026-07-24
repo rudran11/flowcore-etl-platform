@@ -9,7 +9,7 @@ class SlackPlugin(BasePlugin):
             plugin_id="flowcore-slack",
             name="Slack Notifications",
             version="2.0.1",
-            plugin_type=PluginType.ACTION,
+            plugin_type=PluginType.CONNECTOR,
             author="FlowCore Notifications",
             description="Send messages and alerts to Slack channels.",
             category="Notifications",

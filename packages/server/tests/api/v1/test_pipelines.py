@@ -9,7 +9,7 @@ from flowcore_shared.schemas.pipeline.pipeline_version import PipelineVersion
 from flowcore_shared.schemas.dependencies.dependency_graph import DependencyGraph
 import uuid
 
-client = TestClient(app)
+client = TestClient(app, raise_server_exceptions=True)
 
 @pytest.fixture(autouse=True)
 def setup_dummy_pipeline():
@@ -37,6 +37,8 @@ def test_execute_pipeline_success():
     req_data = {"parameters": {"key": "value"}}
     response = client.post("/api/v1/pipelines/pipe-1/versions/1.0.0/execute", json=req_data, headers={"X-Request-ID": "test-req-1"})
     
+    if response.status_code == 500:
+        print("500 Error:", response.json())
     assert response.status_code == 202
     data = response.json()
     assert data["pipeline_id"] == "pipe-1"

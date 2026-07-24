@@ -63,12 +63,11 @@ async def get_pipeline(
     """
     return await service.get_pipeline_details(pipeline_id)
 
-from flowcore_server.models.pipeline_version import PipelineVersionCreate
-from flowcore_shared.schemas.pipeline import PipelineVersion
+from flowcore_server.models.pipeline_version import PipelineVersionCreate, PipelineVersionResponse
 
 @router.post(
     "/{pipeline_id}/versions",
-    response_model=PipelineVersion,
+    response_model=PipelineVersionResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Save a new pipeline version"
 )
