@@ -90,6 +90,18 @@ class ExecutionService:
         coordinator = self.engine_factory.create_coordinator(pipeline_version, graph)
         coordinator.initialize_run(run)
         
+        import asyncio
+        loop = asyncio.get_running_loop()
+        def sync_state_saver():
+            async def _save():
+                async with self.uow:
+                    await self.uow.executions.save(coordinator._run)
+                    await self.uow.commit()
+            if loop.is_running():
+                asyncio.run_coroutine_threadsafe(_save(), loop)
+        
+        coordinator.state_change_callback = sync_state_saver
+        
         runner = self.engine_factory.create_runner(coordinator, self.plugin_manager)
 
         # 4. Dispatch to background via wrapper to handle completion events
@@ -179,3 +191,19 @@ class ExecutionService:
                 error_message=error_message
             )
             await self.event_dispatcher.dispatch(event)
+
+    async def list_executions(
+        self, 
+        pipeline_id: Optional[str] = None, 
+        status: Optional[str] = None, 
+        limit: int = 25, 
+        skip: int = 0
+    ):
+        """List executions with pagination and optional filters."""
+        async with self.uow:
+            return await self.uow.executions.list_runs(
+                pipeline_id=pipeline_id,
+                status=status,
+                limit=limit,
+                skip=skip
+            )

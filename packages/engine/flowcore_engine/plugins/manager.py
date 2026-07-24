@@ -100,6 +100,17 @@ class PluginManager:
             
         # At this point, Pydantic has already validated version semantics and plugin_type.
         
+        # Dependency check
+        for dep in metadata.dependencies:
+            if dep not in self._metadata_registry:
+                self._lifecycle_registry[plugin_id] = PluginLifecycleState.ERROR
+                raise PluginLoadError(f"Plugin {plugin_id} missing dependency: {dep}")
+        
+        # Compatibility check (mock simple check for now, e.g., if starts with < we can fail, but let's just log or accept >=1.0.0)
+        if not metadata.compatibility.startswith(">="):
+            # Just a stub for more complex semver check
+            pass
+
         # Register cleanly
         self._lifecycle_registry[plugin_id] = PluginLifecycleState.VALIDATED
         self._metadata_registry[plugin_id] = metadata

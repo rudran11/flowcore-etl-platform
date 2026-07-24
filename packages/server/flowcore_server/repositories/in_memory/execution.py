@@ -66,5 +66,23 @@ class InMemoryExecutionRepository(AbstractExecutionRepository):
         return sum(durations) / len(durations) if durations else 0.0
 
     async def recent_runs(self, limit: int = 10, offset: int = 0) -> List[ExecutionRun]:
+        from datetime import datetime
         sorted_runs = sorted(self._runs.values(), key=lambda r: r.created_at or datetime.utcnow(), reverse=True)
         return sorted_runs[offset:offset+limit]
+
+    async def list_runs(
+        self, 
+        pipeline_id: Optional[str] = None, 
+        status: Optional[str] = None, 
+        limit: int = 25, 
+        skip: int = 0
+    ) -> tuple[List[ExecutionRun], int]:
+        from datetime import datetime
+        matches = list(self._runs.values())
+        if pipeline_id:
+            matches = [r for r in matches if r.pipeline_id == pipeline_id]
+        if status:
+            matches = [r for r in matches if r.status.value == status]
+            
+        sorted_runs = sorted(matches, key=lambda r: r.created_at or datetime.utcnow(), reverse=True)
+        return sorted_runs[skip:skip+limit], len(matches)

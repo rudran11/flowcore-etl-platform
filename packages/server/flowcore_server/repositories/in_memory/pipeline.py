@@ -20,8 +20,20 @@ class InMemoryPipelineRepository(AbstractPipelineRepository):
                 return p
         return None
 
-    async def list_pipelines(self) -> List[Pipeline]:
-        return list(self._pipelines.values())
+    async def list_pipelines(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        search: Optional[str] = None,
+        tags: Optional[List[str]] = None
+    ) -> List[Pipeline]:
+        pipelines = list(self._pipelines.values())
+        if search:
+            search_lower = search.lower()
+            pipelines = [p for p in pipelines if search_lower in p.name.lower() or (p.description and search_lower in p.description.lower())]
+        if tags:
+            pipelines = [p for p in pipelines if all(tag in p.tags for tag in tags)]
+        return pipelines[skip : skip + limit]
 
     async def delete_pipeline(self, pipeline_id: str) -> bool:
         if pipeline_id in self._pipelines:
@@ -42,5 +54,18 @@ class InMemoryPipelineRepository(AbstractPipelineRepository):
                 return v
         return None
 
-    async def count_pipelines(self) -> int:
-        return len(self._pipelines)
+    async def list_pipeline_versions(self, pipeline_id: str) -> List[PipelineVersion]:
+        return [v for v in self._versions.values() if str(v.pipeline_id) == pipeline_id]
+
+    async def count_pipelines(
+        self,
+        search: Optional[str] = None,
+        tags: Optional[List[str]] = None
+    ) -> int:
+        pipelines = list(self._pipelines.values())
+        if search:
+            search_lower = search.lower()
+            pipelines = [p for p in pipelines if search_lower in p.name.lower() or (p.description and search_lower in p.description.lower())]
+        if tags:
+            pipelines = [p for p in pipelines if all(tag in p.tags for tag in tags)]
+        return len(pipelines)

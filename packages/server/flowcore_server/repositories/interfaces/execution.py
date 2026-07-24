@@ -49,3 +49,14 @@ class AbstractExecutionRepository(abc.ABC):
     async def recent_runs(self, limit: int = 10, offset: int = 0) -> List[ExecutionRun]:
         """Returns the most recent runs across all pipelines."""
         pass
+
+    @abc.abstractmethod
+    async def list_runs(
+        self, 
+        pipeline_id: Optional[str] = None, 
+        status: Optional[str] = None, 
+        limit: int = 25, 
+        skip: int = 0
+    ) -> tuple[List[ExecutionRun], int]:
+        """Returns a tuple of (runs, total_count) matching the criteria."""
+        pass

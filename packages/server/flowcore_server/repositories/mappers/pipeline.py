@@ -35,6 +35,8 @@ def map_orm_to_pipeline_version(orm_obj: OrmPipelineVersion) -> DomainPipelineVe
         pipeline_id=str(orm_obj.pipeline_id),
         version=orm_obj.version_tag,
         steps=[], # Populated if needed
+        dsl_definition=orm_obj.dsl_definition,
+        graph_definition=orm_obj.graph_definition,
         created_at=orm_obj.created_at,
         updated_at=orm_obj.updated_at
     )

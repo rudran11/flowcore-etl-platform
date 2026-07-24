@@ -14,8 +14,16 @@ def get_plugin_manager() -> PluginManager:
     if _plugin_manager_instance is None:
         with _plugin_manager_lock:
             if _plugin_manager_instance is None:
-                # In Milestone 4, we initialize a blank/default manager.
-                # Production would pass specific directories here.
+                import os
+                
+                # In Milestone 4, we initialized a blank/default manager.
+                # Now we discover mock plugins to showcase the Plugin Hub.
                 _plugin_manager_instance = PluginManager()
+                
+                # Resolve path to packages/server/mock_plugins
+                base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+                mock_plugins_dir = os.path.join(base_dir, "mock_plugins")
+                
+                _plugin_manager_instance.discover_plugins([mock_plugins_dir])
     
     return _plugin_manager_instance

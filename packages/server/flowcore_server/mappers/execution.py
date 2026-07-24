@@ -15,6 +15,26 @@ def map_execution_to_response(run: ExecutionRun, outputs: Optional[Dict[str, Any
         "cancel": f"/api/v1/runs/{run.id}/cancel"
     }
 
+    from flowcore_server.models.execution import ExecutionStepResponse
+    
+    mapped_steps = {}
+    for step_id, step in run.steps.items():
+        step_duration_ms = None
+        if step.start_time and step.end_time:
+            step_duration_ms = int((step.end_time - step.start_time).total_seconds() * 1000)
+        
+        mapped_steps[step_id] = ExecutionStepResponse(
+            step_id=step.step_id,
+            status=step.status.value,
+            start_time=step.start_time,
+            end_time=step.end_time,
+            duration_ms=step_duration_ms,
+            retry_count=step.retry_count,
+            error_message=step.error_message,
+            outputs=step.outputs,
+            logs=step.logs
+        )
+
     return ExecutionResponse(
         run_id=run.id,
         pipeline_id=run.pipeline_id,
@@ -24,7 +44,8 @@ def map_execution_to_response(run: ExecutionRun, outputs: Optional[Dict[str, Any
         started_at=run.start_time,
         finished_at=run.end_time,
         duration_ms=duration_ms,
-        error=error,
-        outputs=outputs or {},
+        error=run.error_message or error,
+        outputs=run.outputs or outputs or {},
+        steps=mapped_steps,
         links=links
     )

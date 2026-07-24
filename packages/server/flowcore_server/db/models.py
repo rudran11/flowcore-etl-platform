@@ -51,6 +51,8 @@ class ExecutionRun(Base):
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     version_number: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    error_message: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    outputs: Mapped[dict] = mapped_column(JSONB, default={}, nullable=False)
 
     # Relationships
     pipeline_version: Mapped["PipelineVersion"] = relationship("PipelineVersion", back_populates="runs")
@@ -61,9 +63,14 @@ class ExecutionStep(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("execution_runs.id", ondelete="CASCADE"), index=True, nullable=False)
-    step_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    step_id: Mapped[str] = mapped_column(String(255), nullable=False)
     status: Mapped[str] = mapped_column(String(50), nullable=False)
-    logs: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    retry_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    error_message: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    outputs: Mapped[dict] = mapped_column(JSONB, default={}, nullable=False)
+    logs: Mapped[list] = mapped_column(JSONB, default=[], nullable=False)
 
     # Relationships
     run: Mapped["ExecutionRun"] = relationship("ExecutionRun", back_populates="steps")
@@ -76,3 +83,39 @@ class AuditLog(Base):
     entity_type: Mapped[str] = mapped_column(String(100), nullable=False)
     action: Mapped[str] = mapped_column(String(100), nullable=False)
     details: Mapped[dict] = mapped_column(JSONB, default={}, nullable=False)
+
+class Schedule(Base):
+    __tablename__ = "schedules"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String(255), index=True, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    pipeline_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("pipelines.id", ondelete="CASCADE"), index=True, nullable=False)
+    type: Mapped[str] = mapped_column(String(50), nullable=False)
+    expression: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    timezone: Mapped[str] = mapped_column(String(50), default="UTC", nullable=False)
+    status: Mapped[str] = mapped_column(String(50), default="ACTIVE", nullable=False)
+    
+    max_retries: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    retry_delay_seconds: Mapped[int] = mapped_column(Integer, default=300, nullable=False)
+    holiday_calendar: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    blackout_windows: Mapped[list] = mapped_column(JSONB, default=[], nullable=False)
+    
+    next_run_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_run_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Relationships
+    pipeline: Mapped["Pipeline"] = relationship("Pipeline")
+
+class ScheduleRunHistory(Base):
+    __tablename__ = "schedule_run_history"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    schedule_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("schedules.id", ondelete="CASCADE"), index=True, nullable=False)
+    execution_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("execution_runs.id", ondelete="CASCADE"), nullable=False)
+    triggered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    status: Mapped[str] = mapped_column(String(50), nullable=False)
+
+    # Relationships
+    schedule: Mapped["Schedule"] = relationship("Schedule")
+    execution: Mapped["ExecutionRun"] = relationship("ExecutionRun")

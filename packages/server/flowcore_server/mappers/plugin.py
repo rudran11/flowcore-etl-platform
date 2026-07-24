@@ -11,5 +11,12 @@ def map_plugin_to_response(plugin: PluginMetadata) -> PluginResponse:
         version=plugin.version,
         plugin_type=plugin.plugin_type.value,
         author=plugin.author,
-        description=plugin.description
+        description=plugin.description,
+        category=plugin.category,
+        capabilities=plugin.capabilities,
+        supported_operations=plugin.supported_operations,
+        example_yaml=plugin.example_yaml,
+        documentation=plugin.documentation,
+        compatibility=plugin.compatibility,
+        dependencies=plugin.dependencies
     )

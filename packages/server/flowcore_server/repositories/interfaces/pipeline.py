@@ -21,7 +21,13 @@ class AbstractPipelineRepository(abc.ABC):
         pass
 
     @abc.abstractmethod
-    async def list_pipelines(self) -> List[Pipeline]:
+    async def list_pipelines(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        search: Optional[str] = None,
+        tags: Optional[List[str]] = None
+    ) -> List[Pipeline]:
         pass
 
     @abc.abstractmethod
@@ -41,5 +47,13 @@ class AbstractPipelineRepository(abc.ABC):
         pass
 
     @abc.abstractmethod
-    async def count_pipelines(self) -> int:
+    async def list_pipeline_versions(self, pipeline_id: str) -> List[PipelineVersion]:
+        pass
+
+    @abc.abstractmethod
+    async def count_pipelines(
+        self,
+        search: Optional[str] = None,
+        tags: Optional[List[str]] = None
+    ) -> int:
         pass

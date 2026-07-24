@@ -31,3 +31,24 @@ class ExecutionApp:
         await self.service.cancel_execution(run_id)
         run = await self.service.get_execution(run_id)
         return map_execution_to_response(run)
+
+    async def list_runs(
+        self, 
+        pipeline_id: Optional[str] = None, 
+        status: Optional[str] = None, 
+        limit: int = 25, 
+        skip: int = 0
+    ):
+        from flowcore_server.models.execution import ExecutionListResponse
+        runs, total = await self.service.list_executions(
+            pipeline_id=pipeline_id,
+            status=status,
+            limit=limit,
+            skip=skip
+        )
+        return ExecutionListResponse(
+            items=[map_execution_to_response(r) for r in runs],
+            total=total,
+            limit=limit,
+            skip=skip
+        )

@@ -152,3 +152,34 @@ class PostgresExecutionRepository(AbstractExecutionRepository):
         )
         result = await self.session.execute(stmt)
         return [map_orm_to_execution_run(obj) for obj in result.scalars().all()]
+
+    async def list_runs(
+        self, 
+        pipeline_id: Optional[str] = None, 
+        status: Optional[str] = None, 
+        limit: int = 25, 
+        skip: int = 0
+    ) -> tuple[List[ExecutionRun], int]:
+        from flowcore_server.db.models import PipelineVersion
+        from sqlalchemy import func
+        
+        base_stmt = select(OrmExecutionRun).options(selectinload(OrmExecutionRun.pipeline_version))
+        count_stmt = select(func.count(OrmExecutionRun.id))
+        
+        if pipeline_id:
+            base_stmt = base_stmt.join(PipelineVersion, OrmExecutionRun.pipeline_version_id == PipelineVersion.id).where(PipelineVersion.pipeline_id == pipeline_id)
+            count_stmt = count_stmt.join(PipelineVersion, OrmExecutionRun.pipeline_version_id == PipelineVersion.id).where(PipelineVersion.pipeline_id == pipeline_id)
+            
+        if status:
+            base_stmt = base_stmt.where(OrmExecutionRun.status == status)
+            count_stmt = count_stmt.where(OrmExecutionRun.status == status)
+            
+        base_stmt = base_stmt.order_by(OrmExecutionRun.created_at.desc()).limit(limit).offset(skip)
+        
+        count_result = await self.session.execute(count_stmt)
+        total = count_result.scalar_one_or_none() or 0
+        
+        result = await self.session.execute(base_stmt)
+        runs = [map_orm_to_execution_run(obj) for obj in result.scalars().all()]
+        
+        return runs, total

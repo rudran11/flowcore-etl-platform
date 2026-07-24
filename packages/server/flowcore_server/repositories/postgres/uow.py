@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from flowcore_server.repositories.interfaces.uow import AbstractUnitOfWork
 from flowcore_server.repositories.postgres.pipeline import PostgresPipelineRepository
 from flowcore_server.repositories.postgres.execution import PostgresExecutionRepository
+from flowcore_server.repositories.postgres.schedule import PostgresScheduleRepository
 from flowcore_server.config.database import AsyncSessionLocal
 
 class AsyncSqlAlchemyUnitOfWork(AbstractUnitOfWork):
@@ -12,6 +13,7 @@ class AsyncSqlAlchemyUnitOfWork(AbstractUnitOfWork):
         self.session: AsyncSession = self.session_factory()
         self._pipelines = PostgresPipelineRepository(self.session)
         self._executions = PostgresExecutionRepository(self.session)
+        self._schedules = PostgresScheduleRepository(self.session)
         return await super().__aenter__()
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -31,3 +33,7 @@ class AsyncSqlAlchemyUnitOfWork(AbstractUnitOfWork):
     @property
     def executions(self):
         return self._executions
+
+    @property
+    def schedules(self):
+        return self._schedules

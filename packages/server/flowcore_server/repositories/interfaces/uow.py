@@ -2,6 +2,7 @@ import abc
 from typing import Any
 from flowcore_server.repositories.interfaces.pipeline import AbstractPipelineRepository
 from flowcore_server.repositories.interfaces.execution import AbstractExecutionRepository
+from flowcore_server.repositories.interfaces.schedule import AbstractScheduleRepository
 
 class AbstractUnitOfWork(abc.ABC):
     """
@@ -38,4 +39,10 @@ class AbstractUnitOfWork(abc.ABC):
     @abc.abstractmethod
     def executions(self) -> 'AbstractExecutionRepository':
         """Access the Execution Repository."""
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def schedules(self) -> 'AbstractScheduleRepository':
+        """Access the Schedule Repository."""
         raise NotImplementedError

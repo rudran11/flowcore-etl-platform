@@ -19,3 +19,5 @@ class PipelineVersion(MetadataEntity):
         default_factory=list, 
         description="The flat list of execution steps. Topology is resolved via depends_on fields."
     )
+    dsl_definition: dict = Field(default_factory=dict, description="Raw YAML equivalent JSON dictionary.")
+    graph_definition: dict = Field(default_factory=dict, description="Visual builder node/edge state.")

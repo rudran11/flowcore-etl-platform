@@ -1,9 +1,33 @@
-from fastapi import APIRouter, Depends, Path, status
-from flowcore_server.models.execution import ExecutionResponse
+from fastapi import APIRouter, Depends, Path, Query, status
+from flowcore_server.models.execution import ExecutionResponse, ExecutionListResponse
 from flowcore_server.application.execution_app import ExecutionApp
 from flowcore_server.dependencies.execution import get_execution_app
+from typing import Optional
 
 router = APIRouter(prefix="/runs", tags=["Runs"])
+
+@router.get(
+    "",
+    response_model=ExecutionListResponse,
+    status_code=status.HTTP_200_OK,
+    summary="List execution runs"
+)
+async def list_runs(
+    pipeline_id: Optional[str] = Query(None, description="Filter by pipeline ID"),
+    run_status: Optional[str] = Query(None, description="Filter by status"),
+    limit: int = Query(25, ge=1, le=100),
+    skip: int = Query(0, ge=0),
+    app: ExecutionApp = Depends(get_execution_app)
+):
+    """
+    Retrieves a paginated list of execution runs.
+    """
+    return await app.list_runs(
+        pipeline_id=pipeline_id,
+        status=run_status,
+        limit=limit,
+        skip=skip
+    )
 
 @router.get(
     "/{run_id}",

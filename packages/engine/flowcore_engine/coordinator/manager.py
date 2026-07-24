@@ -32,6 +32,7 @@ class ExecutionCoordinator:
         self.pipeline = pipeline
         self.graph = graph
         self.scheduler = ExecutionScheduler(max_concurrent_tasks=max_concurrent)
+        self.state_change_callback = None
         
         # Private working structures to preserve immutability of the metadata layer
         self._step_states: Dict[str, ExecutionState] = {}
@@ -119,7 +120,7 @@ class ExecutionCoordinator:
         if event_type == ExecutionEventType.TASK_STARTED:
             self.on_step_started(task.step_id)
         elif event_type == ExecutionEventType.TASK_COMPLETED:
-            self.on_step_completed(task.step_id)
+            self.on_step_completed(task.step_id, payload)
         elif event_type == ExecutionEventType.TASK_FAILED:
             # payload is the EngineError
             self.on_step_failed(task.step_id, payload)
@@ -133,9 +134,10 @@ class ExecutionCoordinator:
         self._transition_step(step_id, ExecutionState.RUNNING)
         self._attempts[step_id] += 1
 
-    def on_step_completed(self, step_id: str) -> None:
+    def on_step_completed(self, step_id: str, payload: Any = None) -> None:
         """Called when an executor finishes a step successfully."""
-        self._transition_step(step_id, ExecutionState.COMPLETED)
+        outputs = payload.outputs if payload and hasattr(payload, 'outputs') else {}
+        self._transition_step(step_id, ExecutionState.COMPLETED, outputs=outputs)
         self.scheduler.complete_task(step_id)
         
         # Eagerly unblock downstream neighbors
@@ -155,23 +157,56 @@ class ExecutionCoordinator:
         policy = (step_metadata.retry_policy if step_metadata and step_metadata.retry_policy else RetryPolicy())
         
         current_attempt = self._attempts[step_id]
+        error_msg = str(error)
         
         if RetryManager.should_retry(error, current_attempt, policy):
-            self._transition_step(step_id, ExecutionState.RETRYING)
+            self._transition_step(step_id, ExecutionState.RETRYING, error_message=error_msg)
             self.scheduler.fail_task(step_id) # Release concurrency slot
             backoff = RetryManager.calculate_backoff(current_attempt, policy)
             # Future: the executor uses this backoff, then re-queues the step.
             return backoff
         else:
-            self._transition_step(step_id, ExecutionState.FAILED)
+            self._transition_step(step_id, ExecutionState.FAILED, error_message=error_msg)
             self.scheduler.fail_task(step_id)
             # Fail fast: Downstream steps remain PENDING indefinitely (blocking execution).
             return None
 
-    def _transition_step(self, step_id: str, target: ExecutionState) -> None:
+    def _transition_step(self, step_id: str, target: ExecutionState, error_message: str = None, logs: list = None, outputs: dict = None) -> None:
         """Internal helper to safely transition a step's state."""
         current = self._step_states[step_id]
-        self._step_states[step_id] = StateManager.transition(current, target)
+        new_state = StateManager.transition(current, target)
+        self._step_states[step_id] = new_state
+        
+        if self._run:
+            from datetime import datetime
+            from flowcore_shared.schemas.operational.execution import ExecutionStepRun
+            import uuid
+            
+            if step_id not in self._run.steps:
+                self._run.steps[step_id] = ExecutionStepRun(
+                    id=str(uuid.uuid4()),
+                    step_id=step_id,
+                    status=new_state
+                )
+            
+            step = self._run.steps[step_id]
+            step.status = new_state
+            step.retry_count = self._attempts[step_id]
+            
+            if new_state == ExecutionState.RUNNING and not step.start_time:
+                step.start_time = datetime.utcnow()
+            elif new_state in [ExecutionState.COMPLETED, ExecutionState.FAILED, ExecutionState.CANCELLED]:
+                step.end_time = datetime.utcnow()
+                
+            if error_message is not None:
+                step.error_message = error_message
+            if logs is not None:
+                step.logs.extend(logs)
+            if outputs is not None:
+                step.outputs.update(outputs)
+                
+            if self.state_change_callback:
+                self.state_change_callback()
         
     def get_step_state(self, step_id: str) -> ExecutionState:
         """Returns the current state of a step."""

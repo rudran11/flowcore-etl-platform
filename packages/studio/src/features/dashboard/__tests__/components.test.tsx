@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { DashboardCard } from '../components/DashboardCard';
-import { RecentRunsTable } from '../components/RecentRunsTable';
+import { ExecutionTable } from '../../executions/components/ExecutionTable';
 import { DashboardGrid } from '../components/DashboardGrid';
 
 describe('DashboardCard', () => {
@@ -24,19 +24,18 @@ describe('DashboardGrid', () => {
   });
 });
 
-describe('RecentRunsTable', () => {
+describe('ExecutionTable', () => {
   it('renders correctly with runs', () => {
-    const runs = [
-      { pipeline_id: 'pipe-1', status: 'COMPLETED', trigger_type: 'API', start_time: '2026-07-20T10:00:00Z' }
+    const runs: any[] = [
+      { run_id: '1', pipeline_id: 'pipe-1', pipeline_version: '1.0', status: 'COMPLETED', submitted_at: '2026-07-20T10:00:00Z', outputs: {}, steps: {} }
     ];
-    render(<RecentRunsTable runs={runs} />);
+    render(<ExecutionTable runs={runs} />);
     expect(screen.getByText('pipe-1')).toBeInTheDocument();
     expect(screen.getByText('COMPLETED')).toBeInTheDocument();
-    expect(screen.getByText('API')).toBeInTheDocument();
   });
 
   it('renders correctly when empty', () => {
-    render(<RecentRunsTable runs={[]} />);
-    expect(screen.getByText('No recent runs')).toBeInTheDocument();
+    render(<ExecutionTable runs={[]} />);
+    expect(screen.getByText('No executions found.')).toBeInTheDocument();
   });
 });

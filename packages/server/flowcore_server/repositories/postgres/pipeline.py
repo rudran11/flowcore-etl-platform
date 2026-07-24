@@ -37,8 +37,30 @@ class PostgresPipelineRepository(AbstractPipelineRepository):
             return map_orm_to_pipeline(orm_obj)
         return None
 
-    async def list_pipelines(self) -> List[Pipeline]:
+    async def list_pipelines(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        search: Optional[str] = None,
+        tags: Optional[List[str]] = None
+    ) -> List[Pipeline]:
+        from sqlalchemy import or_
         stmt = select(OrmPipeline).where(OrmPipeline.is_deleted == False)
+        
+        if search:
+            search_pattern = f"%{search}%"
+            stmt = stmt.where(
+                or_(
+                    OrmPipeline.name.ilike(search_pattern),
+                    OrmPipeline.description.ilike(search_pattern)
+                )
+            )
+        
+        if tags:
+            stmt = stmt.where(OrmPipeline.tags.contains(tags))
+            
+        stmt = stmt.offset(skip).limit(limit).order_by(OrmPipeline.created_at.desc())
+        
         result = await self.session.execute(stmt)
         orm_objs = result.scalars().all()
         return [map_orm_to_pipeline(obj) for obj in orm_objs]
@@ -55,13 +77,12 @@ class PostgresPipelineRepository(AbstractPipelineRepository):
 
     async def create_pipeline_version(self, version: PipelineVersion) -> PipelineVersion:
         # Map version domain object to ORM
-        # Assuming we just store the steps in dsl_definition for now as it wasn't strictly defined
         orm_obj = OrmPipelineVersion(
             id=version.id,
             pipeline_id=version.pipeline_id,
             version_tag=version.version,
-            dsl_definition={"steps": [s.model_dump() for s in version.steps]},
-            graph_definition={}
+            dsl_definition=version.dsl_definition or {"steps": [s.model_dump() for s in version.steps]},
+            graph_definition=version.graph_definition or {}
         )
         self.session.add(orm_obj)
         await self.session.flush()
@@ -86,8 +107,31 @@ class PostgresPipelineRepository(AbstractPipelineRepository):
             return map_orm_to_pipeline_version(orm_obj)
         return None
 
-    async def count_pipelines(self) -> int:
-        from sqlalchemy import func
+    async def list_pipeline_versions(self, pipeline_id: str) -> List[PipelineVersion]:
+        stmt = select(OrmPipelineVersion).where(OrmPipelineVersion.pipeline_id == pipeline_id).order_by(OrmPipelineVersion.version_tag.desc())
+        result = await self.session.execute(stmt)
+        orm_objs = result.scalars().all()
+        return [map_orm_to_pipeline_version(obj) for obj in orm_objs]
+
+    async def count_pipelines(
+        self,
+        search: Optional[str] = None,
+        tags: Optional[List[str]] = None
+    ) -> int:
+        from sqlalchemy import func, or_
         stmt = select(func.count(OrmPipeline.id)).where(OrmPipeline.is_deleted == False)
+        
+        if search:
+            search_pattern = f"%{search}%"
+            stmt = stmt.where(
+                or_(
+                    OrmPipeline.name.ilike(search_pattern),
+                    OrmPipeline.description.ilike(search_pattern)
+                )
+            )
+            
+        if tags:
+            stmt = stmt.where(OrmPipeline.tags.contains(tags))
+            
         result = await self.session.execute(stmt)
         return result.scalar_one()
