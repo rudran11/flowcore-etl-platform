@@ -2,6 +2,13 @@ from flowcore_server.repositories.interfaces.uow import AbstractUnitOfWork
 from flowcore_server.repositories.in_memory.pipeline import InMemoryPipelineRepository
 from flowcore_server.repositories.in_memory.execution import InMemoryExecutionRepository
 from flowcore_server.repositories.in_memory.schedule import InMemoryScheduleRepository
+from flowcore_server.repositories.in_memory.auth import (
+    InMemoryUserRepository,
+    InMemoryOrganizationRepository,
+    InMemoryWorkspaceRepository,
+    InMemoryRoleRepository,
+    InMemoryWorkspaceMemberRepository
+)
 
 class InMemoryUnitOfWork(AbstractUnitOfWork):
     def __init__(self):
@@ -9,6 +16,11 @@ class InMemoryUnitOfWork(AbstractUnitOfWork):
         self._pipelines = InMemoryPipelineRepository()
         self._executions = InMemoryExecutionRepository()
         self._schedules = InMemoryScheduleRepository()
+        self._users = InMemoryUserRepository()
+        self._organizations = InMemoryOrganizationRepository()
+        self._workspaces = InMemoryWorkspaceRepository()
+        self._roles = InMemoryRoleRepository()
+        self._workspace_members = InMemoryWorkspaceMemberRepository()
         self.committed = False
         
     async def __aenter__(self) -> "InMemoryUnitOfWork":
@@ -35,3 +47,23 @@ class InMemoryUnitOfWork(AbstractUnitOfWork):
     @property
     def schedules(self):
         return self._schedules
+
+    @property
+    def users(self):
+        return self._users
+
+    @property
+    def organizations(self):
+        return self._organizations
+
+    @property
+    def workspaces(self):
+        return self._workspaces
+
+    @property
+    def roles(self):
+        return self._roles
+
+    @property
+    def workspace_members(self):
+        return self._workspace_members

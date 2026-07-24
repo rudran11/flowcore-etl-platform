@@ -92,14 +92,14 @@ class ExecutionCoordinator:
         context = RuntimeContext(
             run_id=self._run.id if self._run else "unknown",
             pipeline_id=self.pipeline.pipeline_id,
-            pipeline_version=self.pipeline.version,
             step_id=step_id,
             execution_start_time=datetime.now(),
-            environment="default",
+            environment=getattr(self, 'env_type', 'DEVELOPMENT'),
             working_directory="/tmp/flowcore/work",
             temporary_directory="/tmp/flowcore/temp",
             parameters=step_metadata.parameters,
-            retry_attempt=self._attempts[step_id],
+            variables=getattr(self, 'env_vars', {}),
+            secrets=getattr(self, 'env_secrets', {}),
             logger=logging.getLogger(f"flowcore.step.{step_id}")
         )
         

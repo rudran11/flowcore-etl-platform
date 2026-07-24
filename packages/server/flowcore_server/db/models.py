@@ -11,6 +11,7 @@ class Pipeline(Base):
     __tablename__ = "pipelines"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    workspace_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True, nullable=True)
     name: Mapped[str] = mapped_column(String(255), index=True, nullable=False)
     owner: Mapped[str] = mapped_column(String(255), default="unknown", nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
@@ -30,6 +31,7 @@ class PipelineVersion(Base):
     __tablename__ = "pipeline_versions"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    workspace_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True, nullable=True)
     pipeline_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("pipelines.id"), index=True, nullable=False)
     version_tag: Mapped[str] = mapped_column(String(100), nullable=False)
     
@@ -44,6 +46,7 @@ class ExecutionRun(Base):
     __tablename__ = "execution_runs"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    workspace_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True, nullable=True)
     pipeline_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("pipeline_versions.id"), index=True, nullable=False)
     status: Mapped[str] = mapped_column(String(50), index=True, nullable=False)
     parameters: Mapped[dict] = mapped_column(JSONB, default={}, nullable=False)
@@ -62,6 +65,7 @@ class ExecutionStep(Base):
     __tablename__ = "execution_steps"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    workspace_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True, nullable=True)
     run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("execution_runs.id", ondelete="CASCADE"), index=True, nullable=False)
     step_id: Mapped[str] = mapped_column(String(255), nullable=False)
     status: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -88,6 +92,7 @@ class Schedule(Base):
     __tablename__ = "schedules"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    workspace_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True, nullable=True)
     name: Mapped[str] = mapped_column(String(255), index=True, nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
     pipeline_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("pipelines.id", ondelete="CASCADE"), index=True, nullable=False)
@@ -111,6 +116,7 @@ class ScheduleRunHistory(Base):
     __tablename__ = "schedule_run_history"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    workspace_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True, nullable=True)
     schedule_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("schedules.id", ondelete="CASCADE"), index=True, nullable=False)
     execution_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("execution_runs.id", ondelete="CASCADE"), nullable=False)
     triggered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
@@ -119,3 +125,6 @@ class ScheduleRunHistory(Base):
     # Relationships
     schedule: Mapped["Schedule"] = relationship("Schedule")
     execution: Mapped["ExecutionRun"] = relationship("ExecutionRun")
+
+from .auth_models import Organization, Workspace, User, Role, Permission, RolePermission, WorkspaceMember
+from .environment_models import Environment, EnvironmentVariable, PipelineEnvironmentBinding

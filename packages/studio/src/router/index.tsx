@@ -1,5 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { RootLayout } from '../layouts/RootLayout';
+import { ProtectedRoute } from '../features/auth/components/ProtectedRoute';
+import { LoginPage } from '../features/auth/LoginPage';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { PipelinesPage } from '../features/pipelines/pages/PipelinesPage';
 import { PipelineDetailsPage } from '../features/pipelines/pages/PipelineDetailsPage';
@@ -9,12 +11,22 @@ import { PluginsPage } from '../features/plugins/pages/PluginsPage';
 import { PluginDetailsPage } from '../features/plugins/pages/PluginDetailsPage';
 import { SettingsPage } from '../features/settings/pages/SettingsPage';
 import { SchedulesPage } from '../features/schedules/pages/SchedulesPage';
+import { EnvironmentsPage } from '../features/environments/pages/EnvironmentsPage';
+import { EnvironmentDetailsPage } from '../features/environments/pages/EnvironmentDetailsPage';
 
 export const router = createBrowserRouter([
   {
+    path: '/login',
+    element: <LoginPage />,
+  },
+  {
     path: '/',
-    element: <RootLayout />,
+    element: <ProtectedRoute />,
     children: [
+      {
+        path: '/',
+        element: <RootLayout />,
+        children: [
       {
         index: true,
         element: <Navigate to="/dashboard" replace />,
@@ -30,6 +42,14 @@ export const router = createBrowserRouter([
       {
         path: 'pipelines/:id',
         element: <PipelineDetailsPage />,
+      },
+      {
+        path: 'environments',
+        element: <EnvironmentsPage />,
+      },
+      {
+        path: 'environments/:id',
+        element: <EnvironmentDetailsPage />,
       },
       {
         path: 'schedules',
@@ -55,6 +75,8 @@ export const router = createBrowserRouter([
         path: 'settings',
         element: <SettingsPage />,
       },
+    ],
+  },
     ],
   },
 ]);

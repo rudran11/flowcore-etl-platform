@@ -8,6 +8,7 @@ import { usePipeline } from '../hooks/usePipeline';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../../components/ui/dropdown-menu';
 import { useParams } from 'react-router-dom';
 import { History } from 'lucide-react';
+import { EnvironmentSelector } from '../../environments/components/EnvironmentSelector';
 
 export const BuilderToolbar: React.FC = () => {
   const { 
@@ -175,6 +176,8 @@ export const BuilderToolbar: React.FC = () => {
           <Save className="w-4 h-4" />
           {isDirty ? 'Save Draft' : 'Saved'}
         </Button>
+        <div className="w-px h-4 bg-white/10 mx-2" />
+        {id && <EnvironmentSelector pipelineId={id} />}
         <Button 
           variant="default" 
           size="sm" 

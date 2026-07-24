@@ -3,6 +3,14 @@ from flowcore_server.repositories.interfaces.uow import AbstractUnitOfWork
 from flowcore_server.repositories.postgres.pipeline import PostgresPipelineRepository
 from flowcore_server.repositories.postgres.execution import PostgresExecutionRepository
 from flowcore_server.repositories.postgres.schedule import PostgresScheduleRepository
+from flowcore_server.repositories.postgres.environment import AsyncSqlAlchemyEnvironmentRepository as PostgresEnvironmentRepository
+from flowcore_server.repositories.postgres.auth import (
+    AsyncSqlAlchemyUserRepository,
+    AsyncSqlAlchemyOrganizationRepository,
+    AsyncSqlAlchemyWorkspaceRepository,
+    AsyncSqlAlchemyRoleRepository,
+    AsyncSqlAlchemyWorkspaceMemberRepository
+)
 from flowcore_server.config.database import AsyncSessionLocal
 
 class AsyncSqlAlchemyUnitOfWork(AbstractUnitOfWork):
@@ -14,6 +22,12 @@ class AsyncSqlAlchemyUnitOfWork(AbstractUnitOfWork):
         self._pipelines = PostgresPipelineRepository(self.session)
         self._executions = PostgresExecutionRepository(self.session)
         self._schedules = PostgresScheduleRepository(self.session)
+        self._environments = PostgresEnvironmentRepository(self.session)
+        self._users = AsyncSqlAlchemyUserRepository(self.session)
+        self._organizations = AsyncSqlAlchemyOrganizationRepository(self.session)
+        self._workspaces = AsyncSqlAlchemyWorkspaceRepository(self.session)
+        self._roles = AsyncSqlAlchemyRoleRepository(self.session)
+        self._workspace_members = AsyncSqlAlchemyWorkspaceMemberRepository(self.session)
         return await super().__aenter__()
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -37,3 +51,27 @@ class AsyncSqlAlchemyUnitOfWork(AbstractUnitOfWork):
     @property
     def schedules(self):
         return self._schedules
+
+    @property
+    def users(self):
+        return self._users
+
+    @property
+    def organizations(self):
+        return self._organizations
+
+    @property
+    def workspaces(self):
+        return self._workspaces
+
+    @property
+    def roles(self):
+        return self._roles
+
+    @property
+    def workspace_members(self):
+        return self._workspace_members
+
+    @property
+    def environments(self):
+        return self._environments

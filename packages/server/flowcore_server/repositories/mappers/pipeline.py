@@ -9,6 +9,7 @@ import uuid
 def map_orm_to_pipeline(orm_obj: OrmPipeline) -> DomainPipeline:
     return DomainPipeline(
         id=str(orm_obj.id),
+        workspace_id=str(orm_obj.workspace_id) if orm_obj.workspace_id else "",
         name=orm_obj.name,
         owner=orm_obj.owner,
         description=orm_obj.description,
@@ -20,6 +21,7 @@ def map_orm_to_pipeline(orm_obj: OrmPipeline) -> DomainPipeline:
 def map_pipeline_to_orm(domain_obj: DomainPipeline) -> OrmPipeline:
     return OrmPipeline(
         id=uuid.UUID(domain_obj.id),
+        workspace_id=uuid.UUID(domain_obj.workspace_id) if domain_obj.workspace_id else None,
         name=domain_obj.name,
         owner=domain_obj.owner,
         description=domain_obj.description,

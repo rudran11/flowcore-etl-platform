@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Path, status
 from flowcore_server.models.execution import ExecutionRequest, ExecutionResponse
 from flowcore_server.application.execution_app import ExecutionApp
 from flowcore_server.dependencies.execution import get_execution_app
+from flowcore_server.dependencies.auth import require_permissions, UserInDB
 
 router = APIRouter(prefix="/pipelines", tags=["Pipelines"])
 
@@ -15,7 +16,8 @@ async def execute_pipeline(
     request: ExecutionRequest,
     pipeline_id: str = Path(..., description="The ID of the pipeline to execute"),
     version: str = Path(..., description="The specific version of the pipeline"),
-    app: ExecutionApp = Depends(get_execution_app)
+    app: ExecutionApp = Depends(get_execution_app),
+    user: UserInDB = Depends(require_permissions(["pipeline:execute"]))
 ):
     """
     Asynchronously executes a specific version of a pipeline with the provided runtime parameters.
@@ -40,7 +42,8 @@ async def list_pipelines(
     limit: int = Query(100, ge=1, le=1000, description="Pagination limit"),
     search: Optional[str] = Query(None, description="Search term for name/description"),
     tags: Optional[List[str]] = Query(None, description="Tags to filter by"),
-    service: PipelineService = Depends(get_pipeline_service)
+    service: PipelineService = Depends(get_pipeline_service),
+    user: UserInDB = Depends(require_permissions([]))
 ):
     """
     Retrieves a paginated list of pipelines.
@@ -56,7 +59,8 @@ async def list_pipelines(
 )
 async def get_pipeline(
     pipeline_id: str = Path(..., description="The ID of the pipeline"),
-    service: PipelineService = Depends(get_pipeline_service)
+    service: PipelineService = Depends(get_pipeline_service),
+    user: UserInDB = Depends(require_permissions([]))
 ):
     """
     Retrieves details for a specific pipeline including versions and recent runs.
@@ -74,7 +78,8 @@ from flowcore_server.models.pipeline_version import PipelineVersionCreate, Pipel
 async def save_pipeline_version(
     request: PipelineVersionCreate,
     pipeline_id: str = Path(..., description="The ID of the pipeline"),
-    service: PipelineService = Depends(get_pipeline_service)
+    service: PipelineService = Depends(get_pipeline_service),
+    user: UserInDB = Depends(require_permissions(["pipeline:create"]))
 ):
     """
     Saves a new pipeline version (e.g. from the builder).

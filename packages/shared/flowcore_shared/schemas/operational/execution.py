@@ -26,6 +26,7 @@ class ExecutionRun(MetadataEntity):
     """
     Represents a specific runtime execution of a PipelineVersion.
     """
+    workspace_id: str = Field(..., description="The workspace this execution belongs to.")
     pipeline_id: str = Field(..., description="The parent pipeline ID.")
     pipeline_version_id: str = Field(..., description="The specific pipeline version ID executed.")
     status: ExecutionState = Field(default=ExecutionState.PENDING, description="The current state of the execution.")

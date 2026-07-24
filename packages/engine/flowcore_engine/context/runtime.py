@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 # See LICENSE file in the project root for full license information.
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Dict, Any
 from datetime import datetime
 import logging
@@ -22,4 +22,6 @@ class RuntimeContext(BaseModel):
     working_directory: str
     temporary_directory: str
     parameters: Dict[str, Any]
+    variables: Dict[str, str] = Field(default_factory=dict)
+    secrets: Dict[str, str] = Field(default_factory=dict)
     logger: logging.Logger

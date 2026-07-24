@@ -90,6 +90,38 @@ class ExecutionService:
         coordinator = self.engine_factory.create_coordinator(pipeline_version, graph)
         coordinator.initialize_run(run)
         
+        # Load environment context
+        # For simplicity in MVP, we check if there are bound environments. If yes, take the first.
+        # Ideally, `environment_id` would be passed in `parameters` from the API.
+        env_vars = {}
+        env_secrets = {}
+        env_type = "DEVELOPMENT"
+        
+        async with self.uow:
+            bound_envs = await self.uow.environments.get_bound_environments(pipeline_id)
+            target_env_id = parameters.get("environment_id")
+            
+            if target_env_id:
+                target_env = next((e for e in bound_envs if e.id == target_env_id), None)
+            else:
+                target_env = bound_envs[0] if bound_envs else None
+                
+            if target_env:
+                from flowcore_server.services.environment_service import EnvironmentService
+                env_service = EnvironmentService(self.uow)
+                ctx = await env_service.get_environment_context(target_env.id)
+                env_vars = ctx["variables"]
+                env_secrets = ctx["secrets"]
+                env_type = ctx["environment_type"]
+                
+        # Inject into coordinator run state so it's available when RuntimeContext is generated.
+        # Wait, RuntimeContext is generated per step in the engine. Let's see how engine generates it.
+        # Actually, ExecutionRun parameters can store these, but we don't want to store secrets in DB.
+        # We can attach them to the coordinator so it can construct RuntimeContext.
+        coordinator.env_vars = env_vars
+        coordinator.env_secrets = env_secrets
+        coordinator.env_type = env_type
+        
         import asyncio
         loop = asyncio.get_running_loop()
         def sync_state_saver():

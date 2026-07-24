@@ -19,6 +19,7 @@ class ScheduleType(str, Enum):
 class ScheduleBase(BaseModel):
     name: str
     description: Optional[str] = None
+    workspace_id: str
     pipeline_id: str
     type: ScheduleType
     expression: Optional[str] = None  # e.g., cron string, or interval seconds

@@ -3,6 +3,14 @@ from typing import Any
 from flowcore_server.repositories.interfaces.pipeline import AbstractPipelineRepository
 from flowcore_server.repositories.interfaces.execution import AbstractExecutionRepository
 from flowcore_server.repositories.interfaces.schedule import AbstractScheduleRepository
+from flowcore_server.repositories.interfaces.environment import AbstractEnvironmentRepository
+from flowcore_server.repositories.interfaces.auth import (
+    UserRepository,
+    OrganizationRepository,
+    WorkspaceRepository,
+    RoleRepository,
+    WorkspaceMemberRepository
+)
 
 class AbstractUnitOfWork(abc.ABC):
     """
@@ -45,4 +53,34 @@ class AbstractUnitOfWork(abc.ABC):
     @abc.abstractmethod
     def schedules(self) -> 'AbstractScheduleRepository':
         """Access the Schedule Repository."""
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def users(self) -> 'UserRepository':
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def organizations(self) -> 'OrganizationRepository':
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def workspaces(self) -> 'WorkspaceRepository':
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def roles(self) -> 'RoleRepository':
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def workspace_members(self) -> 'WorkspaceMemberRepository':
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def environments(self) -> 'AbstractEnvironmentRepository':
         raise NotImplementedError

@@ -3,14 +3,21 @@ import { Search, Bell, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Input } from '../../components/ui/input';
 import { Button } from '../../components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '../../components/ui/dropdown-menu';
+import { WorkspaceSwitcher } from '../../features/auth/components/WorkspaceSwitcher';
+import { useAuthStore } from '../../stores/authStore';
+import { LogOut, User } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const { setTheme } = useTheme();
+  const { user, logout } = useAuthStore();
 
   return (
     <header className="sticky top-0 z-40 flex h-14 w-full shrink-0 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur sm:px-6">
-      <div className="flex flex-1 items-center gap-4">
+      <div className="flex items-center gap-4">
+        <WorkspaceSwitcher />
+      </div>
+      <div className="flex flex-1 items-center gap-4 ml-4">
         <div className="w-full max-w-sm relative hidden sm:block">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -45,6 +52,27 @@ export const Header: React.FC = () => {
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setTheme("system")}>
               System
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="rounded-full">
+              <User className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <div className="flex items-center justify-start gap-2 p-2">
+              <div className="flex flex-col space-y-1 leading-none">
+                {user?.full_name && <p className="font-medium">{user.full_name}</p>}
+                {user?.email && <p className="w-[200px] truncate text-sm text-muted-foreground">{user.email}</p>}
+              </div>
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={logout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Log out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

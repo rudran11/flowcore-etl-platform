@@ -3,7 +3,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import delete
 
+import uuid
 from flowcore_shared.schemas.pipeline import Pipeline, PipelineVersion
+from flowcore_server.dependencies.context import get_workspace_id
 from flowcore_server.repositories.interfaces.pipeline import AbstractPipelineRepository
 from flowcore_server.db.models import Pipeline as OrmPipeline
 from flowcore_server.db.models import PipelineVersion as OrmPipelineVersion
@@ -17,12 +19,13 @@ class PostgresPipelineRepository(AbstractPipelineRepository):
 
     async def create_pipeline(self, pipeline: Pipeline) -> Pipeline:
         orm_obj = map_pipeline_to_orm(pipeline)
+        orm_obj.workspace_id = uuid.UUID(get_workspace_id())
         self.session.add(orm_obj)
         await self.session.flush()
         return map_orm_to_pipeline(orm_obj)
 
     async def get_pipeline(self, pipeline_id: str) -> Optional[Pipeline]:
-        stmt = select(OrmPipeline).where(OrmPipeline.id == pipeline_id).where(OrmPipeline.is_deleted == False)
+        stmt = select(OrmPipeline).where(OrmPipeline.id == pipeline_id).where(OrmPipeline.is_deleted == False).where(OrmPipeline.workspace_id == uuid.UUID(get_workspace_id()))
         result = await self.session.execute(stmt)
         orm_obj = result.scalar_one_or_none()
         if orm_obj:
@@ -30,7 +33,7 @@ class PostgresPipelineRepository(AbstractPipelineRepository):
         return None
 
     async def get_pipeline_by_name(self, name: str) -> Optional[Pipeline]:
-        stmt = select(OrmPipeline).where(OrmPipeline.name == name).where(OrmPipeline.is_deleted == False)
+        stmt = select(OrmPipeline).where(OrmPipeline.name == name).where(OrmPipeline.is_deleted == False).where(OrmPipeline.workspace_id == uuid.UUID(get_workspace_id()))
         result = await self.session.execute(stmt)
         orm_obj = result.scalar_one_or_none()
         if orm_obj:
@@ -45,7 +48,7 @@ class PostgresPipelineRepository(AbstractPipelineRepository):
         tags: Optional[List[str]] = None
     ) -> List[Pipeline]:
         from sqlalchemy import or_
-        stmt = select(OrmPipeline).where(OrmPipeline.is_deleted == False)
+        stmt = select(OrmPipeline).where(OrmPipeline.is_deleted == False).where(OrmPipeline.workspace_id == uuid.UUID(get_workspace_id()))
         
         if search:
             search_pattern = f"%{search}%"
@@ -66,7 +69,7 @@ class PostgresPipelineRepository(AbstractPipelineRepository):
         return [map_orm_to_pipeline(obj) for obj in orm_objs]
 
     async def delete_pipeline(self, pipeline_id: str) -> bool:
-        stmt = select(OrmPipeline).where(OrmPipeline.id == pipeline_id)
+        stmt = select(OrmPipeline).where(OrmPipeline.id == pipeline_id).where(OrmPipeline.workspace_id == uuid.UUID(get_workspace_id()))
         result = await self.session.execute(stmt)
         orm_obj = result.scalar_one_or_none()
         if orm_obj:
@@ -79,6 +82,7 @@ class PostgresPipelineRepository(AbstractPipelineRepository):
         # Map version domain object to ORM
         orm_obj = OrmPipelineVersion(
             id=version.id,
+            workspace_id=uuid.UUID(get_workspace_id()),
             pipeline_id=version.pipeline_id,
             version_tag=version.version,
             dsl_definition=version.dsl_definition or {"steps": [s.model_dump() for s in version.steps]},
@@ -91,7 +95,8 @@ class PostgresPipelineRepository(AbstractPipelineRepository):
     async def get_pipeline_version(self, pipeline_id: str, version_tag: str) -> Optional[PipelineVersion]:
         stmt = select(OrmPipelineVersion).where(
             OrmPipelineVersion.pipeline_id == pipeline_id,
-            OrmPipelineVersion.version_tag == version_tag
+            OrmPipelineVersion.version_tag == version_tag,
+            OrmPipelineVersion.workspace_id == uuid.UUID(get_workspace_id())
         )
         result = await self.session.execute(stmt)
         orm_obj = result.scalar_one_or_none()
@@ -100,7 +105,7 @@ class PostgresPipelineRepository(AbstractPipelineRepository):
         return None
 
     async def get_pipeline_version_by_id(self, version_id: str) -> Optional[PipelineVersion]:
-        stmt = select(OrmPipelineVersion).where(OrmPipelineVersion.id == version_id)
+        stmt = select(OrmPipelineVersion).where(OrmPipelineVersion.id == version_id, OrmPipelineVersion.workspace_id == uuid.UUID(get_workspace_id()))
         result = await self.session.execute(stmt)
         orm_obj = result.scalar_one_or_none()
         if orm_obj:
@@ -108,7 +113,7 @@ class PostgresPipelineRepository(AbstractPipelineRepository):
         return None
 
     async def list_pipeline_versions(self, pipeline_id: str) -> List[PipelineVersion]:
-        stmt = select(OrmPipelineVersion).where(OrmPipelineVersion.pipeline_id == pipeline_id).order_by(OrmPipelineVersion.version_tag.desc())
+        stmt = select(OrmPipelineVersion).where(OrmPipelineVersion.pipeline_id == pipeline_id, OrmPipelineVersion.workspace_id == uuid.UUID(get_workspace_id())).order_by(OrmPipelineVersion.version_tag.desc())
         result = await self.session.execute(stmt)
         orm_objs = result.scalars().all()
         return [map_orm_to_pipeline_version(obj) for obj in orm_objs]
@@ -119,7 +124,7 @@ class PostgresPipelineRepository(AbstractPipelineRepository):
         tags: Optional[List[str]] = None
     ) -> int:
         from sqlalchemy import func, or_
-        stmt = select(func.count(OrmPipeline.id)).where(OrmPipeline.is_deleted == False)
+        stmt = select(func.count(OrmPipeline.id)).where(OrmPipeline.is_deleted == False).where(OrmPipeline.workspace_id == uuid.UUID(get_workspace_id()))
         
         if search:
             search_pattern = f"%{search}%"

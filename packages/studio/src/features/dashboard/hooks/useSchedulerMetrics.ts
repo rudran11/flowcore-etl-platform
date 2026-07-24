@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
+import { apiClient } from '../../../api/client';
+import { useAuthStore } from '../../../stores/authStore';
 
 export interface SchedulerMetrics {
   queue_length: number;
@@ -11,12 +12,14 @@ export interface SchedulerMetrics {
 }
 
 export const useSchedulerMetrics = () => {
+  const { activeWorkspaceId } = useAuthStore();
   return useQuery({
-    queryKey: ['scheduler', 'metrics'],
+    queryKey: ['scheduler', 'metrics', activeWorkspaceId],
     queryFn: async () => {
-      const response = await axios.get<SchedulerMetrics>('http://localhost:8000/api/v1/schedules/metrics');
+      const response = await apiClient.get<SchedulerMetrics>('/schedules/metrics');
       return response.data;
     },
     refetchInterval: 10000, // Poll every 10 seconds for metrics
+    enabled: !!activeWorkspaceId,
   });
 };

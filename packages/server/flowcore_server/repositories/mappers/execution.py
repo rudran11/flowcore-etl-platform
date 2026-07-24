@@ -23,6 +23,7 @@ def map_orm_to_execution_run(orm_obj: OrmExecutionRun) -> DomainExecutionRun:
 
     return DomainExecutionRun(
         id=str(orm_obj.id),
+        workspace_id=str(orm_obj.workspace_id) if orm_obj.workspace_id else "",
         pipeline_id=str(orm_obj.pipeline_version.pipeline_id) if getattr(orm_obj, "pipeline_version", None) else "",
         pipeline_version_id=str(orm_obj.pipeline_version_id),
         status=ExecutionState(orm_obj.status),
@@ -39,6 +40,7 @@ def map_orm_to_execution_run(orm_obj: OrmExecutionRun) -> DomainExecutionRun:
 def map_execution_run_to_orm(domain_obj: DomainExecutionRun) -> OrmExecutionRun:
     orm_run = OrmExecutionRun(
         id=uuid.UUID(domain_obj.id),
+        workspace_id=uuid.UUID(domain_obj.workspace_id) if domain_obj.workspace_id else None,
         pipeline_version_id=uuid.UUID(domain_obj.pipeline_version_id),
         status=domain_obj.status.value,
         parameters={"trigger_type": domain_obj.trigger_type},

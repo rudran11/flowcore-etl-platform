@@ -2,11 +2,12 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useDashboard } from './hooks/useDashboard';
 import { useSchedules } from '../schedules/hooks/useSchedules';
+import { useEnvironments } from '../environments/hooks/useEnvironments';
 import { DashboardCard } from './components/DashboardCard';
 import { DashboardGrid } from './components/DashboardGrid';
 import { ExecutionTrendChart } from './components/ExecutionTrendChart';
 import { ExecutionTable } from '../executions/components/ExecutionTable';
-import { Activity, Clock, PlayCircle, ServerCog, AlertOctagon } from 'lucide-react';
+import { Activity, Clock, PlayCircle, ServerCog, AlertOctagon, Server } from 'lucide-react';
 import { Skeleton } from '../../components/ui/skeleton';
 import { toast } from 'sonner';
 import { useSchedulerMetrics } from './hooks/useSchedulerMetrics';
@@ -30,6 +31,7 @@ export const DashboardPage: React.FC = () => {
   const { data, isLoading, error } = useDashboard();
   const { data: schedules } = useSchedules();
   const { data: metrics } = useSchedulerMetrics();
+  const { data: environments } = useEnvironments();
 
   React.useEffect(() => {
     if (error) {
@@ -74,11 +76,19 @@ export const DashboardPage: React.FC = () => {
       variants={container}
       initial="hidden"
       animate="show"
-      className="space-y-4"
+      className="p-8 max-w-7xl mx-auto space-y-8"
     >
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-        <div className="flex items-center space-x-2">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+            Dashboard
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Overview of your ETL pipelines and executions.
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-4 bg-card/50 backdrop-blur border rounded-full px-4 py-2 shadow-sm">
           {data.health.server === 'healthy' ? (
             <div className="flex items-center text-sm font-medium text-emerald-500">
               <span className="relative flex h-2 w-2 mr-2">
@@ -103,6 +113,14 @@ export const DashboardPage: React.FC = () => {
             value={data.statistics.total_pipelines} 
             icon={<Activity className="h-4 w-4" />}
             description="Registered in the system"
+          />
+        </motion.div>
+        <motion.div variants={item}>
+          <DashboardCard 
+            title="Total Environments" 
+            value={environments?.length || 0} 
+            icon={<Server className="h-4 w-4 text-primary" />}
+            description="Configured profiles"
           />
         </motion.div>
         <motion.div variants={item}>

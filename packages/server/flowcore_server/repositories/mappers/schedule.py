@@ -5,6 +5,7 @@ from datetime import datetime
 def map_orm_to_schedule(orm_obj: OrmSchedule) -> Schedule:
     return Schedule(
         id=str(orm_obj.id),
+        workspace_id=str(orm_obj.workspace_id) if orm_obj.workspace_id else "",
         name=orm_obj.name,
         description=orm_obj.description,
         pipeline_id=str(orm_obj.pipeline_id),
@@ -22,6 +23,7 @@ def map_orm_to_schedule(orm_obj: OrmSchedule) -> Schedule:
 def map_schedule_to_orm(schedule: Schedule) -> OrmSchedule:
     return OrmSchedule(
         id=schedule.id,
+        workspace_id=schedule.workspace_id,
         name=schedule.name,
         description=schedule.description,
         pipeline_id=schedule.pipeline_id,

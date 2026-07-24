@@ -3,7 +3,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
+import uuid
 from flowcore_shared.schemas.operational.execution import ExecutionRun
+from flowcore_server.dependencies.context import get_workspace_id
 from flowcore_shared.schemas.base.enums import ExecutionState
 from flowcore_server.repositories.interfaces.execution import AbstractExecutionRepository
 from flowcore_server.db.models import ExecutionRun as OrmExecutionRun
@@ -17,6 +19,10 @@ class PostgresExecutionRepository(AbstractExecutionRepository):
 
     async def create_run(self, run: ExecutionRun) -> ExecutionRun:
         orm_obj = map_execution_run_to_orm(run)
+        ws_id = uuid.UUID(get_workspace_id())
+        orm_obj.workspace_id = ws_id
+        for step in orm_obj.steps:
+            step.workspace_id = ws_id
         self.session.add(orm_obj)
         await self.session.flush()
         
@@ -29,7 +35,7 @@ class PostgresExecutionRepository(AbstractExecutionRepository):
         stmt = (
             select(OrmExecutionRun)
             .options(selectinload(OrmExecutionRun.pipeline_version))
-            .where(OrmExecutionRun.id == run_id)
+            .where(OrmExecutionRun.id == run_id, OrmExecutionRun.workspace_id == uuid.UUID(get_workspace_id()))
         )
         result = await self.session.execute(stmt)
         orm_obj = result.scalar_one_or_none()
@@ -44,7 +50,7 @@ class PostgresExecutionRepository(AbstractExecutionRepository):
             select(OrmExecutionRun)
             .join(PipelineVersion, OrmExecutionRun.pipeline_version_id == PipelineVersion.id)
             .options(selectinload(OrmExecutionRun.pipeline_version))
-            .where(PipelineVersion.pipeline_id == pipeline_id)
+            .where(PipelineVersion.pipeline_id == pipeline_id, OrmExecutionRun.workspace_id == uuid.UUID(get_workspace_id()))
             .limit(limit)
             .offset(offset)
         )
@@ -53,7 +59,7 @@ class PostgresExecutionRepository(AbstractExecutionRepository):
         return [map_orm_to_execution_run(obj) for obj in orm_objs]
 
     async def update_run_status(self, run_id: str, status: ExecutionState) -> bool:
-        stmt = select(OrmExecutionRun).where(OrmExecutionRun.id == run_id)
+        stmt = select(OrmExecutionRun).where(OrmExecutionRun.id == run_id, OrmExecutionRun.workspace_id == uuid.UUID(get_workspace_id()))
         result = await self.session.execute(stmt)
         orm_obj = result.scalar_one_or_none()
         if orm_obj:
@@ -66,7 +72,7 @@ class PostgresExecutionRepository(AbstractExecutionRepository):
         # Simplistic save for Upsert
         existing = await self.get_run(run.id)
         if existing:
-            stmt = select(OrmExecutionRun).where(OrmExecutionRun.id == run.id)
+            stmt = select(OrmExecutionRun).where(OrmExecutionRun.id == run.id, OrmExecutionRun.workspace_id == uuid.UUID(get_workspace_id()))
             result = await self.session.execute(stmt)
             orm_obj = result.scalar_one()
             
@@ -84,7 +90,7 @@ class PostgresExecutionRepository(AbstractExecutionRepository):
 
     async def execution_summary(self) -> dict:
         from sqlalchemy import func
-        stmt = select(OrmExecutionRun.status, func.count(OrmExecutionRun.id)).group_by(OrmExecutionRun.status)
+        stmt = select(OrmExecutionRun.status, func.count(OrmExecutionRun.id)).where(OrmExecutionRun.workspace_id == uuid.UUID(get_workspace_id())).group_by(OrmExecutionRun.status)
         result = await self.session.execute(stmt)
         summary = {state.value: 0 for state in ExecutionState}
         for status, count in result.all():
@@ -101,7 +107,7 @@ class PostgresExecutionRepository(AbstractExecutionRepository):
         
         stmt = (
             select(day_expr, OrmExecutionRun.status, func.count(OrmExecutionRun.id))
-            .where(OrmExecutionRun.started_at >= start_date)
+            .where(OrmExecutionRun.started_at >= start_date, OrmExecutionRun.workspace_id == uuid.UUID(get_workspace_id()))
             .group_by(day_expr, OrmExecutionRun.status)
         )
         result = await self.session.execute(stmt)
@@ -135,7 +141,7 @@ class PostgresExecutionRepository(AbstractExecutionRepository):
         stmt = select(func.avg(
             func.extract('epoch', OrmExecutionRun.completed_at) - 
             func.extract('epoch', OrmExecutionRun.started_at)
-        )).where(OrmExecutionRun.status == ExecutionState.COMPLETED.value)
+        )).where(OrmExecutionRun.status == ExecutionState.COMPLETED.value, OrmExecutionRun.workspace_id == uuid.UUID(get_workspace_id()))
         result = await self.session.execute(stmt)
         avg_sec = result.scalar_one_or_none()
         if avg_sec is not None:
@@ -146,6 +152,7 @@ class PostgresExecutionRepository(AbstractExecutionRepository):
         stmt = (
             select(OrmExecutionRun)
             .options(selectinload(OrmExecutionRun.pipeline_version))
+            .where(OrmExecutionRun.workspace_id == uuid.UUID(get_workspace_id()))
             .order_by(OrmExecutionRun.created_at.desc())
             .limit(limit)
             .offset(offset)
@@ -163,8 +170,8 @@ class PostgresExecutionRepository(AbstractExecutionRepository):
         from flowcore_server.db.models import PipelineVersion
         from sqlalchemy import func
         
-        base_stmt = select(OrmExecutionRun).options(selectinload(OrmExecutionRun.pipeline_version))
-        count_stmt = select(func.count(OrmExecutionRun.id))
+        base_stmt = select(OrmExecutionRun).options(selectinload(OrmExecutionRun.pipeline_version)).where(OrmExecutionRun.workspace_id == uuid.UUID(get_workspace_id()))
+        count_stmt = select(func.count(OrmExecutionRun.id)).where(OrmExecutionRun.workspace_id == uuid.UUID(get_workspace_id()))
         
         if pipeline_id:
             base_stmt = base_stmt.join(PipelineVersion, OrmExecutionRun.pipeline_version_id == PipelineVersion.id).where(PipelineVersion.pipeline_id == pipeline_id)

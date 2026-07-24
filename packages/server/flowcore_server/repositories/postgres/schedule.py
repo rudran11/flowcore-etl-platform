@@ -8,6 +8,7 @@ from flowcore_shared.schemas.operational.schedule import Schedule, ScheduleCreat
 from flowcore_server.db.models import Schedule as OrmSchedule
 from flowcore_server.repositories.interfaces.schedule import AbstractScheduleRepository
 from flowcore_server.repositories.mappers.schedule import map_orm_to_schedule, map_schedule_to_orm
+from flowcore_server.dependencies.context import get_workspace_id
 from datetime import datetime
 
 class PostgresScheduleRepository(AbstractScheduleRepository):
@@ -24,14 +25,15 @@ class PostgresScheduleRepository(AbstractScheduleRepository):
             type=schedule_data.type.value,
             expression=schedule_data.expression,
             timezone=schedule_data.timezone,
-            status=ScheduleStatus.ACTIVE.value
+            status=ScheduleStatus.ACTIVE.value,
+            workspace_id=uuid.UUID(get_workspace_id())
         )
         self.session.add(orm_obj)
         await self.session.flush()
         return map_orm_to_schedule(orm_obj)
 
     async def get_schedule(self, schedule_id: str) -> Optional[Schedule]:
-        stmt = select(OrmSchedule).where(OrmSchedule.id == schedule_id)
+        stmt = select(OrmSchedule).where(OrmSchedule.id == schedule_id, OrmSchedule.workspace_id == uuid.UUID(get_workspace_id()))
         result = await self.session.execute(stmt)
         orm_obj = result.scalar_one_or_none()
         if orm_obj:
@@ -39,7 +41,7 @@ class PostgresScheduleRepository(AbstractScheduleRepository):
         return None
 
     async def list_schedules(self, skip: int = 0, limit: int = 100, pipeline_id: Optional[str] = None) -> List[Schedule]:
-        stmt = select(OrmSchedule)
+        stmt = select(OrmSchedule).where(OrmSchedule.workspace_id == uuid.UUID(get_workspace_id()))
         if pipeline_id:
             stmt = stmt.where(OrmSchedule.pipeline_id == pipeline_id)
         stmt = stmt.offset(skip).limit(limit)
@@ -49,7 +51,7 @@ class PostgresScheduleRepository(AbstractScheduleRepository):
         return [map_orm_to_schedule(obj) for obj in orm_objs]
 
     async def update_schedule(self, schedule_id: str, schedule: ScheduleUpdate) -> Optional[Schedule]:
-        stmt = select(OrmSchedule).where(OrmSchedule.id == schedule_id)
+        stmt = select(OrmSchedule).where(OrmSchedule.id == schedule_id, OrmSchedule.workspace_id == uuid.UUID(get_workspace_id()))
         result = await self.session.execute(stmt)
         orm_obj = result.scalar_one_or_none()
         
@@ -68,7 +70,7 @@ class PostgresScheduleRepository(AbstractScheduleRepository):
         return map_orm_to_schedule(orm_obj)
 
     async def delete_schedule(self, schedule_id: str) -> bool:
-        stmt = select(OrmSchedule).where(OrmSchedule.id == schedule_id)
+        stmt = select(OrmSchedule).where(OrmSchedule.id == schedule_id, OrmSchedule.workspace_id == uuid.UUID(get_workspace_id()))
         result = await self.session.execute(stmt)
         orm_obj = result.scalar_one_or_none()
         if orm_obj:

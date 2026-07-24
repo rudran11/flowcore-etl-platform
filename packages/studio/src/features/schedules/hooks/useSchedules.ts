@@ -2,19 +2,23 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { schedulesApi } from '../../../api/schedules';
 import { Schedule } from '../../../types/schedule';
 import { toast } from 'sonner';
+import { useAuthStore } from '../../../stores/authStore';
 
 export const useSchedules = (params?: { skip?: number; limit?: number }) => {
+  const { activeWorkspaceId } = useAuthStore();
   return useQuery({
-    queryKey: ['schedules', params],
+    queryKey: ['schedules', params, activeWorkspaceId],
     queryFn: () => schedulesApi.getSchedules(params),
+    enabled: !!activeWorkspaceId,
   });
 };
 
 export const useSchedule = (id: string) => {
+  const { activeWorkspaceId } = useAuthStore();
   return useQuery({
-    queryKey: ['schedules', id],
+    queryKey: ['schedules', id, activeWorkspaceId],
     queryFn: () => schedulesApi.getSchedule(id),
-    enabled: !!id,
+    enabled: !!id && !!activeWorkspaceId,
   });
 };
 
