@@ -52,6 +52,10 @@ class ExecutionService:
             if not pipeline_version:
                 raise ValueError(f"Pipeline version {pipeline_id}:{version} not found.")
 
+            pipeline = await self.uow.pipelines.get_pipeline(pipeline_id)
+            if not pipeline:
+                raise ValueError(f"Pipeline {pipeline_id} not found.")
+
             from flowcore_shared.schemas.dependencies.dependency_graph import DependencyGraph
             from flowcore_shared.schemas.dependencies.node import Node
             from flowcore_shared.schemas.dependencies.edge import Edge
@@ -64,10 +68,11 @@ class ExecutionService:
             graph = DependencyGraph(nodes=nodes, edges=edges)
 
             import uuid
-            run_id = f"run-{uuid.uuid4().hex[:8]}"
+            run_id = str(uuid.uuid4())
 
             run = ExecutionRun(
                 id=run_id,
+                workspace_id=pipeline.workspace_id,
                 pipeline_id=pipeline_id,
                 pipeline_version_id=pipeline_version.id, # Must use the actual version ID here
                 trigger_type=trigger_type,
@@ -122,17 +127,7 @@ class ExecutionService:
         coordinator.env_secrets = env_secrets
         coordinator.env_type = env_type
         
-        import asyncio
-        loop = asyncio.get_running_loop()
-        def sync_state_saver():
-            async def _save():
-                async with self.uow:
-                    await self.uow.executions.save(coordinator._run)
-                    await self.uow.commit()
-            if loop.is_running():
-                asyncio.run_coroutine_threadsafe(_save(), loop)
-        
-        coordinator.state_change_callback = sync_state_saver
+        coordinator.state_change_callback = None
         
         runner = self.engine_factory.create_runner(coordinator, self.plugin_manager)
 
@@ -144,7 +139,7 @@ class ExecutionService:
             try:
                 # Engine is synchronous, offload to thread
                 await asyncio.to_thread(runner.run)
-                await self.complete_execution(run.id)
+                await self.complete_execution(run.id, final_run_state=coordinator._run)
             except Exception as e:
                 logger.error(f"Background task failed: {e}", exc_info=True)
                 await self.fail_execution(run.id, str(e))
@@ -179,11 +174,15 @@ class ExecutionService:
             )
             await self.event_dispatcher.dispatch(event)
 
-    async def complete_execution(self, run_id: str) -> None:
+    async def complete_execution(self, run_id: str, final_run_state: Optional[ExecutionRun] = None) -> None:
         """Called by background task when engine finishes successfully."""
         from datetime import datetime, timezone
         async with self.uow:
-            run = await self.uow.executions.get_run(run_id)
+            if final_run_state:
+                run = final_run_state
+            else:
+                run = await self.uow.executions.get_run(run_id)
+            
             if not run:
                 return
             
@@ -192,6 +191,31 @@ class ExecutionService:
                 "end_time": datetime.now(timezone.utc)
             })
             await self.uow.executions.save(run)
+            
+            # Extract lineage from all steps
+            all_inputs = []
+            all_outputs = []
+            for step in run.steps.values():
+                lineage = step.outputs.get("_lineage", {})
+                all_inputs.extend(lineage.get("input_datasets", []))
+                all_outputs.extend(lineage.get("output_datasets", []))
+                
+            if all_inputs or all_outputs:
+                from flowcore_server.services.lineage_service import LineageService
+                from flowcore_shared.schemas.lineage.dataset import DatasetCreate, DatasetType
+                lineage_service = LineageService(self.uow)
+                
+                # Convert to DatasetCreate objects
+                input_ds = [DatasetCreate(name=ds["name"], type=DatasetType(ds["type"])) for ds in all_inputs]
+                output_ds = [DatasetCreate(name=ds["name"], type=DatasetType(ds["type"])) for ds in all_outputs]
+                
+                await lineage_service.register_execution_lineage(
+                    workspace_id=str(run.workspace_id),
+                    execution_id=run.id,
+                    inputs=input_ds,
+                    outputs=output_ds
+                )
+
             await self.uow.commit()
             
             event = PipelineExecutionCompleted(
@@ -211,7 +235,8 @@ class ExecutionService:
             
             run = run.model_copy(update={
                 "status": ExecutionState.FAILED,
-                "end_time": datetime.now(timezone.utc)
+                "end_time": datetime.now(timezone.utc),
+                "error_message": error_message
             })
             await self.uow.executions.save(run)
             await self.uow.commit()

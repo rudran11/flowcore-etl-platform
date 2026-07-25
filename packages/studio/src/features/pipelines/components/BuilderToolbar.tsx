@@ -9,6 +9,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useParams } from 'react-router-dom';
 import { History } from 'lucide-react';
 import { EnvironmentSelector } from '../../environments/components/EnvironmentSelector';
+import { apiClient } from '../../../api/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const BuilderToolbar: React.FC = () => {
   const { 
@@ -18,6 +20,7 @@ export const BuilderToolbar: React.FC = () => {
   
   const { id } = useParams<{ id: string }>();
   const { data } = usePipeline(id || '');
+  const queryClient = useQueryClient();
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -26,38 +29,69 @@ export const BuilderToolbar: React.FC = () => {
       toast.error('Cannot save invalid pipeline');
       return;
     }
-    const { nodes, edges } = usePipelineBuilderStore.getState();
+    const { nodes, edges, rawYaml: latestYaml, clearDraft } = usePipelineBuilderStore.getState();
     if (!id) return;
 
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/pipelines/${id}/versions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          version_tag: `v${Date.now()}`,
-          dsl_definition: yaml.parse(rawYaml),
-          graph_definition: { nodes, edges }
-        })
+      await apiClient.post(`/pipelines/${id}/versions`, {
+        version_tag: `v${Date.now()}`,
+        dsl_definition: yaml.parse(latestYaml) || {},
+        graph_definition: { nodes, edges }
       });
 
-      if (!response.ok) throw new Error('Save failed');
-
+      await queryClient.invalidateQueries({ queryKey: ['pipeline', id] });
       toast.success('Pipeline saved successfully');
       usePipelineBuilderStore.setState({ isDirty: false });
-    } catch (err) {
-      toast.error('Failed to save pipeline');
+      clearDraft(id);
+    } catch (err: any) {
+      const detail = err.response?.data?.detail;
+      const msg = typeof detail === 'string' ? detail : (detail ? JSON.stringify(detail) : err.message);
+      toast.error('Failed to save: ' + msg);
     }
   };
 
-  const handleRun = () => {
+  const handleRun = async () => {
     if (!isValid) {
       toast.error('Cannot run invalid pipeline');
       return;
     }
-    toast.promise(new Promise(resolve => setTimeout(resolve, 1500)), {
-      loading: 'Compiling pipeline...',
+    
+    if (!id) return;
+    const { nodes, edges, rawYaml: latestYaml, clearDraft } = usePipelineBuilderStore.getState();
+    let versionToRun = data?.versions?.[0]?.version;
+    
+    if (isDirty || !versionToRun) {
+      versionToRun = `v${Date.now()}`;
+      try {
+        await apiClient.post(`/pipelines/${id}/versions`, {
+          version_tag: versionToRun,
+          dsl_definition: yaml.parse(latestYaml) || {},
+          graph_definition: { nodes, edges }
+        });
+        await queryClient.invalidateQueries({ queryKey: ['pipeline', id] });
+        usePipelineBuilderStore.setState({ isDirty: false });
+        clearDraft(id);
+        toast.success('Pipeline saved successfully');
+      } catch (err: any) {
+        const detail = err.response?.data?.detail;
+        const msg = typeof detail === 'string' ? detail : (detail ? JSON.stringify(detail) : err.message);
+        toast.error('Failed to save before running: ' + msg);
+        return;
+      }
+    }
+
+    const runPromise = apiClient.post(`/pipelines/${id}/versions/${versionToRun}/execute`, {
+      parameters: {}
+    });
+
+    toast.promise(runPromise, {
+      loading: 'Compiling and starting pipeline...',
       success: 'Execution started successfully!',
-      error: 'Failed to start execution',
+      error: (err: any) => {
+        const detail = err.response?.data?.detail;
+        const msg = typeof detail === 'string' ? detail : (detail ? JSON.stringify(detail) : err.message);
+        return `Failed to start execution: ${msg}`;
+      },
     });
   };
 

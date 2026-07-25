@@ -2,6 +2,8 @@ from flowcore_server.repositories.interfaces.uow import AbstractUnitOfWork
 from flowcore_server.repositories.in_memory.pipeline import InMemoryPipelineRepository
 from flowcore_server.repositories.in_memory.execution import InMemoryExecutionRepository
 from flowcore_server.repositories.in_memory.schedule import InMemoryScheduleRepository
+from flowcore_server.repositories.in_memory.lineage import InMemoryLineageRepository
+from flowcore_server.repositories.in_memory.environment import InMemoryEnvironmentRepository
 from flowcore_server.repositories.in_memory.auth import (
     InMemoryUserRepository,
     InMemoryOrganizationRepository,
@@ -16,6 +18,8 @@ class InMemoryUnitOfWork(AbstractUnitOfWork):
         self._pipelines = InMemoryPipelineRepository()
         self._executions = InMemoryExecutionRepository()
         self._schedules = InMemoryScheduleRepository()
+        self._lineage = InMemoryLineageRepository()
+        self._environments = InMemoryEnvironmentRepository()
         self._users = InMemoryUserRepository()
         self._organizations = InMemoryOrganizationRepository()
         self._workspaces = InMemoryWorkspaceRepository()
@@ -47,6 +51,14 @@ class InMemoryUnitOfWork(AbstractUnitOfWork):
     @property
     def schedules(self):
         return self._schedules
+
+    @property
+    def lineage(self):
+        return self._lineage
+
+    @property
+    def environments(self):
+        return self._environments
 
     @property
     def users(self):

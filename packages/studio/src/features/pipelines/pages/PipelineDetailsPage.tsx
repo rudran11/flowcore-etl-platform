@@ -93,20 +93,29 @@ export const PipelineDetailsPage: React.FC = () => {
   useEffect(() => {
     if (data && data.pipeline && id) {
       // Check if we have an unsaved draft
-      const hasDraft = loadDraftFromStorage(id);
+      const hasDraft = loadDraftFromStorage(id, data.pipeline);
       
       if (hasDraft) {
-        toast.info('Restored unsaved draft from your last session', {
-          action: {
-            label: 'Discard',
-            onClick: () => {
-              // Reset to backend version
-              setPipeline(data.pipeline, yaml.stringify({ trigger: { type: 'manual' }, steps: {} }));
-            }
-          }
-        });
+        toast.info('Loaded unsaved draft');
       } else {
-        setPipeline(data.pipeline, yaml.stringify({ trigger: { type: 'manual' }, steps: {} }));
+        const latestVersion = data.versions && data.versions.length > 0 ? data.versions[0] : null;
+        if (latestVersion && latestVersion.dsl_definition) {
+           setPipeline(data.pipeline, yaml.stringify(latestVersion.dsl_definition));
+           
+           if (latestVersion.graph_definition && latestVersion.graph_definition.nodes) {
+             const savedNodes = latestVersion.graph_definition.nodes;
+             const posMap = new Map(savedNodes.map((n: any) => [n.id, n.position]));
+             
+             usePipelineBuilderStore.setState(state => ({
+               nodes: state.nodes.map(n => ({
+                 ...n,
+                 position: posMap.get(n.id) || n.position
+               }))
+             }));
+           }
+        } else {
+           setPipeline(data.pipeline, yaml.stringify({ trigger: { type: 'manual' }, steps: {} }));
+        }
       }
     }
   }, [data, id, setPipeline, loadDraftFromStorage]);

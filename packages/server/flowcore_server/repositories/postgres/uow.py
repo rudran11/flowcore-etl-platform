@@ -4,6 +4,7 @@ from flowcore_server.repositories.postgres.pipeline import PostgresPipelineRepos
 from flowcore_server.repositories.postgres.execution import PostgresExecutionRepository
 from flowcore_server.repositories.postgres.schedule import PostgresScheduleRepository
 from flowcore_server.repositories.postgres.environment import AsyncSqlAlchemyEnvironmentRepository as PostgresEnvironmentRepository
+from flowcore_server.repositories.postgres.lineage import AsyncSqlAlchemyLineageRepository
 from flowcore_server.repositories.postgres.auth import (
     AsyncSqlAlchemyUserRepository,
     AsyncSqlAlchemyOrganizationRepository,
@@ -23,6 +24,7 @@ class AsyncSqlAlchemyUnitOfWork(AbstractUnitOfWork):
         self._executions = PostgresExecutionRepository(self.session)
         self._schedules = PostgresScheduleRepository(self.session)
         self._environments = PostgresEnvironmentRepository(self.session)
+        self._lineage = AsyncSqlAlchemyLineageRepository(self.session)
         self._users = AsyncSqlAlchemyUserRepository(self.session)
         self._organizations = AsyncSqlAlchemyOrganizationRepository(self.session)
         self._workspaces = AsyncSqlAlchemyWorkspaceRepository(self.session)
@@ -75,3 +77,7 @@ class AsyncSqlAlchemyUnitOfWork(AbstractUnitOfWork):
     @property
     def environments(self):
         return self._environments
+
+    @property
+    def lineage(self):
+        return self._lineage

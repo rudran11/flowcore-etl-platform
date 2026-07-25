@@ -48,18 +48,19 @@ class EngineRunner:
                 # If there's still "pending work", it means something is blocked or failed fast.
                 break
 
-            # 2. Wait for at least one future to complete or a short timeout tick (for timeouts)
-            done, not_done = concurrent.futures.wait(
-                self._pending_futures.keys(),
-                timeout=1.0,
-                return_when=concurrent.futures.FIRST_COMPLETED
-            )
-            
-            # 3. Process completed futures
-            for future in done:
-                task = self._pending_futures.pop(future)
-                del self._step_to_future[task.step_id]
-                self._process_completed_future(future, task)
+            if self._pending_futures:
+                # 2. Wait for at least one future to complete or a short timeout tick (for timeouts)
+                done, not_done = concurrent.futures.wait(
+                    self._pending_futures.keys(),
+                    timeout=1.0,
+                    return_when=concurrent.futures.FIRST_COMPLETED
+                )
+                
+                # 3. Process completed futures
+                for future in done:
+                    task = self._pending_futures.pop(future)
+                    del self._step_to_future[task.step_id]
+                    self._process_completed_future(future, task)
                 
             # 4. Enforce timeouts on running tasks
             # FUTURE ENHANCEMENT: Enforce timeout logic here by inspecting duration

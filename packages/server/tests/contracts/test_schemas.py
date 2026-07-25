@@ -39,6 +39,7 @@ def test_plugin_mapper():
 def test_pipeline_mapper():
     internal_pipeline = Pipeline(
         id="pipe-1",
+        workspace_id="test-workspace",
         name="Test Pipeline",
         owner="test-owner",
         description="A pipeline"
@@ -65,6 +66,7 @@ def test_execution_mapper():
     now = datetime.now()
     internal_run = ExecutionRun(
         id="run-1",
+        workspace_id="test-workspace",
         pipeline_id="pipe-1",
         pipeline_version_id="ver-1",
         status=ExecutionState.COMPLETED,

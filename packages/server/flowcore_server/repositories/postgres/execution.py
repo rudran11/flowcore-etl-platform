@@ -34,7 +34,7 @@ class PostgresExecutionRepository(AbstractExecutionRepository):
     async def get_run(self, run_id: str) -> Optional[ExecutionRun]:
         stmt = (
             select(OrmExecutionRun)
-            .options(selectinload(OrmExecutionRun.pipeline_version))
+            .options(selectinload(OrmExecutionRun.pipeline_version), selectinload(OrmExecutionRun.steps))
             .where(OrmExecutionRun.id == run_id, OrmExecutionRun.workspace_id == uuid.UUID(get_workspace_id()))
         )
         result = await self.session.execute(stmt)
@@ -72,7 +72,7 @@ class PostgresExecutionRepository(AbstractExecutionRepository):
         # Simplistic save for Upsert
         existing = await self.get_run(run.id)
         if existing:
-            stmt = select(OrmExecutionRun).where(OrmExecutionRun.id == run.id, OrmExecutionRun.workspace_id == uuid.UUID(get_workspace_id()))
+            stmt = select(OrmExecutionRun).options(selectinload(OrmExecutionRun.steps)).where(OrmExecutionRun.id == run.id, OrmExecutionRun.workspace_id == uuid.UUID(get_workspace_id()))
             result = await self.session.execute(stmt)
             orm_obj = result.scalar_one()
             
@@ -81,6 +81,37 @@ class PostgresExecutionRepository(AbstractExecutionRepository):
             orm_obj.started_at = run.start_time
             orm_obj.completed_at = run.end_time
             orm_obj.parameters = {"trigger_type": run.trigger_type}
+            orm_obj.error_message = run.error_message
+            
+            # Map updated steps
+            from flowcore_server.db.models import ExecutionStep as OrmExecutionStep
+            existing_steps = {str(step.id): step for step in orm_obj.steps}
+            
+            for step_id, domain_step in run.steps.items():
+                if domain_step.id in existing_steps:
+                    orm_step = existing_steps[domain_step.id]
+                    orm_step.status = domain_step.status.value
+                    orm_step.started_at = domain_step.start_time
+                    orm_step.completed_at = domain_step.end_time
+                    orm_step.retry_count = domain_step.retry_count
+                    orm_step.error_message = domain_step.error_message
+                    orm_step.outputs = domain_step.outputs
+                    orm_step.logs = domain_step.logs
+                else:
+                    orm_step = OrmExecutionStep(
+                        id=uuid.UUID(domain_step.id),
+                        run_id=orm_obj.id,
+                        workspace_id=orm_obj.workspace_id,
+                        step_id=domain_step.step_id,
+                        status=domain_step.status.value,
+                        started_at=domain_step.start_time,
+                        completed_at=domain_step.end_time,
+                        retry_count=domain_step.retry_count,
+                        error_message=domain_step.error_message,
+                        outputs=domain_step.outputs,
+                        logs=domain_step.logs
+                    )
+                    orm_obj.steps.append(orm_step)
             
             await self.session.flush()
             await self.session.refresh(orm_obj, ["pipeline_version"])

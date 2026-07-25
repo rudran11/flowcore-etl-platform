@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, GitMerge, Activity, Settings, ChevronLeft, ChevronRight, Box, Puzzle, CalendarClock, Server } from 'lucide-react';
+import { LayoutDashboard, GitMerge, Activity, Settings, ChevronLeft, ChevronRight, Box, Puzzle, CalendarClock, Server, Database } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useSidebarStore } from '../../stores/sidebarStore';
 import { Button } from '../../components/ui/button';
@@ -11,6 +11,7 @@ const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/pipelines', label: 'Pipelines', icon: GitMerge },
   { path: '/environments', label: 'Environments', icon: Server },
+  { path: '/datasets', label: 'Data Catalog', icon: Database },
   { path: '/schedules', label: 'Schedules', icon: CalendarClock },
   { path: '/runs', label: 'Runs', icon: Activity },
   { path: '/plugins', label: 'Plugins', icon: Puzzle },

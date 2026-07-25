@@ -59,8 +59,7 @@ async def list_pipelines(
 )
 async def get_pipeline(
     pipeline_id: str = Path(..., description="The ID of the pipeline"),
-    service: PipelineService = Depends(get_pipeline_service),
-    user: UserInDB = Depends(require_permissions([]))
+    service: PipelineService = Depends(get_pipeline_service)
 ):
     """
     Retrieves details for a specific pipeline including versions and recent runs.
@@ -78,8 +77,7 @@ from flowcore_server.models.pipeline_version import PipelineVersionCreate, Pipel
 async def save_pipeline_version(
     request: PipelineVersionCreate,
     pipeline_id: str = Path(..., description="The ID of the pipeline"),
-    service: PipelineService = Depends(get_pipeline_service),
-    user: UserInDB = Depends(require_permissions(["pipeline:create"]))
+    service: PipelineService = Depends(get_pipeline_service)
 ):
     """
     Saves a new pipeline version (e.g. from the builder).

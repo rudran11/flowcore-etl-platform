@@ -25,8 +25,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => 
         const triggerData = { type: node.data.type, schedule: node.data.schedule };
         setEditorValue(yaml.stringify(triggerData));
       } else {
-        const stepData = { plugin_id: node.data.plugin_id, config: node.data.config };
-        setEditorValue(yaml.stringify(stepData));
+        setEditorValue(yaml.stringify(node.data.config || {}));
       }
       setError(null);
     }
@@ -34,36 +33,26 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => 
 
   if (!nodeId || !node) return null;
 
-  const handleEditorChange = (value: string | undefined) => {
-    if (value !== undefined) {
-      setEditorValue(value);
-      try {
-        const parsed = yaml.parse(value);
-        setError(null);
-        
-        // Live update the node
-        setNodes(nodes.map(n => {
-          if (n.id === nodeId) {
-            if (n.type === 'triggerNode') {
-              return { ...n, data: { ...n.data, type: parsed.type, schedule: parsed.schedule, error: false } };
-            } else {
-              return { ...n, data: { ...n.data, plugin_id: parsed.plugin_id, config: parsed.config, error: false } };
-            }
+  const handleApply = () => {
+    try {
+      const parsed = yaml.parse(editorValue) || {};
+      setError(null);
+      
+      setNodes(nodes.map(n => {
+        if (n.id === nodeId) {
+          if (n.type === 'triggerNode') {
+            return { ...n, data: { ...n.data, type: parsed.type, schedule: parsed.schedule, error: false } };
+          } else {
+            return { ...n, data: { ...n.data, config: parsed, error: Object.keys(parsed).length === 0 } };
           }
-          return n;
-        }));
-        
-        syncToYaml();
-      } catch (e: any) {
-        setError(e.message);
-        // Mark node as error
-        setNodes(nodes.map(n => {
-          if (n.id === nodeId) {
-            return { ...n, data: { ...n.data, error: true } };
-          }
-          return n;
-        }));
-      }
+        }
+        return n;
+      }));
+      
+      syncToYaml();
+      onClose();
+    } catch (e: any) {
+      setError(e.message);
     }
   };
 
@@ -91,7 +80,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => 
           defaultLanguage="yaml"
           theme="vs-dark"
           value={editorValue}
-          onChange={handleEditorChange}
+          onChange={(val) => setEditorValue(val || '')}
           options={{
             minimap: { enabled: false },
             fontSize: 13,
@@ -101,6 +90,11 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => 
             padding: { top: 16 },
           }}
         />
+      </div>
+
+      <div className="p-4 border-t border-white/5 bg-zinc-900 flex justify-end gap-2">
+        <Button variant="ghost" onClick={onClose}>Cancel</Button>
+        <Button onClick={handleApply}>Apply Configuration</Button>
       </div>
 
       <AnimatePresence>

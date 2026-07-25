@@ -25,3 +25,23 @@ class RuntimeContext(BaseModel):
     variables: Dict[str, str] = Field(default_factory=dict)
     secrets: Dict[str, str] = Field(default_factory=dict)
     logger: logging.Logger
+    
+    # Lineage tracking
+    input_datasets: list = Field(default_factory=list, description="List of input datasets reported by the plugin")
+    output_datasets: list = Field(default_factory=list, description="List of output datasets reported by the plugin")
+
+    def report_input_dataset(self, name: str, dataset_type: str, columns: list = None):
+        """Plugin authors can call this to report a dataset read"""
+        self.input_datasets.append({
+            "name": name,
+            "type": dataset_type,
+            "columns": columns or []
+        })
+
+    def report_output_dataset(self, name: str, dataset_type: str, columns: list = None):
+        """Plugin authors can call this to report a dataset write"""
+        self.output_datasets.append({
+            "name": name,
+            "type": dataset_type,
+            "columns": columns or []
+        })

@@ -43,6 +43,16 @@ apiClient.interceptors.response.use(
         return Promise.reject(refreshError);
       }
     }
+    if (error.response?.status === 422) {
+      const details = error.response.data?.detail;
+      const isWorkspaceError = Array.isArray(details) && details.some((d: any) => 
+        d.loc?.includes('x-workspace-id') || d.loc?.includes('X-Workspace-ID')
+      );
+      if (isWorkspaceError) {
+        return Promise.reject(new Error('Missing X-Workspace-ID header. Please select a workspace.'));
+      }
+    }
+    
     return Promise.reject(error);
   }
 );

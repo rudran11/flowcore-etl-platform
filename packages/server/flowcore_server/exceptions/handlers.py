@@ -35,6 +35,8 @@ async def validation_error_handler(request: Request, exc: ValidationError | Requ
     return JSONResponse(status_code=422, content=err.model_dump())
 
 async def value_error_handler(request: Request, exc: ValueError):
+    import traceback
+    traceback.print_exc()
     req_id = get_request_id()
     err = RFC7807Error(
         type="about:blank",

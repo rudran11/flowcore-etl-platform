@@ -28,11 +28,11 @@ def setup_integration_data():
     
     async def seed():
         async with uow:
-            p = Pipeline(id="int-pipe-2", name="test", owner="test")
+            p = Pipeline(id="int-pipe-1", workspace_id=str(uuid.uuid4()), name="test", owner="test")
             await uow.pipelines.create_pipeline(p)
             pv = PipelineVersion(
                 id=str(uuid.uuid4()),
-                pipeline_id="int-pipe-2",
+                pipeline_id="int-pipe-1",
                 version="1.0.0",
                 steps=[]
             )

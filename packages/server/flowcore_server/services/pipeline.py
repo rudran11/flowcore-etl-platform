@@ -43,17 +43,35 @@ class PipelineService:
     async def create_pipeline_version(self, pipeline_id: str, request: "flowcore_server.models.pipeline_version.PipelineVersionCreate") -> "flowcore_shared.schemas.pipeline.PipelineVersion":
         import uuid
         from flowcore_shared.schemas.pipeline import PipelineVersion
+        from flowcore_shared.schemas.pipeline.execution_step import ExecutionStep
         
         async with self.uow as uow:
             pipeline = await uow.pipelines.get_pipeline(pipeline_id)
             if not pipeline:
                 raise ResourceNotFoundError(f"Pipeline with ID {pipeline_id} not found")
                 
+            steps = []
+            if request.dsl_definition and isinstance(request.dsl_definition, dict):
+                dsl_steps = request.dsl_definition.get("steps", {})
+                for step_id, step_config in dsl_steps.items():
+                    # Handle possible None for depends_on
+                    depends_on_raw = step_config.get("depends_on") or []
+                    depends_on = [dep for dep in depends_on_raw if dep != "trigger" and dep != "Trigger"]
+                    
+                    steps.append(
+                        ExecutionStep(
+                            step_id=step_id,
+                            connector_id=step_config.get("plugin_id") or step_config.get("type") or "unknown",
+                            depends_on=depends_on,
+                            parameters=step_config.get("config") or {}
+                        )
+                    )
+
             version = PipelineVersion(
                 id=str(uuid.uuid4()),
                 pipeline_id=pipeline_id,
                 version=request.version_tag,
-                steps=[],  # Will populate later or infer from dsl
+                steps=steps,
                 dsl_definition=request.dsl_definition,
                 graph_definition=request.graph_definition
             )

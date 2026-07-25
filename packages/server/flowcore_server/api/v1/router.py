@@ -8,6 +8,8 @@ from .schedules import router as schedules_router
 from .auth import router as auth_router
 from .workspaces import router as workspaces_router
 from .environments import router as environments_router
+from .datasets import router as datasets_router
+from .lineage import router as lineage_router
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -20,3 +22,5 @@ api_router.include_router(runs_router)
 api_router.include_router(dashboard_router)
 api_router.include_router(schedules_router)
 api_router.include_router(environments_router)
+api_router.include_router(datasets_router)
+api_router.include_router(lineage_router)

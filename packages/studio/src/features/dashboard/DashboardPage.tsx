@@ -3,11 +3,12 @@ import { motion } from 'framer-motion';
 import { useDashboard } from './hooks/useDashboard';
 import { useSchedules } from '../schedules/hooks/useSchedules';
 import { useEnvironments } from '../environments/hooks/useEnvironments';
+import { useDatasets } from '../datasets/hooks/useDatasets';
 import { DashboardCard } from './components/DashboardCard';
 import { DashboardGrid } from './components/DashboardGrid';
 import { ExecutionTrendChart } from './components/ExecutionTrendChart';
 import { ExecutionTable } from '../executions/components/ExecutionTable';
-import { Activity, Clock, PlayCircle, ServerCog, AlertOctagon, Server } from 'lucide-react';
+import { Activity, Clock, PlayCircle, ServerCog, AlertOctagon, Server, Database } from 'lucide-react';
 import { Skeleton } from '../../components/ui/skeleton';
 import { toast } from 'sonner';
 import { useSchedulerMetrics } from './hooks/useSchedulerMetrics';
@@ -32,6 +33,7 @@ export const DashboardPage: React.FC = () => {
   const { data: schedules } = useSchedules();
   const { data: metrics } = useSchedulerMetrics();
   const { data: environments } = useEnvironments();
+  const { data: datasets } = useDatasets();
 
   React.useEffect(() => {
     if (error) {
@@ -121,6 +123,14 @@ export const DashboardPage: React.FC = () => {
             value={environments?.length || 0} 
             icon={<Server className="h-4 w-4 text-primary" />}
             description="Configured profiles"
+          />
+        </motion.div>
+        <motion.div variants={item}>
+          <DashboardCard 
+            title="Total Datasets" 
+            value={datasets?.length || 0} 
+            icon={<Database className="h-4 w-4 text-purple-500" />}
+            description="Tracked lineage assets"
           />
         </motion.div>
         <motion.div variants={item}>

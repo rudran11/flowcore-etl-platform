@@ -4,6 +4,7 @@ from flowcore_server.repositories.interfaces.pipeline import AbstractPipelineRep
 from flowcore_server.repositories.interfaces.execution import AbstractExecutionRepository
 from flowcore_server.repositories.interfaces.schedule import AbstractScheduleRepository
 from flowcore_server.repositories.interfaces.environment import AbstractEnvironmentRepository
+from flowcore_server.repositories.interfaces.lineage import AbstractLineageRepository
 from flowcore_server.repositories.interfaces.auth import (
     UserRepository,
     OrganizationRepository,
@@ -83,4 +84,9 @@ class AbstractUnitOfWork(abc.ABC):
     @property
     @abc.abstractmethod
     def environments(self) -> 'AbstractEnvironmentRepository':
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def lineage(self) -> 'AbstractLineageRepository':
         raise NotImplementedError

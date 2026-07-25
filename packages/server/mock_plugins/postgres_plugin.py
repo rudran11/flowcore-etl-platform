@@ -21,5 +21,9 @@ class PostgresPlugin(BasePlugin):
             dependencies=[]
         )
         
-    def execute(self, *args, **kwargs):
-        pass
+    def execute(self, context, *args, **kwargs):
+        # Mock dataset reporting for Lineage testing
+        context.report_input_dataset(name="sales_db", dataset_type="DATABASE_TABLE")
+        context.report_output_dataset(name="sales_extracted", dataset_type="FILE")
+        
+        return {"status": "success", "rows_processed": 100}

@@ -48,7 +48,7 @@ def service(uow, dispatcher):
 async def test_event_published_after_successful_commit(service, uow, dispatcher):
     # Setup
     async with uow:
-        p = Pipeline(id="test-pipe", name="test", owner="test")
+        p = Pipeline(id="test-pipe", name="test", owner="test", workspace_id="test-workspace")
         await uow.pipelines.create_pipeline(p)
         pv = PipelineVersion(id="test-version-id", pipeline_id="test-pipe", version="1.0", steps=[])
         await uow.pipelines.create_pipeline_version(pv)
@@ -75,7 +75,7 @@ async def test_no_event_published_after_rollback(service, uow, dispatcher):
     # Force a failure in uow.commit() by raising an exception, or by crashing before commit
     # Since start_execution catches nothing if UoW fails, we mock uow.commit to raise.
     async with uow:
-        p = Pipeline(id="test-pipe-rb", name="test", owner="test")
+        p = Pipeline(id="test-pipe-rb", name="test", owner="test", workspace_id="test-workspace")
         await uow.pipelines.create_pipeline(p)
         pv = PipelineVersion(id="test-version-id-rb", pipeline_id="test-pipe-rb", version="1.0", steps=[])
         await uow.pipelines.create_pipeline_version(pv)
@@ -96,7 +96,7 @@ async def test_no_event_published_after_rollback(service, uow, dispatcher):
 async def test_events_emitted_in_correct_order_and_fifo(service, uow, dispatcher):
     # Setup
     async with uow:
-        p = Pipeline(id="test-pipe", name="test", owner="test")
+        p = Pipeline(id="test-pipe", name="test", owner="test", workspace_id="test-workspace")
         await uow.pipelines.create_pipeline(p)
         pv = PipelineVersion(id="test-version-id", pipeline_id="test-pipe", version="1.0", steps=[])
         await uow.pipelines.create_pipeline_version(pv)

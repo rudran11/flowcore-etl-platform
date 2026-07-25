@@ -18,7 +18,7 @@ def setup_dummy_pipeline():
     
     async def seed():
         async with uow:
-            p = Pipeline(id="perf-pipe-1", name="test", owner="test")
+            p = Pipeline(id="perf-pipe-1", workspace_id="ws-1", name="test", owner="test")
             await uow.pipelines.create_pipeline(p)
             pv = PipelineVersion(
                 id=str(uuid.uuid4()),

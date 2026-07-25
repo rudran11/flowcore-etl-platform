@@ -21,5 +21,13 @@ class SlackPlugin(BasePlugin):
             dependencies=[]
         )
         
-    def execute(self, *args, **kwargs):
-        pass
+    def execute(self, context, *args, **kwargs):
+        # Mock dataset reporting for Lineage testing
+        context.report_input_dataset(name="sales_extracted", dataset_type="FILE")
+        context.report_output_dataset(name="slack_alerts", dataset_type="API")
+        
+        class MockResult:
+            def __init__(self):
+                self.output = {"status": "success", "message": "Sent to Slack"}
+        
+        return MockResult()

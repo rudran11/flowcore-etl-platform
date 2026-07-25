@@ -120,7 +120,7 @@ class ExecutionCoordinator:
         if event_type == ExecutionEventType.TASK_STARTED:
             self.on_step_started(task.step_id)
         elif event_type == ExecutionEventType.TASK_COMPLETED:
-            self.on_step_completed(task.step_id, payload)
+            self.on_step_completed(task, payload)
         elif event_type == ExecutionEventType.TASK_FAILED:
             # payload is the EngineError
             self.on_step_failed(task.step_id, payload)
@@ -134,9 +134,26 @@ class ExecutionCoordinator:
         self._transition_step(step_id, ExecutionState.RUNNING)
         self._attempts[step_id] += 1
 
-    def on_step_completed(self, step_id: str, payload: Any = None) -> None:
+    def on_step_completed(self, task: "ExecutionTask", payload: Any = None) -> None:
         """Called when an executor finishes a step successfully."""
-        outputs = payload.outputs if payload and hasattr(payload, 'outputs') else {}
+        step_id = task.step_id
+        # Note: ExecutionResult returns `output` not `outputs`.
+        plugin_output = payload.output if payload and hasattr(payload, 'output') else None
+        
+        if isinstance(plugin_output, dict):
+            outputs = plugin_output
+        elif hasattr(plugin_output, '__dict__'):
+            outputs = plugin_output.__dict__.copy()
+        else:
+            outputs = {"result": plugin_output}
+            
+        # Capture lineage datasets
+        lineage = {
+            "input_datasets": task.runtime_context.input_datasets,
+            "output_datasets": task.runtime_context.output_datasets
+        }
+        outputs["_lineage"] = lineage
+
         self._transition_step(step_id, ExecutionState.COMPLETED, outputs=outputs)
         self.scheduler.complete_task(step_id)
         
@@ -190,20 +207,24 @@ class ExecutionCoordinator:
                 )
             
             step = self._run.steps[step_id]
-            step.status = new_state
-            step.retry_count = self._attempts[step_id]
+            updates = {
+                "status": new_state,
+                "retry_count": self._attempts[step_id]
+            }
             
             if new_state == ExecutionState.RUNNING and not step.start_time:
-                step.start_time = datetime.utcnow()
+                updates["start_time"] = datetime.utcnow()
             elif new_state in [ExecutionState.COMPLETED, ExecutionState.FAILED, ExecutionState.CANCELLED]:
-                step.end_time = datetime.utcnow()
+                updates["end_time"] = datetime.utcnow()
                 
             if error_message is not None:
-                step.error_message = error_message
+                updates["error_message"] = error_message
             if logs is not None:
-                step.logs.extend(logs)
+                updates["logs"] = step.logs + logs
             if outputs is not None:
-                step.outputs.update(outputs)
+                updates["outputs"] = {**step.outputs, **outputs}
+                
+            self._run.steps[step_id] = step.model_copy(update=updates)
                 
             if self.state_change_callback:
                 self.state_change_callback()

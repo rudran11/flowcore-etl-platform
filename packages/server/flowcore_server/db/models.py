@@ -128,3 +128,4 @@ class ScheduleRunHistory(Base):
 
 from .auth_models import Organization, Workspace, User, Role, Permission, RolePermission, WorkspaceMember
 from .environment_models import Environment, EnvironmentVariable, PipelineEnvironmentBinding
+from .lineage_models import Dataset, DatasetVersion, DatasetColumn, LineageEdge, ExecutionLineage, DatasetTag, DatasetMetadata

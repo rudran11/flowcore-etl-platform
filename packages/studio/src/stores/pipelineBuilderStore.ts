@@ -65,7 +65,7 @@ export interface PipelineBuilderState {
 
   // Persistence
   saveDraftToStorage: (id: string) => void;
-  loadDraftFromStorage: (id: string) => boolean;
+  loadDraftFromStorage: (id: string, pipeline: Pipeline) => boolean;
   clearDraft: (id: string) => void;
 }
 
@@ -105,14 +105,14 @@ const buildGraphFromYaml = (yamlString: string) => {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
   
-  if (parsed.trigger) {
-    nodes.push({
-      id: 'trigger',
-      type: 'triggerNode',
-      position: { x: 0, y: 0 },
-      data: { label: 'Trigger', type: parsed.trigger.type, schedule: parsed.trigger.schedule }
-    });
-  }
+  const triggerData = parsed.trigger || { type: 'manual', schedule: '0 0 * * *' };
+  
+  nodes.push({
+    id: 'trigger',
+    type: 'triggerNode',
+    position: { x: 0, y: 0 },
+    data: { label: 'Trigger', type: triggerData.type, schedule: triggerData.schedule }
+  });
 
   if (parsed.steps) {
     Object.entries(parsed.steps).forEach(([stepId, step]: [string, any]) => {
@@ -132,7 +132,7 @@ const buildGraphFromYaml = (yamlString: string) => {
             animated: true,
           });
         });
-      } else if (parsed.trigger) {
+      } else {
         edges.push({
           id: `e-trigger-${stepId}`,
           source: 'trigger',
@@ -394,11 +394,12 @@ export const usePipelineBuilderStore = create<PipelineBuilderState>((set, get) =
     }
   },
 
-  loadDraftFromStorage: (id: string) => {
+  loadDraftFromStorage: (id: string, pipeline: Pipeline) => {
     const draft = localStorage.getItem(`${STORAGE_KEY_PREFIX}${id}`);
     if (draft) {
       const { nodes, edges } = buildGraphFromYaml(draft);
       set({ 
+        pipeline,
         rawYaml: draft, 
         nodes, 
         edges, 

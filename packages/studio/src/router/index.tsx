@@ -13,6 +13,9 @@ import { SettingsPage } from '../features/settings/pages/SettingsPage';
 import { SchedulesPage } from '../features/schedules/pages/SchedulesPage';
 import { EnvironmentsPage } from '../features/environments/pages/EnvironmentsPage';
 import { EnvironmentDetailsPage } from '../features/environments/pages/EnvironmentDetailsPage';
+import { DatasetsPage } from '../features/datasets/DatasetsPage';
+import { DatasetDetailsPage } from '../features/datasets/DatasetDetailsPage';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 export const router = createBrowserRouter([
   {
@@ -25,7 +28,11 @@ export const router = createBrowserRouter([
     children: [
       {
         path: '/',
-        element: <RootLayout />,
+        element: (
+          <ErrorBoundary>
+            <RootLayout />
+          </ErrorBoundary>
+        ),
         children: [
       {
         index: true,
@@ -50,6 +57,14 @@ export const router = createBrowserRouter([
       {
         path: 'environments/:id',
         element: <EnvironmentDetailsPage />,
+      },
+      {
+        path: 'datasets',
+        element: <DatasetsPage />,
+      },
+      {
+        path: 'datasets/:id',
+        element: <DatasetDetailsPage />,
       },
       {
         path: 'schedules',

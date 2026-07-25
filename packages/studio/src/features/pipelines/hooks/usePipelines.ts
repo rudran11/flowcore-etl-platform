@@ -16,5 +16,6 @@ export const usePipelines = (params: UsePipelinesParams = {}) => {
     queryFn: () => pipelinesApi.getPipelines(params),
     staleTime: 30000,
     enabled: !!activeWorkspaceId,
+    throwOnError: true,
   });
 };

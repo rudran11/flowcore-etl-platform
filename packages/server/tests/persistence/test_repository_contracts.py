@@ -11,6 +11,7 @@ async def test_pipeline_crud_contract(any_uow):
     # Create Pipeline
     p = Pipeline(
         id=str(uuid.uuid4()),
+        workspace_id=str(uuid.uuid4()),
         name="test_pipeline",
         owner="data_team",
         description="test",
@@ -70,23 +71,23 @@ async def test_pipeline_crud_contract(any_uow):
 
 @pytest.mark.asyncio
 async def test_execution_run_contract(any_uow):
-    uow = any_uow
-    
-    # Setup Pipeline & Version
-    p = Pipeline(id=str(uuid.uuid4()), name="exec_test", owner="dev")
-    await uow.pipelines.create_pipeline(p)
-    
-    pv = PipelineVersion(
-        id=str(uuid.uuid4()), 
-        pipeline_id=p.id, 
-        version="v1.0"
-    )
-    await uow.pipelines.create_pipeline_version(pv)
+    async with any_uow as uow:
+        pipe_uuid = str(uuid.uuid4())
+        await uow.pipelines.create_pipeline(Pipeline(id=pipe_uuid, workspace_id=str(uuid.uuid4()), name="test", owner="owner"))
+        
+        pv = PipelineVersion(
+            id=str(uuid.uuid4()),
+            pipeline_id=pipe_uuid,
+            version="1.0.0",
+            steps=[]
+        )
+        await uow.pipelines.create_pipeline_version(pv)
     
     # Create Execution Run
     run = ExecutionRun(
         id=str(uuid.uuid4()),
-        pipeline_id=p.id,
+        workspace_id=str(uuid.uuid4()),
+        pipeline_id=pipe_uuid,
         pipeline_version_id=pv.id,
         status=ExecutionState.PENDING,
         trigger_type="MANUAL"
@@ -134,14 +135,15 @@ async def test_dashboard_aggregations(any_uow):
     )
     
     async with any_uow as uow:
-        await uow.pipelines.create_pipeline(Pipeline(id=pipe_uuid, name="t1", owner="u"))
+        await uow.pipelines.create_pipeline(Pipeline(id=pipe_uuid, workspace_id=str(uuid.uuid4()), name="t1", owner="u"))
         await uow.pipelines.create_pipeline_version(pv)
         
         now = datetime.utcnow()
+        ws_id = str(uuid.uuid4())
         # Create 3 runs: 1 running, 1 completed (duration 1 min), 1 failed (duration 5 min)
-        r1 = ExecutionRun(id=str(uuid.uuid4()), pipeline_id=pipe_uuid, pipeline_version_id=pv.id, status=ExecutionState.RUNNING, start_time=now - timedelta(minutes=10), trigger_type="MANUAL")
-        r2 = ExecutionRun(id=str(uuid.uuid4()), pipeline_id=pipe_uuid, pipeline_version_id=pv.id, status=ExecutionState.COMPLETED, start_time=now - timedelta(minutes=5), end_time=now - timedelta(minutes=4), trigger_type="MANUAL")
-        r3 = ExecutionRun(id=str(uuid.uuid4()), pipeline_id=pipe_uuid, pipeline_version_id=pv.id, status=ExecutionState.FAILED, start_time=now - timedelta(minutes=6), end_time=now - timedelta(minutes=1), trigger_type="MANUAL")
+        r1 = ExecutionRun(id=str(uuid.uuid4()), workspace_id=ws_id, pipeline_id=pipe_uuid, pipeline_version_id=pv.id, status=ExecutionState.RUNNING, start_time=now - timedelta(minutes=10), trigger_type="MANUAL")
+        r2 = ExecutionRun(id=str(uuid.uuid4()), workspace_id=ws_id, pipeline_id=pipe_uuid, pipeline_version_id=pv.id, status=ExecutionState.COMPLETED, start_time=now - timedelta(minutes=5), end_time=now - timedelta(minutes=4), trigger_type="MANUAL")
+        r3 = ExecutionRun(id=str(uuid.uuid4()), workspace_id=ws_id, pipeline_id=pipe_uuid, pipeline_version_id=pv.id, status=ExecutionState.FAILED, start_time=now - timedelta(minutes=6), end_time=now - timedelta(minutes=1), trigger_type="MANUAL")
         
         await uow.executions.create_run(r1)
         await uow.executions.create_run(r2)

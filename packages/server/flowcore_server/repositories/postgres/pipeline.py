@@ -113,7 +113,7 @@ class PostgresPipelineRepository(AbstractPipelineRepository):
         return None
 
     async def list_pipeline_versions(self, pipeline_id: str) -> List[PipelineVersion]:
-        stmt = select(OrmPipelineVersion).where(OrmPipelineVersion.pipeline_id == pipeline_id, OrmPipelineVersion.workspace_id == uuid.UUID(get_workspace_id())).order_by(OrmPipelineVersion.version_tag.desc())
+        stmt = select(OrmPipelineVersion).where(OrmPipelineVersion.pipeline_id == pipeline_id, OrmPipelineVersion.workspace_id == uuid.UUID(get_workspace_id())).order_by(OrmPipelineVersion.created_at.desc())
         result = await self.session.execute(stmt)
         orm_objs = result.scalars().all()
         return [map_orm_to_pipeline_version(obj) for obj in orm_objs]

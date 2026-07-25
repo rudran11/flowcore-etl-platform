@@ -31,12 +31,26 @@ def map_pipeline_to_orm(domain_obj: DomainPipeline) -> OrmPipeline:
     )
 
 def map_orm_to_pipeline_version(orm_obj: OrmPipelineVersion) -> DomainPipelineVersion:
-    # We rebuild the DomainPipelineVersion from the stored dsl/graph definitions and steps
+    steps = []
+    if orm_obj.dsl_definition and isinstance(orm_obj.dsl_definition, dict):
+        dsl_steps = orm_obj.dsl_definition.get("steps", {})
+        for step_id, step_config in dsl_steps.items():
+            depends_on_raw = step_config.get("depends_on") or []
+            depends_on = [dep for dep in depends_on_raw if dep != "trigger" and dep != "Trigger"]
+            steps.append(
+                DomainExecutionStep(
+                    step_id=step_id,
+                    connector_id=step_config.get("plugin_id") or step_config.get("type") or "unknown",
+                    depends_on=depends_on,
+                    parameters=step_config.get("config") or {}
+                )
+            )
+
     return DomainPipelineVersion(
         id=str(orm_obj.id),
         pipeline_id=str(orm_obj.pipeline_id),
         version=orm_obj.version_tag,
-        steps=[], # Populated if needed
+        steps=steps,
         dsl_definition=orm_obj.dsl_definition,
         graph_definition=orm_obj.graph_definition,
         created_at=orm_obj.created_at,
