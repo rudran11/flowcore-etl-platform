@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { ReactFlow, MiniMap, Controls, Background } from '@xyflow/react';
+import React, { useMemo, useEffect } from 'react';
+import { ReactFlow, MiniMap, Controls, Background, useNodesState, useEdgesState } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { ExecutionResponse } from '../../../api/executions';
 import { usePipeline } from '../../pipelines/hooks/usePipeline';
@@ -25,9 +25,17 @@ export const ExecutionDAG: React.FC<ExecutionDAGProps> = ({ run }) => {
     return pipeline?.versions?.find(v => v.id === run.pipeline_version) || pipeline?.versions?.[0];
   }, [pipeline, run.pipeline_version]);
 
-  const initialNodes = useMemo(() => {
-    if (!currentVersion?.steps) return [];
-    return currentVersion.steps.map((step: any, index: number) => {
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+
+  useEffect(() => {
+    if (!currentVersion?.steps) {
+      setNodes([]);
+      setEdges([]);
+      return;
+    }
+
+    const newNodes = currentVersion.steps.map((step: any, index: number) => {
       const stepRun = run.steps?.[step.step_id];
       const status = stepRun?.status || 'PENDING';
       const bgColor = statusColors[status] || '#94a3b8';
@@ -59,15 +67,12 @@ export const ExecutionDAG: React.FC<ExecutionDAGProps> = ({ run }) => {
         }
       };
     });
-  }, [currentVersion, run.steps]);
 
-  const initialEdges = useMemo(() => {
-    if (!currentVersion?.steps) return [];
-    const edges: any[] = [];
+    const newEdges: any[] = [];
     currentVersion.steps.forEach((step: any) => {
       if (step.depends_on) {
         step.depends_on.forEach((dep: string) => {
-          edges.push({
+          newEdges.push({
             id: `e-${dep}-${step.step_id}`,
             source: dep,
             target: step.step_id,
@@ -77,18 +82,25 @@ export const ExecutionDAG: React.FC<ExecutionDAGProps> = ({ run }) => {
         });
       }
     });
-    return edges;
-  }, [currentVersion, run.steps, run.status]);
+
+    setNodes(newNodes);
+    setEdges(newEdges);
+  }, [currentVersion, run, setNodes, setEdges]);
 
   if (!pipeline) {
     return <div className="h-full flex items-center justify-center text-muted-foreground">Loading DAG...</div>;
   }
 
   return (
-    <div className="w-full h-full min-h-[500px] border rounded-xl overflow-hidden bg-muted/10">
+    <div className="w-full h-[500px] border rounded-xl overflow-hidden bg-muted/10 relative">
+      <div className="absolute top-2 right-2 z-10 bg-background/80 p-2 rounded text-xs text-muted-foreground border">
+        Nodes: {nodes.length} | Edges: {edges.length} | Version steps: {currentVersion?.steps?.length || 0}
+      </div>
       <ReactFlow
-        nodes={initialNodes}
-        edges={initialEdges}
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
         fitView
       >
         <Controls />
