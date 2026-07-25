@@ -79,7 +79,7 @@ export const ExecutionTable: React.FC<ExecutionTableProps> = ({
                   <TableRow 
                     key={i} 
                     className="cursor-pointer group hover:bg-muted/50 transition-colors"
-                    onClick={() => navigate(`/runs/${run.run_id}`)}
+                    onClick={() => navigate(`/runs/${(run as any).id || run.run_id}`)}
                   >
                     <TableCell className="font-medium text-foreground/90 group-hover:text-foreground">
                       {run.pipeline_id}
