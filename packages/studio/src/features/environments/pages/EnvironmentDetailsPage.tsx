@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEnvironment, useDeleteEnvironment } from '../hooks/useEnvironments';
-import { ArrowLeft, Key, Lock, Settings, Code, FileText, Trash2, Plus, Copy, Check } from 'lucide-react';
+import { ArrowLeft, Key, Settings, Trash2 } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
-import { Input } from '../../../components/ui/input';
 import { EnvironmentEditor } from '../components/EnvironmentEditor';
-import { formatDistanceToNow } from 'date-fns';
 
 export const EnvironmentDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();

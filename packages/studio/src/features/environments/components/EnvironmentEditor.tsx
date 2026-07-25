@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { EnvironmentVariable, EnvironmentVariableCreate } from '../types';
-import { useAddVariable, useUpdateVariable, useDeleteVariable, useImportEnv } from '../hooks/useEnvironments';
-import { Key, Lock, Trash2, Plus, Upload, Save, Eye, EyeOff } from 'lucide-react';
+import { EnvironmentVariable } from '../types';
+import { useAddVariable, useDeleteVariable, useImportEnv } from '../hooks/useEnvironments';
+import { Key, Lock, Trash2, Plus, Upload, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Switch } from '../../../components/ui/switch';
@@ -18,7 +18,6 @@ export const EnvironmentEditor: React.FC<Props> = ({ environmentId, variables })
   const [showValues, setShowValues] = useState<Record<string, boolean>>({});
   
   const { mutateAsync: addVar } = useAddVariable(environmentId);
-  const { mutateAsync: updateVar } = useUpdateVariable(environmentId);
   const { mutateAsync: deleteVar } = useDeleteVariable(environmentId);
   const { mutateAsync: importEnv } = useImportEnv(environmentId);
   

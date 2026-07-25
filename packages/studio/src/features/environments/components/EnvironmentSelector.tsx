@@ -5,7 +5,6 @@ import { Button } from '../../../components/ui/button';
 import { Server, Check } from 'lucide-react';
 import { apiClient } from '../../../api/client';
 import { toast } from 'sonner';
-import { useQueryClient } from '@tanstack/react-query';
 
 interface Props {
   pipelineId: string;
@@ -13,7 +12,6 @@ interface Props {
 
 export const EnvironmentSelector: React.FC<Props> = ({ pipelineId }) => {
   const { data: environments } = useEnvironments();
-  const queryClient = useQueryClient();
   const [selectedEnvId, setSelectedEnvId] = useState<string | null>(null);
 
   // In a full implementation, we'd fetch bound environments for this pipeline to initialize `selectedEnvId`.

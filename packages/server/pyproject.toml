@@ -20,7 +20,7 @@ sqlalchemy = "^2.0.30"
 asyncpg = "^0.30.0"
 alembic = "^1.13.0"
 psycopg2-binary = "^2.9.9"
-flowcore-engine = { path = "../engine", develop = true }
+flowcore = { path = "../flowcore", develop = true }
 flowcore-shared = { path = "../shared", develop = true }
 passlib = { extras = ["bcrypt"], version = "^1.7.4" }
 bcrypt = "^4.1.2"

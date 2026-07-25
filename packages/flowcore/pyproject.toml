@@ -1,0 +1,29 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "flowcore"
+version = "1.0.0"
+description = "FlowCore Enterprise ETL Framework"
+authors = ["Rudran <rudran@example.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{ include = "flowcore" }]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+typer = "^0.9.0"
+pydantic = "^2.5.0"
+pyyaml = "^6.0.1"
+
+# Legacy dependencies for gradual migration
+flowcore-engine = { path = "../engine", develop = true }
+flowcore-sdk = { path = "../sdk", develop = true }
+flowcore-shared = { path = "../shared", develop = true }
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+
+[tool.poetry.scripts]
+flowcore = "flowcore.cli.main:app"

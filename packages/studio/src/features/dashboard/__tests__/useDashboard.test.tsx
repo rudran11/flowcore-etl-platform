@@ -2,12 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { useDashboard } from '../hooks/useDashboard';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { dashboardApi } from '../../../api/dashboard';
+import { apiClient } from '../../../api/client';
 
-vi.mock('../../../api/dashboard', () => ({
-  dashboardApi: {
-    getDashboard: vi.fn(),
+vi.mock('../../../api/client', () => ({
+  apiClient: {
+    get: vi.fn(),
   },
+}));
+
+vi.mock('../../../stores/authStore', () => ({
+  useAuthStore: vi.fn(() => ({ activeWorkspaceId: 'mock-ws' })),
 }));
 
 const queryClient = new QueryClient({
@@ -31,7 +35,7 @@ describe('useDashboard', () => {
       trends: [],
       recent_runs: [],
     };
-    (dashboardApi.getDashboard as any).mockResolvedValue(mockData);
+    (apiClient.get as any).mockResolvedValue({ data: mockData });
 
     const { result } = renderHook(() => useDashboard(), { wrapper });
 

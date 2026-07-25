@@ -104,13 +104,16 @@ export const PipelineDetailsPage: React.FC = () => {
            
            if (latestVersion.graph_definition && latestVersion.graph_definition.nodes) {
              const savedNodes = latestVersion.graph_definition.nodes;
-             const posMap = new Map(savedNodes.map((n: any) => [n.id, n.position]));
+             const posMap = new Map<string, { x: number; y: number }>(savedNodes.map((n: any) => [n.id, n.position as { x: number; y: number }]));
              
              usePipelineBuilderStore.setState(state => ({
-               nodes: state.nodes.map(n => ({
-                 ...n,
-                 position: posMap.get(n.id) || n.position
-               }))
+               nodes: state.nodes.map(n => {
+                 const pos = posMap.get(n.id);
+                 return {
+                   ...n,
+                   position: (pos ? { x: pos.x, y: pos.y } : n.position)
+                 } as any;
+               })
              }));
            }
         } else {

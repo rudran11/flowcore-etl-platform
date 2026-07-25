@@ -20,7 +20,7 @@ export const ScheduleFormDialog: React.FC<ScheduleFormDialogProps> = ({ onClose,
   const [maxRetries, setMaxRetries] = useState(initialData?.max_retries || 0);
   const [retryDelaySeconds, setRetryDelaySeconds] = useState(initialData?.retry_delay_seconds || 300);
   const [holidayCalendar, setHolidayCalendar] = useState<string>(initialData?.holiday_calendar || '');
-  const [blackoutWindows, setBlackoutWindows] = useState<any[]>(initialData?.blackout_windows || []);
+  const [blackoutWindows] = useState<any[]>(initialData?.blackout_windows || []);
   
   const createMutation = useCreateSchedule();
   const { data: pipelines } = usePipelines();
