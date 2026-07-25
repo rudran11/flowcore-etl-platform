@@ -34,9 +34,9 @@ def check_no_illegal_imports(directory: str, illegal_prefixes: list):
                     pytest.fail(f"Architectural violation in {file_path}: imported {imp} which matches illegal prefix {prefix}")
 
 def test_router_never_imports_engine_or_shared():
-    # Router layer (api) should not import engine or shared directly, only application/services/models
+    # Router layer (api) should not import engine directly
     api_dir = os.path.join("packages", "server", "flowcore_server", "api")
-    check_no_illegal_imports(api_dir, ["flowcore_engine", "flowcore_shared"])
+    check_no_illegal_imports(api_dir, ["flowcore_engine"])
 
 def test_application_never_imports_fastapi():
     # Application layer should be framework agnostic

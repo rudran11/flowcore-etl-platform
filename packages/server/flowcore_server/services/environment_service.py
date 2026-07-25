@@ -3,7 +3,7 @@ import uuid
 import base64
 from typing import List, Dict, Optional
 from cryptography.fernet import Fernet
-from fastapi import HTTPException
+
 
 from flowcore_shared.schemas.environment import (
     Environment, EnvironmentVariable, EnvironmentVariableCreate, EnvironmentVariableUpdate, EnvironmentType

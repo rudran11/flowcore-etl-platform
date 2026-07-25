@@ -4,9 +4,24 @@ from flowcore_shared.schemas.pipeline import Pipeline, PipelineVersion
 from flowcore_shared.schemas.operational.execution import ExecutionRun
 from flowcore_shared.schemas.base.enums import ExecutionState
 
+from flowcore_shared.schemas.auth.organization import Organization
+from flowcore_shared.schemas.auth.workspace import Workspace
+
+async def setup_dummy_workspace(uow):
+    org_id = "00000000-0000-0000-0000-000000000001"
+    ws_id = "00000000-0000-0000-0000-000000000000"
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+    if await uow.organizations.get(org_id) is None:
+        await uow.organizations.create(Organization(id=org_id, name="Test Org", slug="test-org", created_at=now, updated_at=now))
+    if await uow.workspaces.get(ws_id) is None:
+        await uow.workspaces.create(Workspace(id=ws_id, organization_id=org_id, name="Test WS", slug="test-ws", created_at=now, updated_at=now))
+    await uow.commit()
+
 @pytest.mark.asyncio
 async def test_pipeline_crud_contract(any_uow):
     uow = any_uow
+    await setup_dummy_workspace(uow)
     
     # Create Pipeline
     p = Pipeline(
@@ -72,6 +87,7 @@ async def test_pipeline_crud_contract(any_uow):
 @pytest.mark.asyncio
 async def test_execution_run_contract(any_uow):
     async with any_uow as uow:
+        await setup_dummy_workspace(uow)
         pipe_uuid = str(uuid.uuid4())
         await uow.pipelines.create_pipeline(Pipeline(id=pipe_uuid, workspace_id=str(uuid.uuid4()), name="test", owner="owner"))
         
@@ -116,7 +132,7 @@ async def test_execution_run_contract(any_uow):
     assert saved.trigger_type == "SCHEDULED"
     
     # List Runs
-    runs = await uow.executions.list_runs_for_pipeline(p.id)
+    runs = await uow.executions.list_runs_for_pipeline(pipe_uuid)
     assert len(runs) == 1
     assert runs[0].id == run.id
 
@@ -135,6 +151,7 @@ async def test_dashboard_aggregations(any_uow):
     )
     
     async with any_uow as uow:
+        await setup_dummy_workspace(uow)
         await uow.pipelines.create_pipeline(Pipeline(id=pipe_uuid, workspace_id=str(uuid.uuid4()), name="t1", owner="u"))
         await uow.pipelines.create_pipeline_version(pv)
         

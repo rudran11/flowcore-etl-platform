@@ -45,7 +45,7 @@ def setup_integration_data():
 
 def test_run_lifecycle_integration():
     # 1. Execute
-    res = client.post("/api/v1/pipelines/int-pipe-2/versions/1.0.0/execute", json={"parameters": {}})
+    res = client.post("/api/v1/pipelines/int-pipe-1/versions/1.0.0/execute", json={"parameters": {}})
     assert res.status_code == 202
     run_id = res.json()["run_id"]
     

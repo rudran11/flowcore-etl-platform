@@ -34,7 +34,14 @@ def map_orm_to_pipeline_version(orm_obj: OrmPipelineVersion) -> DomainPipelineVe
     steps = []
     if orm_obj.dsl_definition and isinstance(orm_obj.dsl_definition, dict):
         dsl_steps = orm_obj.dsl_definition.get("steps", {})
-        for step_id, step_config in dsl_steps.items():
+        if isinstance(dsl_steps, dict):
+            iterator = dsl_steps.items()
+        elif isinstance(dsl_steps, list):
+            iterator = [(step.get("id", f"step_{i}"), step) for i, step in enumerate(dsl_steps)]
+        else:
+            iterator = []
+            
+        for step_id, step_config in iterator:
             depends_on_raw = step_config.get("depends_on") or []
             depends_on = [dep for dep in depends_on_raw if dep != "trigger" and dep != "Trigger"]
             steps.append(

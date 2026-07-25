@@ -1,5 +1,10 @@
 import pytest
 from fastapi.testclient import TestClient
+from unittest.mock import patch, AsyncMock
+
+# Patch seed_default_data before importing app
+patch("flowcore_server.main.seed_default_data", new_callable=AsyncMock).start()
+
 from flowcore_server.main import app
 from flowcore_server.dependencies.auth import get_current_user
 from flowcore_shared.schemas.auth.user import UserInDB
@@ -23,6 +28,13 @@ def override_auth():
     app.dependency_overrides[get_current_user] = dummy_user
     yield
     app.dependency_overrides.pop(get_current_user, None)
+
+@pytest.fixture(autouse=True)
+def override_workspace():
+    from flowcore_server.dependencies.context import workspace_context
+    token = workspace_context.set("00000000-0000-0000-0000-000000000000")
+    yield
+    workspace_context.reset(token)
 
 @pytest.fixture(autouse=True)
 def override_rbac():

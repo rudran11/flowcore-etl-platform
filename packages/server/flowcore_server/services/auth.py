@@ -2,7 +2,6 @@ import jwt
 from datetime import datetime, timedelta
 from typing import Optional, Dict
 import bcrypt
-from fastapi import HTTPException, status
 from pydantic_settings import BaseSettings
 
 class AuthSettings(BaseSettings):
@@ -46,21 +45,9 @@ class AuthService:
         try:
             payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
             if payload.get("type") != token_type:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail=f"Invalid token type. Expected {token_type}",
-                    headers={"WWW-Authenticate": "Bearer"},
-                )
+                raise ValueError(f"Invalid token type. Expected {token_type}")
             return payload
         except jwt.ExpiredSignatureError:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token has expired",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+            raise ValueError("Token has expired")
         except jwt.InvalidTokenError:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Could not validate credentials",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+            raise ValueError("Could not validate credentials")
