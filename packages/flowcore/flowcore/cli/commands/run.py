@@ -94,6 +94,8 @@ def run_command(
     plugin_manager = PluginManager()
     if context.project_root:
         plugin_manager.discover_plugins([str(context.project_root / "plugins")])
+    elif (Path.cwd() / "plugins").exists():
+        plugin_manager.discover_plugins([str(Path.cwd() / "plugins")])
         
     missing_plugins = [s.connector_id for s in steps if s.connector_id not in plugin_manager._instance_registry]
     if missing_plugins:
@@ -127,9 +129,9 @@ def run_command(
                     duration_sec = (duration_ms / 1000) if duration_ms else (time.time() - start_time)
                     
                     if status == "COMPLETED":
-                        ui = Text(f"[✓] Pipeline Execution (Status: {status}) ({duration_sec:.2f}s)\n", style="green")
+                        ui = Text(f"[OK] Pipeline Execution (Status: {status}) ({duration_sec:.2f}s)\n", style="green")
                     elif status in ("FAILED", "CANCELLED"):
-                        ui = Text(f"[✗] Pipeline Execution (Status: {status}) ({duration_sec:.2f}s)\n", style="red")
+                        ui = Text(f"[FAIL] Pipeline Execution (Status: {status}) ({duration_sec:.2f}s)\n", style="red")
                     else:
                         ui = Text(f"[>] Pipeline Execution (Status: {status}) ({duration_sec:.2f}s)\n", style="yellow")
                     
@@ -140,7 +142,7 @@ def run_command(
                         
                     time.sleep(0.5)
             
-            console.print("\n────────────────────────────\n")
+            console.print("\n----------------------------\n")
             if status == "COMPLETED":
                 console.print("[bold green]Pipeline completed successfully[/bold green]\n")
             else:
@@ -174,7 +176,8 @@ def run_command(
         id=str(uuid.uuid4()),
         pipeline_id=pipeline.id,
         pipeline_version_id=pipeline_version.id,
-        trigger_type="MANUAL"
+        trigger_type="MANUAL",
+        workspace_id=pipeline.workspace_id
     )
     coordinator.initialize_run(run_record)
     
@@ -188,9 +191,9 @@ def run_command(
             
             # Format state icon
             if tracker.state == ExecutionState.COMPLETED:
-                icon = "[green][✓][/green]"
+                icon = "[green][OK][/green]"
             elif tracker.state == ExecutionState.FAILED:
-                icon = "[red][✗][/red]"
+                icon = "[red][FAIL][/red]"
             elif tracker.state == ExecutionState.RUNNING:
                 icon = "[yellow][>][/yellow]"
             elif tracker.state == ExecutionState.RETRYING:
@@ -250,7 +253,7 @@ def run_command(
     failures = sum(1 for t in trackers.values() if t.state == ExecutionState.FAILED)
     completed = sum(1 for t in trackers.values() if t.state == ExecutionState.COMPLETED)
     
-    console.print("\n────────────────────────────\n")
+    console.print("\n----------------------------\n")
     if failures == 0:
         console.print("[bold green]Pipeline completed successfully[/bold green]\n")
     else:

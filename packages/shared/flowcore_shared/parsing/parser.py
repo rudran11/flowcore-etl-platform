@@ -44,6 +44,9 @@ class DSLParser:
         if "id" not in pipeline_data:
             name_seed = pipeline_data.get("name", "unknown")
             pipeline_data["id"] = hashlib.md5(name_seed.encode("utf-8")).hexdigest()
+            
+        if "workspace_id" not in pipeline_data:
+            pipeline_data["workspace_id"] = "local-execution-workspace"
 
         try:
             pipeline = Pipeline(**pipeline_data)
