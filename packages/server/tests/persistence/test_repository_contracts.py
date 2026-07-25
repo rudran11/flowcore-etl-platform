@@ -1,7 +1,7 @@
 import pytest
 import uuid
-from flowcore_shared.schemas.pipeline import Pipeline, PipelineVersion
-from flowcore_shared.schemas.operational.execution import ExecutionRun
+from flowcore.models.pipeline import Pipeline, PipelineVersion
+from flowcore.models.operational.execution import ExecutionRun
 from flowcore_shared.schemas.base.enums import ExecutionState
 
 from flowcore_shared.schemas.auth.organization import Organization
@@ -24,8 +24,7 @@ async def test_pipeline_crud_contract(any_uow):
     await setup_dummy_workspace(uow)
     
     # Create Pipeline
-    p = Pipeline(
-        id=str(uuid.uuid4()),
+    p = Pipeline(id=str(uuid.uuid4()),
         workspace_id=str(uuid.uuid4()),
         name="test_pipeline",
         owner="data_team",
@@ -100,8 +99,7 @@ async def test_execution_run_contract(any_uow):
         await uow.pipelines.create_pipeline_version(pv)
     
     # Create Execution Run
-    run = ExecutionRun(
-        id=str(uuid.uuid4()),
+    run = ExecutionRun(id=str(uuid.uuid4()),
         workspace_id=str(uuid.uuid4()),
         pipeline_id=pipe_uuid,
         pipeline_version_id=pv.id,

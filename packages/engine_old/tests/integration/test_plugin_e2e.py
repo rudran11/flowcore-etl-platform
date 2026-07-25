@@ -1,5 +1,5 @@
 import pytest
-from flowcore_shared.schemas.operational.execution import ExecutionRun
+from flowcore.models.operational.execution import ExecutionRun
 from flowcore_engine.coordinator.manager import ExecutionCoordinator
 from flowcore_engine.executor.local import LocalExecutor
 from flowcore_engine.runner.engine import EngineRunner

@@ -1,5 +1,5 @@
 from typing import Any, Dict, Optional
-from flowcore_shared.schemas.operational.execution import ExecutionRun
+from flowcore.models.operational.execution import ExecutionRun
 from flowcore_shared.schemas.base.enums import ExecutionState
 from flowcore_server.repositories.interfaces.uow import AbstractUnitOfWork
 from flowcore_server.application.cancellation import CancellationStrategy
@@ -56,9 +56,9 @@ class ExecutionService:
             if not pipeline:
                 raise ValueError(f"Pipeline {pipeline_id} not found.")
 
-            from flowcore_shared.schemas.dependencies.dependency_graph import DependencyGraph
-            from flowcore_shared.schemas.dependencies.node import Node
-            from flowcore_shared.schemas.dependencies.edge import Edge
+            from flowcore.models.dependencies.dependency_graph import DependencyGraph
+            from flowcore.models.dependencies.node import Node
+            from flowcore.models.dependencies.edge import Edge
 
             nodes = {step.step_id: Node(node_id=step.step_id) for step in pipeline_version.steps}
             edges = []

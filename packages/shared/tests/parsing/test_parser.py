@@ -1,5 +1,5 @@
 import pytest
-from flowcore_shared.parsing.parser import DSLParser
+from flowcore.parsing.parser import DSLParser
 from flowcore_shared.exceptions.parsing import DSLParseError
 
 def test_parse_valid_dsl():

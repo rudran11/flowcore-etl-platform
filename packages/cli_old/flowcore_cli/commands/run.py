@@ -15,12 +15,12 @@ from rich.text import Text
 from rich.panel import Panel
 
 from flowcore_cli.context import CLIContext
-from flowcore_shared.parsing.parser import DSLParser
+from flowcore.parsing.parser import DSLParser
 from flowcore_shared.exceptions.parsing import DSLParseError
-from flowcore_shared.schemas.dependencies.dependency_graph import DependencyGraph
-from flowcore_shared.schemas.dependencies.node import Node
-from flowcore_shared.schemas.dependencies.edge import Edge
-from flowcore_shared.schemas.operational.execution import ExecutionRun
+from flowcore.models.dependencies.dependency_graph import DependencyGraph
+from flowcore.models.dependencies.node import Node
+from flowcore.models.dependencies.edge import Edge
+from flowcore.models.operational.execution import ExecutionRun
 from flowcore_shared.schemas.base.enums import ExecutionState
 from flowcore_engine.plugins.manager import PluginManager
 from flowcore_engine.coordinator.manager import ExecutionCoordinator
@@ -158,7 +158,7 @@ def run_command(
     # Local Execution Flow
     # 4. Engine Initialization
     # We must convert Pipeline to PipelineVersion for ExecutionCoordinator
-    from flowcore_shared.schemas.pipeline.pipeline_version import PipelineVersion
+    from flowcore.models.pipeline.pipeline_version import PipelineVersion
     pipeline_version = PipelineVersion(
         id=str(uuid.uuid4()),
         pipeline_id=pipeline.id,

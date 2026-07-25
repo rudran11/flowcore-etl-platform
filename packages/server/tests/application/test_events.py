@@ -8,9 +8,9 @@ from flowcore_server.application.cancellation import DefaultCancellationStrategy
 from flowcore_server.application.background import BackgroundExecutionStrategy
 from flowcore.engine.plugins.manager import PluginManager
 from flowcore_server.application.dispatchers.in_memory import InMemoryEventDispatcher
-from flowcore_shared.schemas.pipeline.pipeline import Pipeline
-from flowcore_shared.schemas.pipeline.pipeline_version import PipelineVersion
-from flowcore_shared.schemas.operational.execution import ExecutionRun
+from flowcore.models.pipeline.pipeline import Pipeline
+from flowcore.models.pipeline.pipeline_version import PipelineVersion
+from flowcore.models.operational.execution import ExecutionRun
 from flowcore_shared.schemas.base.enums import ExecutionState
 from flowcore_shared.events.domain import (
     PipelineExecutionStarted,

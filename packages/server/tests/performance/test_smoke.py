@@ -4,9 +4,9 @@ from fastapi.testclient import TestClient
 from flowcore_server.main import app
 from flowcore_server.dependencies.core import get_uow
 from flowcore_server.repositories.in_memory.uow import InMemoryUnitOfWork
-from flowcore_shared.schemas.pipeline.pipeline import Pipeline
-from flowcore_shared.schemas.pipeline.pipeline_version import PipelineVersion
-from flowcore_shared.schemas.dependencies.dependency_graph import DependencyGraph
+from flowcore.models.pipeline.pipeline import Pipeline
+from flowcore.models.pipeline.pipeline_version import PipelineVersion
+from flowcore.models.dependencies.dependency_graph import DependencyGraph
 import uuid
 
 client = TestClient(app)

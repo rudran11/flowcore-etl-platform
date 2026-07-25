@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 from sqlalchemy import delete
 
 import uuid
-from flowcore_shared.schemas.pipeline import Pipeline, PipelineVersion
+from flowcore.models.pipeline import Pipeline, PipelineVersion
 from flowcore_server.dependencies.context import get_workspace_id
 from flowcore_server.repositories.interfaces.pipeline import AbstractPipelineRepository
 from flowcore_server.db.models import Pipeline as OrmPipeline

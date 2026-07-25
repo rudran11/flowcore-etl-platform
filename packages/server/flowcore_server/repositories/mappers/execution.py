@@ -1,4 +1,4 @@
-from flowcore_shared.schemas.operational.execution import ExecutionRun as DomainExecutionRun, ExecutionStepRun
+from flowcore.models.operational.execution import ExecutionRun as DomainExecutionRun, ExecutionStepRun
 from flowcore_shared.schemas.base.enums import ExecutionState
 from flowcore_server.db.models import ExecutionRun as OrmExecutionRun, ExecutionStep as OrmExecutionStep
 import uuid

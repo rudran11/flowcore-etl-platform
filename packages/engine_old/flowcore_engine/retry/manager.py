@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 # See LICENSE file in the project root for full license information.
 
-from flowcore_shared.schemas.pipeline.retry import RetryPolicy
+from flowcore.models.pipeline.retry import RetryPolicy
 from flowcore_shared.schemas.base.enums import RetryStrategy
 from flowcore_engine.exceptions.base import EngineError
 from flowcore_engine.exceptions.plugin import FatalPluginError

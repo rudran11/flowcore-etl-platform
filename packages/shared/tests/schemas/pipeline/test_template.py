@@ -1,6 +1,6 @@
 import pytest
 from pydantic import ValidationError
-from flowcore_shared.schemas.pipeline.template import Template
+from flowcore.models.pipeline.template import Template
 
 def test_template_creation():
     template = Template(

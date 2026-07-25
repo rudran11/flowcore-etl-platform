@@ -6,6 +6,6 @@ from .audit import AuditLog
 from .lineage import LineageRecord
 from .health import HealthRecord
 from .scheduler import SchedulerTrigger
-from .execution import ExecutionRun
+from flowcore.models.operational.execution import ExecutionRun
 
 __all__ = ["AuditLog", "LineageRecord", "HealthRecord", "SchedulerTrigger", "ExecutionRun"]

@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
 import uuid
-from flowcore_shared.schemas.operational.execution import ExecutionRun
+from flowcore.models.operational.execution import ExecutionRun
 from flowcore_server.dependencies.context import get_workspace_id
 from flowcore_shared.schemas.base.enums import ExecutionState
 from flowcore_server.repositories.interfaces.execution import AbstractExecutionRepository

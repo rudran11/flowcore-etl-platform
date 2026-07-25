@@ -1,6 +1,6 @@
 import abc
 from typing import List, Optional
-from flowcore_shared.schemas.pipeline import Pipeline, PipelineVersion
+from flowcore.models.pipeline import Pipeline, PipelineVersion
 
 class AbstractPipelineRepository(abc.ABC):
     """

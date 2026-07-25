@@ -3,13 +3,13 @@ import json
 from pathlib import Path
 from pydantic import ValidationError
 
-from flowcore_shared.parsing.loaders import load_yaml
-from flowcore_shared.parsing.parser import DSLParser
-from flowcore_shared.schemas.pipeline.pipeline import Pipeline
-from flowcore_shared.schemas.pipeline.execution_step import ExecutionStep
-from flowcore_shared.schemas.dependencies.dependency_graph import DependencyGraph
-from flowcore_shared.schemas.dependencies.node import Node
-from flowcore_shared.schemas.dependencies.edge import Edge
+from flowcore.parsing.loaders import load_yaml
+from flowcore.parsing.parser import DSLParser
+from flowcore.models.pipeline.pipeline import Pipeline
+from flowcore.models.pipeline.execution_step import ExecutionStep
+from flowcore.models.dependencies.dependency_graph import DependencyGraph
+from flowcore.models.dependencies.node import Node
+from flowcore.models.dependencies.edge import Edge
 from flowcore_shared.schemas.base.enums import ExecutionState
 from flowcore_shared.exceptions.configuration import ConfigurationError
 from flowcore_shared.exceptions.parsing import DSLParseError
@@ -100,7 +100,7 @@ def test_integration_invalid_dependency_graph():
 
 def test_integration_invalid_metadata():
     """5. Invalid Metadata (Wrong enum)"""
-    from flowcore_shared.schemas.operational.execution import ExecutionRun
+    from flowcore.models.operational.execution import ExecutionRun
     
     with pytest.raises(ValidationError):
         # 'INVALID_STATE' is not a valid ExecutionState Enum
@@ -113,8 +113,7 @@ def test_integration_invalid_metadata():
 
 def test_integration_serialization():
     """6. Serialization (Pipeline -> dict -> json -> Pipeline)"""
-    pipeline = Pipeline(
-        id="test-serialize-1",
+    pipeline = Pipeline(workspace_id="00000000-0000-0000-0000-000000000000", id="test-serialize-1",
         name="Serializer Test",
         owner="Test Team",
         tags=["serialization"]

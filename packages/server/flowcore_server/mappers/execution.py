@@ -1,5 +1,5 @@
 from typing import Dict, Any, Optional
-from flowcore_shared.schemas.operational.execution import ExecutionRun
+from flowcore.models.operational.execution import ExecutionRun
 from flowcore_server.models.execution import ExecutionResponse
 
 def map_execution_to_response(run: ExecutionRun, outputs: Optional[Dict[str, Any]] = None, error: Optional[str] = None) -> ExecutionResponse:

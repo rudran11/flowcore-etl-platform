@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
-from flowcore_shared.schemas.operational.execution import ExecutionRun
+from flowcore.models.operational.execution import ExecutionRun
 
 class ExecutionSummary(BaseModel):
     completed: int = 0

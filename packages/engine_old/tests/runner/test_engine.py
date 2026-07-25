@@ -6,11 +6,11 @@ from typing import Any
 from flowcore_shared.plugins.base import BasePlugin
 from flowcore_shared.plugins.models import PluginMetadata
 from flowcore_shared.plugins.enums import PluginType
-from flowcore_shared.schemas.pipeline.pipeline import Pipeline
-from flowcore_shared.schemas.pipeline.pipeline_version import PipelineVersion
-from flowcore_shared.schemas.pipeline.execution_step import ExecutionStep
-from flowcore_shared.schemas.dependencies.dependency_graph import DependencyGraph
-from flowcore_shared.schemas.operational.execution import ExecutionRun
+from flowcore.models.pipeline.pipeline import Pipeline
+from flowcore.models.pipeline.pipeline_version import PipelineVersion
+from flowcore.models.pipeline.execution_step import ExecutionStep
+from flowcore.models.dependencies.dependency_graph import DependencyGraph
+from flowcore.models.operational.execution import ExecutionRun
 from flowcore_shared.schemas.base.enums import ExecutionState
 from flowcore_engine.coordinator.manager import ExecutionCoordinator
 from flowcore_engine.plugins.manager import PluginManager
@@ -67,8 +67,8 @@ def _build_complex_dag() -> (PipelineVersion, DependencyGraph):
         steps=steps
     )
     
-    from flowcore_shared.schemas.dependencies.node import Node
-    from flowcore_shared.schemas.dependencies.edge import Edge
+    from flowcore.models.dependencies.node import Node
+    from flowcore.models.dependencies.edge import Edge
     
     nodes = {s.step_id: Node(node_id=s.step_id) for s in steps}
     edges = [

@@ -4,8 +4,8 @@ from flowcore.engine.runner.engine import EngineRunner
 from flowcore.engine.executor.base import AbstractExecutor
 from flowcore.engine.executor.thread import ThreadExecutor
 from flowcore.engine.plugins.manager import PluginManager
-from flowcore_shared.schemas.pipeline.pipeline_version import PipelineVersion
-from flowcore_shared.schemas.dependencies.dependency_graph import DependencyGraph
+from flowcore.models.pipeline.pipeline_version import PipelineVersion
+from flowcore.models.dependencies.dependency_graph import DependencyGraph
 
 class ExecutionEngineFactory(ABC):
     """

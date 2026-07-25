@@ -1,6 +1,6 @@
 import abc
 from typing import List, Optional
-from flowcore_shared.schemas.operational.execution import ExecutionRun
+from flowcore.models.operational.execution import ExecutionRun
 from flowcore_shared.schemas.base.enums import ExecutionState
 
 class AbstractExecutionRepository(abc.ABC):

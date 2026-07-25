@@ -1,6 +1,6 @@
-from flowcore_shared.schemas.pipeline import Pipeline as DomainPipeline
-from flowcore_shared.schemas.pipeline import PipelineVersion as DomainPipelineVersion
-from flowcore_shared.schemas.pipeline import ExecutionStep as DomainExecutionStep
+from flowcore.models.pipeline import Pipeline as DomainPipeline
+from flowcore.models.pipeline import PipelineVersion as DomainPipelineVersion
+from flowcore.models.pipeline import ExecutionStep as DomainExecutionStep
 from flowcore_server.db.models import Pipeline as OrmPipeline
 from flowcore_server.db.models import PipelineVersion as OrmPipelineVersion
 from flowcore_server.db.models import ExecutionStep as OrmExecutionStep

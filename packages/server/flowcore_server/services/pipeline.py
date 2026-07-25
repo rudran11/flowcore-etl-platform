@@ -40,10 +40,10 @@ class PipelineService:
                 recent_runs=recent_runs
             )
 
-    async def create_pipeline_version(self, pipeline_id: str, request: "flowcore_server.models.pipeline_version.PipelineVersionCreate") -> "flowcore_shared.schemas.pipeline.PipelineVersion":
+    async def create_pipeline_version(self, pipeline_id: str, request: "flowcore_server.models.pipeline_version.PipelineVersionCreate") -> "flowcore.models.pipeline.PipelineVersion":
         import uuid
-        from flowcore_shared.schemas.pipeline import PipelineVersion
-        from flowcore_shared.schemas.pipeline.execution_step import ExecutionStep
+        from flowcore.models.pipeline import PipelineVersion
+        from flowcore.models.pipeline.execution_step import ExecutionStep
         
         async with self.uow as uow:
             pipeline = await uow.pipelines.get_pipeline(pipeline_id)

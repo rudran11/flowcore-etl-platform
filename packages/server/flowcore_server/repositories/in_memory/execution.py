@@ -1,5 +1,5 @@
 from typing import List, Optional
-from flowcore_shared.schemas.operational.execution import ExecutionRun
+from flowcore.models.operational.execution import ExecutionRun
 from flowcore_shared.schemas.base.enums import ExecutionState
 from flowcore_server.repositories.interfaces.execution import AbstractExecutionRepository
 

@@ -2,11 +2,11 @@ import pytest
 import os
 import tempfile
 from typing import List, Tuple
-from flowcore_shared.schemas.pipeline.pipeline_version import PipelineVersion
-from flowcore_shared.schemas.pipeline.execution_step import ExecutionStep
-from flowcore_shared.schemas.dependencies.dependency_graph import DependencyGraph
-from flowcore_shared.schemas.dependencies.node import Node
-from flowcore_shared.schemas.dependencies.edge import Edge
+from flowcore.models.pipeline.pipeline_version import PipelineVersion
+from flowcore.models.pipeline.execution_step import ExecutionStep
+from flowcore.models.dependencies.dependency_graph import DependencyGraph
+from flowcore.models.dependencies.node import Node
+from flowcore.models.dependencies.edge import Edge
 from flowcore_engine.plugins.manager import PluginManager
 
 DUMMY_PLUGIN_CODE = """

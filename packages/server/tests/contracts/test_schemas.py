@@ -5,10 +5,10 @@ from flowcore_server.models.pipeline import PipelineResponse
 from flowcore_server.models.execution import ExecutionResponse
 from flowcore_shared.plugins.models import PluginMetadata
 from flowcore_shared.plugins.enums import PluginType
-from flowcore_shared.schemas.pipeline.pipeline import Pipeline
-from flowcore_shared.schemas.pipeline.pipeline_version import PipelineVersion
-from flowcore_shared.schemas.pipeline.execution_step import ExecutionStep
-from flowcore_shared.schemas.operational.execution import ExecutionRun
+from flowcore.models.pipeline.pipeline import Pipeline
+from flowcore.models.pipeline.pipeline_version import PipelineVersion
+from flowcore.models.pipeline.execution_step import ExecutionStep
+from flowcore.models.operational.execution import ExecutionRun
 from flowcore_shared.schemas.base.enums import ExecutionState
 from flowcore_server.mappers.plugin import map_plugin_to_response
 from flowcore_server.mappers.pipeline import map_pipeline_to_response
@@ -37,8 +37,7 @@ def test_plugin_mapper():
     assert dto.plugin_type == "CONNECTOR"
 
 def test_pipeline_mapper():
-    internal_pipeline = Pipeline(
-        id="pipe-1",
+    internal_pipeline = Pipeline(id="pipe-1",
         workspace_id="test-workspace",
         name="Test Pipeline",
         owner="test-owner",
@@ -64,8 +63,7 @@ def test_pipeline_mapper():
 
 def test_execution_mapper():
     now = datetime.now()
-    internal_run = ExecutionRun(
-        id="run-1",
+    internal_run = ExecutionRun(id="run-1",
         workspace_id="test-workspace",
         pipeline_id="pipe-1",
         pipeline_version_id="ver-1",

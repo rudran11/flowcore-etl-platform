@@ -1,10 +1,10 @@
 import pytest
-from flowcore_shared.schemas.pipeline.pipeline_version import PipelineVersion
-from flowcore_shared.schemas.pipeline.execution_step import ExecutionStep
-from flowcore_shared.schemas.dependencies.dependency_graph import DependencyGraph
-from flowcore_shared.schemas.dependencies.node import Node
-from flowcore_shared.schemas.dependencies.edge import Edge
-from flowcore_shared.schemas.operational.execution import ExecutionRun
+from flowcore.models.pipeline.pipeline_version import PipelineVersion
+from flowcore.models.pipeline.execution_step import ExecutionStep
+from flowcore.models.dependencies.dependency_graph import DependencyGraph
+from flowcore.models.dependencies.node import Node
+from flowcore.models.dependencies.edge import Edge
+from flowcore.models.operational.execution import ExecutionRun
 from flowcore_shared.schemas.base.enums import ExecutionState
 from flowcore_engine.coordinator.manager import ExecutionCoordinator
 from flowcore_engine.exceptions.plugin import FatalPluginError, RecoverablePluginError

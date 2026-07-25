@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
-from flowcore_shared.schemas.pipeline.pipeline_version import PipelineVersion
-from flowcore_shared.schemas.pipeline.execution_step import ExecutionStep
+from flowcore.models.pipeline.pipeline_version import PipelineVersion
+from flowcore.models.pipeline.execution_step import ExecutionStep
 
 def test_pipeline_version_creation():
     step1 = ExecutionStep(step_id="step1", connector_id="conn1")

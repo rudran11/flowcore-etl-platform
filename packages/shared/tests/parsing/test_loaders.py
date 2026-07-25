@@ -2,7 +2,7 @@ import pytest
 import json
 import yaml
 from pathlib import Path
-from flowcore_shared.parsing.loaders import load_json, load_yaml, load_file, discover_files
+from flowcore.parsing.loaders import load_json, load_yaml, load_file, discover_files
 from flowcore_shared.exceptions.configuration import ConfigurationError
 
 def test_load_json_success(tmp_path):

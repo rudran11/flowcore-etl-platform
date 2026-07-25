@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
-from flowcore_shared.schemas.pipeline.execution_step import ExecutionStep
-from flowcore_shared.schemas.pipeline.retry import RetryPolicy
+from flowcore.models.pipeline.execution_step import ExecutionStep
+from flowcore.models.pipeline.retry import RetryPolicy
 
 def test_execution_step_creation():
     step = ExecutionStep(

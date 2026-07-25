@@ -38,7 +38,7 @@ def validate_command(
         raise typer.Exit(code=1)
         
     # 2. Schema Validation (via DSLParser)
-    from flowcore_shared.parsing.parser import DSLParser
+    from flowcore.parsing.parser import DSLParser
     from flowcore_shared.exceptions.parsing import DSLParseError
     
     try:
@@ -55,9 +55,9 @@ def validate_command(
         raise typer.Exit(code=1)
         
     # 4. Dependency Graph & Cycles
-    from flowcore_shared.schemas.dependencies.dependency_graph import DependencyGraph
-    from flowcore_shared.schemas.dependencies.node import Node
-    from flowcore_shared.schemas.dependencies.edge import Edge
+    from flowcore.models.dependencies.dependency_graph import DependencyGraph
+    from flowcore.models.dependencies.node import Node
+    from flowcore.models.dependencies.edge import Edge
     
     try:
         nodes = {s.step_id: Node(node_id=s.step_id) for s in steps}

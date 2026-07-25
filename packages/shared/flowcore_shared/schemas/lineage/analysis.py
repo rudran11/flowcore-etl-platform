@@ -5,7 +5,7 @@
 from typing import List, Dict, Any
 from pydantic import BaseModel, Field
 from .dataset import Dataset
-from flowcore_shared.schemas.pipeline.pipeline import Pipeline
+from flowcore.models.pipeline.pipeline import Pipeline
 from flowcore_shared.schemas.operational.schedule import Schedule
 
 class ImpactEntity(BaseModel):

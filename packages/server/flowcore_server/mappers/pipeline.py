@@ -1,5 +1,5 @@
-from flowcore_shared.schemas.pipeline.pipeline import Pipeline
-from flowcore_shared.schemas.pipeline.pipeline_version import PipelineVersion
+from flowcore.models.pipeline.pipeline import Pipeline
+from flowcore.models.pipeline.pipeline_version import PipelineVersion
 from flowcore_server.models.pipeline import PipelineResponse, StepResponse
 
 def map_pipeline_to_response(pipeline: Pipeline, version: PipelineVersion) -> PipelineResponse:

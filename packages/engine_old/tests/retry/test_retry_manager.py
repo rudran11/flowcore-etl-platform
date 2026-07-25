@@ -1,5 +1,5 @@
 import pytest
-from flowcore_shared.schemas.pipeline.retry import RetryPolicy
+from flowcore.models.pipeline.retry import RetryPolicy
 from flowcore_shared.schemas.base.enums import RetryStrategy
 from flowcore_engine.retry.manager import RetryManager
 from flowcore_engine.exceptions.base import EngineError

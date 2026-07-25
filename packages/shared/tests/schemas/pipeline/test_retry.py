@@ -1,6 +1,6 @@
 import pytest
 from pydantic import ValidationError
-from flowcore_shared.schemas.pipeline.retry import RetryPolicy
+from flowcore.models.pipeline.retry import RetryPolicy
 from flowcore_shared.schemas.base.enums import RetryStrategy
 
 def test_retry_policy_defaults():

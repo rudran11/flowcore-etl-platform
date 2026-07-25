@@ -5,7 +5,7 @@ class PipelineVersionCreate(BaseModel):
     dsl_definition: dict = Field(..., description="The full YAML or JSON representation of the pipeline.")
     graph_definition: dict = Field(..., description="The UI graph representation (nodes/edges).")
 
-from flowcore_shared.schemas.pipeline import PipelineVersion
+from flowcore.models.pipeline import PipelineVersion
 
 class PipelineVersionResponse(PipelineVersion):
     pass

@@ -4,7 +4,7 @@
 
 """Schemas Module."""
 
-from flowcore_shared.schemas.operational.execution import (
+from flowcore.models.operational.execution import (
     ExecutionRun,
     ExecutionStepRun
 )

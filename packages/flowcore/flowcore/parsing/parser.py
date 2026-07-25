@@ -7,8 +7,8 @@
 import hashlib
 from typing import Dict, Any, List, Tuple
 from pydantic import ValidationError
-from flowcore_shared.schemas.pipeline.pipeline import Pipeline
-from flowcore_shared.schemas.pipeline.execution_step import ExecutionStep
+from flowcore.models.pipeline.pipeline import Pipeline
+from flowcore.models.pipeline.execution_step import ExecutionStep
 from flowcore_shared.exceptions.parsing import DSLParseError
 
 class DSLParser:

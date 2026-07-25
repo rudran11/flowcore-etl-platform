@@ -1,8 +1,8 @@
 import pytest
 from pydantic import ValidationError
-from flowcore_shared.schemas.dependencies.node import Node
-from flowcore_shared.schemas.dependencies.edge import Edge
-from flowcore_shared.schemas.dependencies.dependency_graph import DependencyGraph
+from flowcore.models.dependencies.node import Node
+from flowcore.models.dependencies.edge import Edge
+from flowcore.models.dependencies.dependency_graph import DependencyGraph
 
 def test_dependency_graph_valid():
     graph = DependencyGraph(

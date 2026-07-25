@@ -1,5 +1,5 @@
 from typing import List, Optional
-from flowcore_shared.schemas.pipeline import Pipeline, PipelineVersion
+from flowcore.models.pipeline import Pipeline, PipelineVersion
 from flowcore_server.repositories.interfaces.pipeline import AbstractPipelineRepository
 
 class InMemoryPipelineRepository(AbstractPipelineRepository):

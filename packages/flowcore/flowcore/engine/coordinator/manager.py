@@ -3,11 +3,11 @@
 # See LICENSE file in the project root for full license information.
 
 from typing import Dict, List, Optional, Any
-from flowcore_shared.schemas.pipeline.pipeline_version import PipelineVersion
-from flowcore_shared.schemas.dependencies.dependency_graph import DependencyGraph
-from flowcore_shared.schemas.operational.execution import ExecutionRun
+from flowcore.models.pipeline.pipeline_version import PipelineVersion
+from flowcore.models.dependencies.dependency_graph import DependencyGraph
+from flowcore.models.operational.execution import ExecutionRun
 from flowcore_shared.schemas.base.enums import ExecutionState
-from flowcore_shared.schemas.pipeline.retry import RetryPolicy
+from flowcore.models.pipeline.retry import RetryPolicy
 from flowcore.engine.scheduler.manager import ExecutionScheduler
 from flowcore.engine.state.manager import StateManager
 from flowcore.engine.retry.manager import RetryManager
@@ -196,7 +196,7 @@ class ExecutionCoordinator:
         
         if self._run:
             from datetime import datetime
-            from flowcore_shared.schemas.operational.execution import ExecutionStepRun
+            from flowcore.models.operational.execution import ExecutionStepRun
             import uuid
             
             if step_id not in self._run.steps:

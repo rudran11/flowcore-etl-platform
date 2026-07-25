@@ -1,11 +1,11 @@
 import yaml
 from pathlib import Path
-from flowcore_shared.parsing.parser import DSLParser
-from flowcore_shared.schemas.pipeline.pipeline_version import PipelineVersion
-from flowcore_shared.schemas.dependencies.dependency_graph import DependencyGraph
-from flowcore_shared.schemas.dependencies.node import Node
-from flowcore_shared.schemas.dependencies.edge import Edge
-from flowcore_shared.schemas.operational.execution import ExecutionRun
+from flowcore.parsing.parser import DSLParser
+from flowcore.models.pipeline.pipeline_version import PipelineVersion
+from flowcore.models.dependencies.dependency_graph import DependencyGraph
+from flowcore.models.dependencies.node import Node
+from flowcore.models.dependencies.edge import Edge
+from flowcore.models.operational.execution import ExecutionRun
 from flowcore_shared.schemas.base.enums import ExecutionState
 from flowcore.engine.plugins.manager import PluginManager
 from flowcore.engine.coordinator.manager import ExecutionCoordinator
