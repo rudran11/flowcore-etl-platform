@@ -1,7 +1,7 @@
 import uuid
 from fastapi import Request
 from fastapi.responses import JSONResponse
-from flowcore_engine.exceptions.plugin import PluginLoadError
+from flowcore.engine.exceptions.plugin import PluginLoadError
 from pydantic import ValidationError
 from fastapi.exceptions import RequestValidationError
 from .models import RFC7807Error

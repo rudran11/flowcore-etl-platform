@@ -18,7 +18,7 @@ pydantic = "^2.5.0"
 pyyaml = "^6.0.1"
 
 # Legacy dependencies for gradual migration
-flowcore-engine = { path = "../engine", develop = true }
+
 flowcore-sdk = { path = "../sdk", develop = true }
 flowcore-shared = { path = "../shared", develop = true }
 

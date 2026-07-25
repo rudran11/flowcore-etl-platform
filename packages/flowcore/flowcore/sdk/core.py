@@ -7,10 +7,10 @@ from flowcore_shared.schemas.dependencies.node import Node
 from flowcore_shared.schemas.dependencies.edge import Edge
 from flowcore_shared.schemas.operational.execution import ExecutionRun
 from flowcore_shared.schemas.base.enums import ExecutionState
-from flowcore_engine.plugins.manager import PluginManager
-from flowcore_engine.coordinator.manager import ExecutionCoordinator
-from flowcore_engine.executor.thread import ThreadExecutor
-from flowcore_engine.runner.engine import EngineRunner
+from flowcore.engine.plugins.manager import PluginManager
+from flowcore.engine.coordinator.manager import ExecutionCoordinator
+from flowcore.engine.executor.thread import ThreadExecutor
+from flowcore.engine.runner.engine import EngineRunner
 import uuid
 
 class FlowCore:

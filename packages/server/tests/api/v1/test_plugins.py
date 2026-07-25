@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock
-from flowcore_engine.plugins.manager import PluginManager
+from flowcore.engine.plugins.manager import PluginManager
 from flowcore_shared.plugins.models import PluginMetadata
 from flowcore_shared.plugins.enums import PluginType
 from flowcore_server.main import app
@@ -38,7 +38,7 @@ def mock_plugin_manager():
             return plugin1
         elif plugin_id == "plugin-2":
             return plugin2
-        from flowcore_engine.exceptions.plugin import PluginLoadError
+        from flowcore.engine.exceptions.plugin import PluginLoadError
         raise PluginLoadError(plugin_id, "Not found")
         
     manager.get_plugin.side_effect = get_plugin_side_effect

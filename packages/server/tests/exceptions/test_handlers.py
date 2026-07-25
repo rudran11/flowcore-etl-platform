@@ -1,7 +1,7 @@
 import pytest
 from fastapi import APIRouter
 from fastapi.testclient import TestClient
-from flowcore_engine.exceptions.plugin import PluginLoadError
+from flowcore.engine.exceptions.plugin import PluginLoadError
 from flowcore_server.main import app
 from pydantic import BaseModel
 

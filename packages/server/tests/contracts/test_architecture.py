@@ -36,7 +36,7 @@ def check_no_illegal_imports(directory: str, illegal_prefixes: list):
 def test_router_never_imports_engine_or_shared():
     # Router layer (api) should not import engine directly
     api_dir = os.path.join("packages", "server", "flowcore_server", "api")
-    check_no_illegal_imports(api_dir, ["flowcore_engine"])
+    check_no_illegal_imports(api_dir, ["flowcore.engine"])
 
 def test_application_never_imports_fastapi():
     # Application layer should be framework agnostic
@@ -60,10 +60,10 @@ def test_services_never_import_http_objects():
 
 def test_shared_never_imports_server_or_engine():
     shared_dir = os.path.join("packages", "shared", "flowcore_shared")
-    check_no_illegal_imports(shared_dir, ["flowcore_server", "flowcore_engine"])
+    check_no_illegal_imports(shared_dir, ["flowcore_server", "flowcore.engine"])
 
 def test_engine_never_imports_server():
-    engine_dir = os.path.join("packages", "engine", "flowcore_engine")
+    engine_dir = os.path.join("packages", "engine", "flowcore.engine")
     check_no_illegal_imports(engine_dir, ["flowcore_server"])
 
 def test_dtos_never_inherit_flowcore_base_model():

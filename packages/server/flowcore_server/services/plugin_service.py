@@ -1,5 +1,5 @@
 from typing import List
-from flowcore_engine.plugins.manager import PluginManager
+from flowcore.engine.plugins.manager import PluginManager
 from flowcore_shared.plugins.models import PluginMetadata
 
 class PluginService:

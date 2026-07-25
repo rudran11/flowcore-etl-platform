@@ -4,7 +4,7 @@ from flowcore_server.services.execution_service import ExecutionService
 from flowcore_server.models.execution import ExecutionRequest
 from flowcore_server.dependencies.core import _repository_factory
 from flowcore_server.application.engine_factory import DefaultExecutionEngineFactory
-from flowcore_engine.plugins.manager import PluginManager
+from flowcore.engine.plugins.manager import PluginManager
 import uuid
 
 async def test():

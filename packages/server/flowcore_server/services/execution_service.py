@@ -5,7 +5,7 @@ from flowcore_server.repositories.interfaces.uow import AbstractUnitOfWork
 from flowcore_server.application.cancellation import CancellationStrategy
 from flowcore_server.application.background import BackgroundExecutionStrategy
 from flowcore_server.application.engine_factory import ExecutionEngineFactory
-from flowcore_engine.plugins.manager import PluginManager
+from flowcore.engine.plugins.manager import PluginManager
 
 from flowcore_server.application.interfaces.dispatcher import AbstractEventDispatcher
 from flowcore_shared.events.domain import (

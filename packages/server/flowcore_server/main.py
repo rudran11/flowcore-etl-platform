@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from pydantic import ValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
-from flowcore_engine.exceptions.plugin import PluginLoadError
+from flowcore.engine.exceptions.plugin import PluginLoadError
 from flowcore_server.application.exceptions import ResourceNotFoundError
 from .config.settings import settings
 from .api.v1.router import api_router

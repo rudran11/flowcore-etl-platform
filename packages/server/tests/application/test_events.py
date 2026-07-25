@@ -6,7 +6,7 @@ from flowcore_server.repositories.in_memory.uow import InMemoryUnitOfWork
 from flowcore_server.application.engine_factory import DefaultExecutionEngineFactory
 from flowcore_server.application.cancellation import DefaultCancellationStrategy
 from flowcore_server.application.background import BackgroundExecutionStrategy
-from flowcore_engine.plugins.manager import PluginManager
+from flowcore.engine.plugins.manager import PluginManager
 from flowcore_server.application.dispatchers.in_memory import InMemoryEventDispatcher
 from flowcore_shared.schemas.pipeline.pipeline import Pipeline
 from flowcore_shared.schemas.pipeline.pipeline_version import PipelineVersion

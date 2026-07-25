@@ -1,5 +1,5 @@
 from fastapi import Depends
-from flowcore_engine.plugins.manager import PluginManager
+from flowcore.engine.plugins.manager import PluginManager
 from flowcore_server.dependencies.engine import get_plugin_manager
 from flowcore_server.services.plugin_service import PluginService
 from flowcore_server.application.plugin_app import PluginApplication

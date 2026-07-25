@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
-from flowcore_engine.coordinator.manager import ExecutionCoordinator
-from flowcore_engine.runner.engine import EngineRunner
-from flowcore_engine.executor.base import AbstractExecutor
-from flowcore_engine.executor.thread import ThreadExecutor
-from flowcore_engine.plugins.manager import PluginManager
+from flowcore.engine.coordinator.manager import ExecutionCoordinator
+from flowcore.engine.runner.engine import EngineRunner
+from flowcore.engine.executor.base import AbstractExecutor
+from flowcore.engine.executor.thread import ThreadExecutor
+from flowcore.engine.plugins.manager import PluginManager
 from flowcore_shared.schemas.pipeline.pipeline_version import PipelineVersion
 from flowcore_shared.schemas.dependencies.dependency_graph import DependencyGraph
 

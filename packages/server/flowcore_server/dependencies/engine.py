@@ -1,6 +1,6 @@
 import threading
 from typing import Iterator
-from flowcore_engine.plugins.manager import PluginManager
+from flowcore.engine.plugins.manager import PluginManager
 
 _plugin_manager_instance = None
 _plugin_manager_lock = threading.Lock()
