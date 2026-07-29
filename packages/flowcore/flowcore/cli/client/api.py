@@ -41,7 +41,7 @@ class FlowCoreClient:
 
     def ping(self) -> bool:
         """Pings the server health endpoint."""
-        url = "/health"
+        url = "/api/v1/health"
         try:
             response = self.client.get(url)
             return response.status_code == 200
