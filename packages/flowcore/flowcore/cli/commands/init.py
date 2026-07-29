@@ -52,9 +52,9 @@ def init(
         with open(base_dir / "flowcore.toml", "w", encoding="utf-8") as f:
             f.write(tomlkit.dumps(config))
             
-        context.console.print("[bold green]✓[/bold green] Created project directory")
-        context.console.print("[bold green]✓[/bold green] Created flowcore.toml")
-        context.console.print("[bold green]✓[/bold green] Created pipelines/ and plugins/ directories")
+        context.console.print("[bold green][OK][/bold green] Created project directory")
+        context.console.print("[bold green][OK][/bold green] Created flowcore.toml")
+        context.console.print("[bold green][OK][/bold green] Created pipelines/ and plugins/ directories")
         context.console.print(f"\nNext steps:\n  cd {project_name}\n  flowcore doctor")
         
     except Exception as e:
