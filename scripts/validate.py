@@ -19,11 +19,11 @@ def check_file_exists(path: str) -> bool:
 
 def validate_repository_structure():
     required_paths = [
-        "packages/engine/flowcore_engine",
+        "packages/flowcore/flowcore/engine",
         "packages/server/flowcore_server",
         "packages/studio/src",
-        "packages/cli/flowcore_cli",
-        "packages/sdk/flowcore_sdk",
+        "packages/flowcore/flowcore/cli",
+        "packages/flowcore/flowcore/sdk",
         "packages/shared/flowcore_shared",
         "packages/shared/flowcore_shared/exceptions",
         "packages/shared/flowcore_shared/schemas/base",
@@ -35,13 +35,13 @@ def validate_repository_structure():
         "packages/shared/flowcore_shared/schemas",
         "packages/shared/flowcore_shared/plugins",
         "packages/shared/flowcore_shared/parsing",
-        "packages/engine/flowcore_engine/exceptions",
-        "packages/engine/flowcore_engine/context",
-        "packages/engine/flowcore_engine/state",
-        "packages/engine/flowcore_engine/retry",
-        "packages/engine/flowcore_engine/scheduler",
-        "packages/engine/flowcore_engine/coordinator",
-        "packages/engine/flowcore_engine/executor",
+        "packages/flowcore/flowcore/engine/exceptions",
+        "packages/flowcore/flowcore/engine/context",
+        "packages/flowcore/flowcore/engine/state",
+        "packages/flowcore/flowcore/engine/retry",
+        "packages/flowcore/flowcore/engine/scheduler",
+        "packages/flowcore/flowcore/engine/coordinator",
+        "packages/flowcore/flowcore/engine/executor",
         "packages/engine/tests/plugins",
         "packages/engine/tests/runner",
         "packages/engine/tests/integration",
@@ -54,8 +54,8 @@ def validate_repository_structure():
         "packages/server/tests/api/v1",
         "docs/architecture",
         "docs/architecture/certification",
-        "packages/engine/flowcore_engine/plugins",
-        "packages/engine/flowcore_engine/runner",
+        "packages/flowcore/flowcore/engine/plugins",
+        "packages/flowcore/flowcore/engine/runner",
         "plugins/connectors",
         "plugins/transformers",
         "tests/e2e",
@@ -109,10 +109,10 @@ def validate_python_imports():
     # rather than doing full execution to avoid needing a complex venv setup during CI bootstrap.
     import py_compile
     packages = [
-        "packages/engine/flowcore_engine/__init__.py",
+        "packages/flowcore/flowcore/engine/__init__.py",
         "packages/server/flowcore_server/main.py",
-        "packages/cli/flowcore_cli/main.py",
-        "packages/sdk/flowcore_sdk/client.py"
+        "packages/flowcore/flowcore/cli/main.py",
+        "packages/flowcore/flowcore/sdk/client.py"
     ]
     all_pass = True
     for p in packages:
@@ -127,7 +127,7 @@ def validate_python_imports():
     return all_pass
 
 def validate_cli():
-    cli_path = ROOT_DIR / "packages/cli/flowcore_cli/main.py"
+    cli_path = ROOT_DIR / "packages/flowcore/flowcore/cli/main.py"
     if cli_path.exists():
         print_result("CLI", "PASS", "CLI scaffold verified")
         return True
@@ -135,7 +135,7 @@ def validate_cli():
     return False
 
 def validate_sdk():
-    sdk_path = ROOT_DIR / "packages/sdk/flowcore_sdk/client.py"
+    sdk_path = ROOT_DIR / "packages/flowcore/flowcore/sdk/client.py"
     if sdk_path.exists():
         print_result("SDK", "PASS", "SDK client scaffold verified")
         return True
