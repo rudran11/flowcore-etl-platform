@@ -10,31 +10,33 @@ app = typer.Typer(help="Initialize a new FlowCore project.")
 @app.callback(invoke_without_command=True)
 def init(
     ctx: typer.Context,
-    project_name: str = typer.Argument(..., help="Name of the new project")
+    project_name: str = typer.Argument(".", help="Name of the new project directory. Use '.' for current directory.")
 ):
     context: CLIContext = ctx.obj
-    
-    context.console.print(f"Initializing FlowCore project: [bold cyan]{project_name}[/bold cyan]")
     
     import os
     from pathlib import Path
     import tomlkit
     
-    base_dir = Path.cwd() / project_name
-    if base_dir.exists():
-        context.error(f"Directory {project_name} already exists.")
+    base_dir = Path.cwd() / project_name if project_name != "." else Path.cwd()
+    project_name_resolved = base_dir.name
+    
+    context.console.print(f"Initializing FlowCore project: [bold cyan]{project_name_resolved}[/bold cyan]")
+    
+    if (base_dir / "flowcore.toml").exists():
+        context.error(f"Project already initialized at {base_dir}")
         raise typer.Exit(code=1)
         
     try:
-        base_dir.mkdir()
-        (base_dir / "pipelines").mkdir()
-        (base_dir / "plugins").mkdir()
+        base_dir.mkdir(exist_ok=True)
+        (base_dir / "pipelines").mkdir(exist_ok=True)
+        (base_dir / "plugins").mkdir(exist_ok=True)
         
         # Create flowcore.toml
         config = tomlkit.document()
         
         project_table = tomlkit.table()
-        project_table.add("name", project_name)
+        project_table.add("name", project_name_resolved)
         config.add("project", project_table)
         
         server_table = tomlkit.table()
@@ -55,7 +57,10 @@ def init(
         context.console.print("[bold green][OK][/bold green] Created project directory")
         context.console.print("[bold green][OK][/bold green] Created flowcore.toml")
         context.console.print("[bold green][OK][/bold green] Created pipelines/ and plugins/ directories")
-        context.console.print(f"\nNext steps:\n  cd {project_name}\n  flowcore doctor")
+        if project_name != ".":
+            context.console.print(f"\nNext steps:\n  cd {project_name}\n  python -m flowcore.cli.main doctor")
+        else:
+            context.console.print(f"\nNext steps:\n  python -m flowcore.cli.main doctor")
         
     except Exception as e:
         context.error(f"Failed to initialize project: {e}")
