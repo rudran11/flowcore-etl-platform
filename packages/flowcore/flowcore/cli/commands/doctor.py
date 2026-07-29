@@ -15,7 +15,7 @@ def doctor(ctx: typer.Context):
     context: CLIContext = ctx.obj
     console = context.console
     
-    console.print("[bold cyan]FlowCore Doctor[/bold cyan] \U0001fa7a\n")
+    console.print("[bold cyan]FlowCore Doctor[/bold cyan]\n")
     
     table = Table(show_header=True, header_style="bold magenta")
     table.add_column("Component")
@@ -27,28 +27,28 @@ def doctor(ctx: typer.Context):
     # 1. Python Version
     py_version = sys.version.split()[0]
     if sys.version_info >= (3, 11):
-        table.add_row("Python Version", "[green]✓ OK[/green]", f"v{py_version}")
+        table.add_row("Python Version", "[green][OK][/green]", f"v{py_version}")
     else:
-        table.add_row("Python Version", "[red]✗ FAIL[/red]", f"v{py_version} (Requires >= 3.11)")
+        table.add_row("Python Version", "[red][FAIL][/red]", f"v{py_version} (Requires >= 3.11)")
         failures += 1
         
     # 2. Project Config
     if context.project_root:
-        table.add_row("Project Config", "[green]✓ OK[/green]", f"Found at {context.project_root / 'flowcore.toml'}")
+        table.add_row("Project Config", "[green][OK][/green]", f"Found at {context.project_root / 'flowcore.toml'}")
     else:
-        table.add_row("Project Config", "[red]✗ FAIL[/red]", "No flowcore.toml found. Run 'flowcore init' to create one.")
+        table.add_row("Project Config", "[red][FAIL][/red]", "No flowcore.toml found. Run 'flowcore init' to create one.")
         failures += 1
         
     # 3. Server Connectivity
     try:
         client = FlowCoreClient(base_url=context.server_url, timeout=3)
         if client.ping():
-            table.add_row("FlowCore Server", "[green]✓ OK[/green]", f"Connected to {context.server_url}")
+            table.add_row("FlowCore Server", "[green][OK][/green]", f"Connected to {context.server_url}")
         else:
-            table.add_row("FlowCore Server", "[red]✗ FAIL[/red]", f"Server returned non-200 status")
+            table.add_row("FlowCore Server", "[red][FAIL][/red]", f"Server returned non-200 status")
             failures += 1
     except FlowCoreClientError:
-        table.add_row("FlowCore Server", "[red]✗ FAIL[/red]", f"Could not connect to {context.server_url}")
+        table.add_row("FlowCore Server", "[red][FAIL][/red]", f"Could not connect to {context.server_url}")
         failures += 1
         
     console.print(table)

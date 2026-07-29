@@ -78,6 +78,8 @@ def validate_command(
     # Ideally we'd call plugin_manager.discover_plugins(...) here using context.project_root
     if context.project_root:
         plugin_manager.discover_plugins([str(context.project_root / "plugins")])
+    elif (Path.cwd() / "plugins").exists():
+        plugin_manager.discover_plugins([str(Path.cwd() / "plugins")])
         
     missing_plugins = []
     for s in steps:
@@ -90,7 +92,7 @@ def validate_command(
         
     if not dry_run:
         elapsed = time.time() - start_time
-        console.print(f"[bold green]✔ Validation successful[/bold green] in {elapsed * 1000:.0f} ms")
+        console.print(f"[bold green][OK] Validation successful[/bold green] in {elapsed * 1000:.0f} ms")
         return
         
     # --- Dry Run Execution Plan ---
@@ -143,4 +145,4 @@ def validate_command(
     )
     
     console.print(Panel(summary_text, title="Validation Summary", expand=False))
-    console.print("\n[bold green]✔ Ready to Execute[/bold green]")
+    console.print("\n[bold green][OK] Ready to Execute[/bold green]")
