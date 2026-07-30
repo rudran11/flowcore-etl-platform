@@ -25,8 +25,8 @@ export const ExecutionDAG: React.FC<ExecutionDAGProps> = ({ run }) => {
     return pipeline?.versions?.find(v => v.id === run.pipeline_version) || pipeline?.versions?.[0];
   }, [pipeline, run.pipeline_version]);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<any>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<any>([]);
 
   useEffect(() => {
     if (!currentVersion?.steps) {
