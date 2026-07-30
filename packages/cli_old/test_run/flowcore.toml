@@ -1,9 +1,0 @@
-
-[project]
-name = "test"
-
-[server]
-url = "http://localhost:8000"
-
-[execution]
-mode = "local"

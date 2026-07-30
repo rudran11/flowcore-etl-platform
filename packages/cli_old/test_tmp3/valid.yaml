@@ -1,6 +1,0 @@
-
-version: '1.0'
-pipeline:
-  name: customer_etl
-  owner: test_owner
-steps: []
