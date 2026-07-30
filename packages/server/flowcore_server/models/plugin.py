@@ -12,11 +12,12 @@ class PluginResponse(BaseModel):
     author: Optional[str] = Field(None, description="Author of the plugin.")
     description: Optional[str] = Field(None, description="Detailed description of the plugin.")
     category: str = Field("General", description="Category of the plugin.")
-    capabilities: List[str] = Field(default_factory=list, description="List of supported capabilities.")
+    connector_type: Optional[str] = Field(None, description="Connector type if applicable: Source | Destination | Transform.")
+    capabilities: Dict[str, bool] = Field(default_factory=dict, description="Dictionary of supported capabilities.")
     supported_operations: List[str] = Field(default_factory=list, description="List of supported operations.")
     example_yaml: Optional[str] = Field(None, description="Example YAML configuration.")
     documentation: Optional[str] = Field(None, description="Detailed Markdown documentation.")
-    compatibility: str = Field(">=1.0.0", description="FlowCore version compatibility.")
+    flowcore_version_constraint: str = Field(">=0.9.0", description="FlowCore version compatibility.")
     dependencies: List[str] = Field(default_factory=list, description="List of plugin dependencies.")
 
 class PluginValidationRequest(BaseModel):

@@ -107,7 +107,7 @@ class PluginManager:
                 raise PluginLoadError(f"Plugin {plugin_id} missing dependency: {dep}")
         
         # Compatibility check (mock simple check for now, e.g., if starts with < we can fail, but let's just log or accept >=1.0.0)
-        if not metadata.compatibility.startswith(">="):
+        if not metadata.flowcore_version_constraint.startswith(">="):
             # Just a stub for more complex semver check
             pass
 

@@ -13,10 +13,11 @@ def map_plugin_to_response(plugin: PluginMetadata) -> PluginResponse:
         author=plugin.author,
         description=plugin.description,
         category=plugin.category,
-        capabilities=plugin.capabilities,
+        connector_type=plugin.connector_type,
+        capabilities=plugin.capabilities.model_dump(),
         supported_operations=plugin.supported_operations,
         example_yaml=plugin.example_yaml,
         documentation=plugin.documentation,
-        compatibility=plugin.compatibility,
+        flowcore_version_constraint=plugin.flowcore_version_constraint,
         dependencies=plugin.dependencies
     )
