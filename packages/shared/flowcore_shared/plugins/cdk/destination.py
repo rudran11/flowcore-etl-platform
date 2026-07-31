@@ -17,9 +17,9 @@ class DestinationPlugin(BasePlugin):
         Main execution entrypoint called by the engine.
         For destinations, this routes to write().
         """
-        config = context.get("config", {})
-        message_stream = context.get("message_stream", iter([]))
-        catalog = context.get("catalog", None)
+        config = getattr(context, "parameters", {})
+        message_stream = getattr(context, "message_stream", iter([]))
+        catalog = getattr(context, "catalog", None)
         return self.write(config, catalog, message_stream)
         
     @abstractmethod

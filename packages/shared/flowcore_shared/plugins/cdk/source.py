@@ -17,9 +17,9 @@ class SourcePlugin(BasePlugin):
         Main execution entrypoint called by the engine.
         For sources, this typically routes to read().
         """
-        config = context.get("config", {})
-        state = context.get("state", {})
-        catalog = context.get("catalog", None)
+        config = getattr(context, "parameters", {})
+        state = getattr(context, "state", {})
+        catalog = getattr(context, "catalog", None)
         return self.read(config, catalog, state)
         
     @abstractmethod

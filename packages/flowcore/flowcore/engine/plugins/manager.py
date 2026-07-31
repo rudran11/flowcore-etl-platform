@@ -5,6 +5,7 @@
 import os
 import sys
 import importlib.util
+import importlib.metadata
 import inspect
 from typing import Dict, List, Type
 from flowcore_shared.plugins.base import BasePlugin
@@ -41,6 +42,23 @@ class PluginManager:
                         file_path = os.path.join(root, file)
                         plugin_classes = self._load_from_path(file_path)
                         discovered_classes.extend(plugin_classes)
+
+        # PyPI Entry Point Discovery (CDK Stage 0 Design)
+        try:
+            # Python 3.10+ syntax
+            eps = importlib.metadata.entry_points(group="flowcore.plugins")
+        except TypeError:
+            # Fallback for older python where entry_points() returns a dict
+            eps = importlib.metadata.entry_points().get("flowcore.plugins", [])
+            
+        for ep in eps:
+            try:
+                plugin_cls = ep.load()
+                if inspect.isclass(plugin_cls) and issubclass(plugin_cls, BasePlugin):
+                    discovered_classes.append(plugin_cls)
+            except Exception as e:
+                # Log or ignore loading failures from third-party packages for now
+                pass
 
         # Validate and Instantiate
         for cls in discovered_classes:

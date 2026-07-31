@@ -135,3 +135,34 @@ def test_recoverable_plugin_error():
     # Since it's RETRYING, the task slot was freed, but it's not yet requeued.
     # The external executor loop would sleep `backoff` and re-submit it (future implementation).
     assert not coord.has_pending_work() # Queue is empty
+
+def test_streaming_pipeline_orchestration():
+    pv, graph = _build_test_graph_and_pipeline([("A", "B")])
+    coord = ExecutionCoordinator(pv, graph)
+    run = ExecutionRun(workspace_id="00000000-0000-0000-0000-000000000000", id="run1", pipeline_id="pipe1", pipeline_version_id="1.0.0", trigger_type="MANUAL")
+    
+    run = coord.initialize_run(run)
+    
+    # Task A executes
+    task_a = coord.get_next_task()
+    coord.on_step_started(task_a.step_id)
+    
+    # Task A yields a generator
+    def mock_generator():
+        yield 1
+        yield 2
+        
+    class MockPayload:
+        def __init__(self, output):
+            self.output = output
+            
+    coord.on_step_completed(task_a, MockPayload(mock_generator()))
+    
+    # Task B should now be queued and its context should have the generator
+    task_b = coord.get_next_task()
+    assert task_b.step_id == "B"
+    assert task_b.runtime_context.message_stream is not None
+    
+    # Consume it to verify
+    items = list(task_b.runtime_context.message_stream)
+    assert items == [1, 2]

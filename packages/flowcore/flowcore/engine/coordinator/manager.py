@@ -40,17 +40,21 @@ class ExecutionCoordinator:
         self._adj_list: Dict[str, List[str]] = {}
         self._attempts: Dict[str, int] = {}
         self._run: Optional[ExecutionRun] = None
+        self._in_edges: Dict[str, List[str]] = {}
+        self._step_outputs: Dict[str, Any] = {}
         
         # Hydrate adjacency and in-degrees from the graph
         for node_id in self.graph.nodes:
             self._step_states[node_id] = ExecutionState.PENDING
             self._remaining_indegree[node_id] = 0
             self._adj_list[node_id] = []
+            self._in_edges[node_id] = []
             self._attempts[node_id] = 0
             
         for edge in self.graph.edges:
             self._remaining_indegree[edge.target] += 1
             self._adj_list[edge.source].append(edge.target)
+            self._in_edges[edge.target].append(edge.source)
 
     def initialize_run(self, run: ExecutionRun) -> ExecutionRun:
         """Initializes runtime state and primes the scheduler with initial steps."""
@@ -89,6 +93,14 @@ class ExecutionCoordinator:
         from datetime import datetime
         import logging
         
+        # Inject message_stream if there's an upstream dependency (Linear pipeline assumption for now)
+        upstream_ids = self._in_edges.get(step_id, [])
+        message_stream = None
+        if upstream_ids:
+            upstream_id = upstream_ids[0]
+            if upstream_id in self._step_outputs:
+                message_stream = self._step_outputs[upstream_id]
+        
         context = RuntimeContext(
             run_id=self._run.id if self._run else "unknown",
             pipeline_id=self.pipeline.pipeline_id,
@@ -100,7 +112,8 @@ class ExecutionCoordinator:
             parameters=step_metadata.parameters,
             variables=getattr(self, 'env_vars', {}),
             secrets=getattr(self, 'env_secrets', {}),
-            logger=logging.getLogger(f"flowcore.step.{step_id}")
+            logger=logging.getLogger(f"flowcore.step.{step_id}"),
+            message_stream=message_stream
         )
         
         return ExecutionTask(
@@ -140,12 +153,20 @@ class ExecutionCoordinator:
         # Note: ExecutionResult returns `output` not `outputs`.
         plugin_output = payload.output if payload and hasattr(payload, 'output') else None
         
-        if isinstance(plugin_output, dict):
-            outputs = plugin_output
-        elif hasattr(plugin_output, '__dict__'):
-            outputs = plugin_output.__dict__.copy()
+        outputs = {}
+        import inspect
+        if inspect.isgenerator(plugin_output) or (hasattr(plugin_output, '__iter__') and not isinstance(plugin_output, (dict, list, str, tuple, set))):
+            # It's a stream/iterator. Store in memory, do not put in Pydantic DB model.
+            self._step_outputs[step_id] = plugin_output
+            outputs["stream"] = "active"
         else:
-            outputs = {"result": plugin_output}
+            self._step_outputs[step_id] = plugin_output
+            if isinstance(plugin_output, dict):
+                outputs = plugin_output
+            elif hasattr(plugin_output, '__dict__'):
+                outputs = plugin_output.__dict__.copy()
+            else:
+                outputs = {"result": plugin_output}
             
         # Capture lineage datasets
         lineage = {

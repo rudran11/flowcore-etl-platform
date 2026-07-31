@@ -17,9 +17,9 @@ class TransformPlugin(BasePlugin):
         Main execution entrypoint called by the engine.
         For transformers, this routes to transform().
         """
-        config = context.get("config", {})
-        message_stream = context.get("message_stream", iter([]))
-        catalog = context.get("catalog", None)
+        config = getattr(context, "parameters", {})
+        message_stream = getattr(context, "message_stream", iter([]))
+        catalog = getattr(context, "catalog", None)
         return self.transform(config, catalog, message_stream)
         
     @abstractmethod

@@ -8,6 +8,12 @@ from pydantic import Field, field_validator
 from flowcore_shared.schemas.base.models import FlowCoreBaseModel
 from .enums import PluginType
 
+class ConnectorCapabilities(FlowCoreBaseModel):
+    supports_incremental: bool = Field(False, description="Whether the plugin supports incremental syncs using state.")
+    supports_schema_discovery: bool = Field(False, description="Whether the plugin can dynamically discover source schemas.")
+    supports_parallel_read: bool = Field(False, description="Whether the source can be read in parallel.")
+    supports_batch_write: bool = Field(False, description="Whether the destination supports batch writing.")
+
 class PluginMetadata(FlowCoreBaseModel):
     """Immutable metadata describing a FlowCore plugin."""
     plugin_id: str = Field(..., description="Unique identifier for the plugin.")
@@ -17,11 +23,12 @@ class PluginMetadata(FlowCoreBaseModel):
     author: str = Field(..., description="Author of the plugin.")
     description: str = Field(..., description="Brief description of the plugin's capabilities.")
     category: str = Field("General", description="Category of the plugin (e.g. Integration, Compute).")
-    capabilities: List[str] = Field(default_factory=list, description="List of supported capabilities.")
+    connector_type: Optional[str] = Field(None, description="Connector type if applicable: Source | Destination | Transform.")
+    capabilities: ConnectorCapabilities = Field(default_factory=ConnectorCapabilities, description="Supported capabilities.")
     supported_operations: List[str] = Field(default_factory=list, description="List of supported operations.")
     example_yaml: Optional[str] = Field(None, description="Example YAML configuration.")
     documentation: Optional[str] = Field(None, description="Detailed Markdown documentation.")
-    compatibility: str = Field(">=1.0.0", description="FlowCore version compatibility.")
+    flowcore_version_constraint: str = Field(">=0.9.0", description="FlowCore version compatibility.")
     dependencies: List[str] = Field(default_factory=list, description="List of plugin dependencies.")
 
     @field_validator("version")

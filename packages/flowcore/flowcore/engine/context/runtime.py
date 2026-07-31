@@ -26,6 +26,10 @@ class RuntimeContext(BaseModel):
     secrets: Dict[str, str] = Field(default_factory=dict)
     logger: logging.Logger
     
+    # Internal context for pipelines
+    message_stream: Any = Field(None, description="Stream of messages from upstream plugin")
+    catalog: Any = Field(None, description="Catalog for discovery/sync")
+    
     # Lineage tracking
     input_datasets: list = Field(default_factory=list, description="List of input datasets reported by the plugin")
     output_datasets: list = Field(default_factory=list, description="List of output datasets reported by the plugin")
