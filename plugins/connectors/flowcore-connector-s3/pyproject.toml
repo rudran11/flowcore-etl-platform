@@ -1,0 +1,15 @@
+[project]
+name = "flowcore-connector-s3"
+version = "0.1.0"
+description = "Amazon S3 storage connector for FlowCore."
+authors = [
+    { name = "FlowCore Contributors" }
+]
+dependencies = [
+    "flowcore-shared>=1.0.0",
+    "boto3>=1.34.0"
+]
+
+[project.entry-points."flowcore.plugins"]
+source-s3 = "flowcore_connector_s3.source:S3SourcePlugin"
+destination-s3 = "flowcore_connector_s3.destination:S3DestinationPlugin"

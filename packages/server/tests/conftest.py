@@ -2,10 +2,11 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import patch, AsyncMock
 
-# Patch seed_default_data before importing app
-patch("flowcore_server.main.seed_default_data", new_callable=AsyncMock).start()
-
+import flowcore_server.main
 from flowcore_server.main import app
+
+# Patch seed_default_data
+patch("flowcore_server.main.seed_default_data", new_callable=AsyncMock).start()
 from flowcore_server.dependencies.auth import get_current_user
 from flowcore_shared.schemas.auth.user import UserInDB
 

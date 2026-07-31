@@ -1,0 +1,14 @@
+[project]
+name = "flowcore-connector-local"
+version = "0.1.0"
+description = "Local Filesystem storage connector for FlowCore."
+authors = [
+    { name = "FlowCore Contributors" }
+]
+dependencies = [
+    "flowcore-shared>=1.0.0"
+]
+
+[project.entry-points."flowcore.plugins"]
+source-local = "flowcore_connector_local.source:LocalSourcePlugin"
+destination-local = "flowcore_connector_local.destination:LocalDestinationPlugin"

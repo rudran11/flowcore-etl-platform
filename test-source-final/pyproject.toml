@@ -1,0 +1,13 @@
+[project]
+name = "test-source-final"
+version = "0.1.0"
+description = "A source plugin for FlowCore."
+authors = [
+    { name = "FlowCore Developer" }
+]
+dependencies = [
+    "flowcore-shared>=1.0.0"
+]
+
+[project.entry-points."flowcore.plugins"]
+test-source-final = "test_source_final.plugin:TestSourceFinalPlugin"

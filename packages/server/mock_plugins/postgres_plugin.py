@@ -1,5 +1,5 @@
 from flowcore_shared.plugins.base import BasePlugin
-from flowcore_shared.plugins.models import PluginMetadata
+from flowcore_shared.plugins.models import PluginMetadata, ConnectorCapabilities
 from flowcore_shared.plugins.enums import PluginType
 
 class PostgresPlugin(BasePlugin):
@@ -13,11 +13,11 @@ class PostgresPlugin(BasePlugin):
             author="FlowCore Data",
             description="Enterprise connector for PostgreSQL databases.",
             category="Database",
-            capabilities=["Extract", "Load", "Schema Inference"],
+            capabilities=ConnectorCapabilities(supports_incremental=True, supports_schema_discovery=True),
             supported_operations=["query", "insert", "bulk_copy"],
             example_yaml="type: postgres\nhost: localhost\nport: 5432\ndatabase: my_db\nusername: admin\nquery: SELECT * FROM users",
             documentation="## PostgreSQL Plugin\nAllows querying and loading data into Postgres databases.",
-            compatibility=">=1.0.0",
+            flowcore_version_constraint=">=1.0.0",
             dependencies=[]
         )
         

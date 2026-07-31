@@ -1,5 +1,5 @@
 from flowcore_shared.plugins.base import BasePlugin
-from flowcore_shared.plugins.models import PluginMetadata
+from flowcore_shared.plugins.models import PluginMetadata, ConnectorCapabilities
 from flowcore_shared.plugins.enums import PluginType
 
 class SlackPlugin(BasePlugin):
@@ -13,11 +13,11 @@ class SlackPlugin(BasePlugin):
             author="FlowCore Notifications",
             description="Send messages and alerts to Slack channels.",
             category="Notifications",
-            capabilities=["SendMessage", "UploadFile"],
+            capabilities=ConnectorCapabilities(),
             supported_operations=["send_message"],
             example_yaml="type: slack\nchannel: #alerts\nmessage: 'Pipeline {{ pipeline.id }} failed.'",
             documentation="## Slack Plugin\nRequires a Slack Bot Token.",
-            compatibility=">=1.0.0",
+            flowcore_version_constraint=">=1.0.0",
             dependencies=[]
         )
         

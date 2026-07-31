@@ -18,7 +18,7 @@ class PipelineResponse(BaseModel):
     dependencies: Dict[str, List[str]] = Field(default_factory=dict, description="Execution dependency graph.")
 
 from flowcore.models.pipeline import Pipeline, PipelineVersion
-from flowcore_shared.schemas.operational import ExecutionRun
+from flowcore.models.operational.execution import ExecutionRun
 
 class PipelinePaginatedResponse(BaseModel):
     items: List[Pipeline] = Field(..., description="List of pipelines in the current page.")

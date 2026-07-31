@@ -99,19 +99,23 @@ def plugin_init(
             from pathlib import Path
             from flowcore_shared.plugins.cdk.source import SourcePlugin
             from flowcore_shared.plugins.cdk.messages import FlowCoreMessage, MessageType, RecordMessage, StateMessage
+            from flowcore_shared.plugins.models import PluginMetadata, ConnectorCapabilities
+            from flowcore_shared.plugins.enums import PluginType
             
             class {plugin_class_name}(SourcePlugin):
                 @property
-                def metadata(self) -> Any:
-                    class Meta:
-                        name = "{name}"
-                        version = "0.1.0"
-                        author = "{author}"
-                        description = "Scaffolded Source Plugin"
-                        connector_type = "Source"
-                        flowcore_version_constraint = ">=1.0.0"
-                        capabilities = []
-                    return Meta()
+                def metadata(self) -> PluginMetadata:
+                    return PluginMetadata(
+                        plugin_id="{name}",
+                        name="{name}",
+                        version="0.1.0",
+                        plugin_type=PluginType.CONNECTOR,
+                        author="{author}",
+                        description="Scaffolded Source Plugin",
+                        connector_type="Source",
+                        flowcore_version_constraint=">=1.0.0",
+                        capabilities=ConnectorCapabilities()
+                    )
                     
                 def check(self, config: Dict[str, Any]) -> bool:
                     if "api_key" not in config:
@@ -143,19 +147,23 @@ def plugin_init(
             from pathlib import Path
             from flowcore_shared.plugins.cdk.destination import DestinationPlugin
             from flowcore_shared.plugins.cdk.messages import FlowCoreMessage, MessageType
+            from flowcore_shared.plugins.models import PluginMetadata, ConnectorCapabilities
+            from flowcore_shared.plugins.enums import PluginType
             
             class {plugin_class_name}(DestinationPlugin):
                 @property
-                def metadata(self) -> Any:
-                    class Meta:
-                        name = "{name}"
-                        version = "0.1.0"
-                        author = "{author}"
-                        description = "Scaffolded Destination Plugin"
-                        connector_type = "Destination"
-                        flowcore_version_constraint = ">=1.0.0"
-                        capabilities = []
-                    return Meta()
+                def metadata(self) -> PluginMetadata:
+                    return PluginMetadata(
+                        plugin_id="{name}",
+                        name="{name}",
+                        version="0.1.0",
+                        plugin_type=PluginType.CONNECTOR,
+                        author="{author}",
+                        description="Scaffolded Destination Plugin",
+                        connector_type="Destination",
+                        flowcore_version_constraint=">=1.0.0",
+                        capabilities=ConnectorCapabilities()
+                    )
                     
                 def check(self, config: Dict[str, Any]) -> bool:
                     return True
@@ -176,19 +184,23 @@ def plugin_init(
             from pathlib import Path
             from flowcore_shared.plugins.cdk.transform import TransformPlugin
             from flowcore_shared.plugins.cdk.messages import FlowCoreMessage, MessageType
+            from flowcore_shared.plugins.models import PluginMetadata, ConnectorCapabilities
+            from flowcore_shared.plugins.enums import PluginType
             
             class {plugin_class_name}(TransformPlugin):
                 @property
-                def metadata(self) -> Any:
-                    class Meta:
-                        name = "{name}"
-                        version = "0.1.0"
-                        author = "{author}"
-                        description = "Scaffolded Transform Plugin"
-                        connector_type = "Transform"
-                        flowcore_version_constraint = ">=1.0.0"
-                        capabilities = []
-                    return Meta()
+                def metadata(self) -> PluginMetadata:
+                    return PluginMetadata(
+                        plugin_id="{name}",
+                        name="{name}",
+                        version="0.1.0",
+                        plugin_type=PluginType.CONNECTOR,
+                        author="{author}",
+                        description="Scaffolded Transform Plugin",
+                        connector_type="Transform",
+                        flowcore_version_constraint=">=1.0.0",
+                        capabilities=ConnectorCapabilities()
+                    )
                     
                 def check(self, config: Dict[str, Any]) -> bool:
                     return True
@@ -248,10 +260,12 @@ def plugin_test(
         # Find the plugin class
         from flowcore_shared.plugins.base import BasePlugin
         
+        import inspect
+        
         plugin_class = None
         for item_name in dir(module):
             item = getattr(module, item_name)
-            if isinstance(item, type) and issubclass(item, BasePlugin) and item is not BasePlugin:
+            if isinstance(item, type) and issubclass(item, BasePlugin) and not inspect.isabstract(item):
                 plugin_class = item
                 break
                 
