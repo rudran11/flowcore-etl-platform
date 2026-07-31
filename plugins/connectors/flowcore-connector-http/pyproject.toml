@@ -1,0 +1,15 @@
+[project]
+name = "flowcore-connector-http"
+version = "0.1.0"
+description = "A generic REST API Source connector for FlowCore."
+authors = [
+    { name = "FlowCore Contributors" }
+]
+dependencies = [
+    "flowcore-shared>=1.0.0",
+    "httpx>=0.27.0",
+    "tenacity>=8.2.3"
+]
+
+[project.entry-points."flowcore.plugins"]
+source-http = "flowcore_connector_http.source:HttpSourcePlugin"

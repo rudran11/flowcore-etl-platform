@@ -25,7 +25,7 @@ class StateMessage(FlowCoreBaseModel):
 
 class SchemaMessage(FlowCoreBaseModel):
     stream: str = Field(..., description="Name of the stream.")
-    schema_json: Dict[str, Any] = Field(..., description="JSON schema describing the stream.")
+    schema_data: Dict[str, Any] = Field(..., description="JSON schema describing the stream.")
 
 class LogMessage(FlowCoreBaseModel):
     level: str = Field(..., description="Log level (INFO, WARN, ERROR, DEBUG).")
