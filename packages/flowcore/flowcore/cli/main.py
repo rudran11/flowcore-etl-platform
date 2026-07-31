@@ -6,7 +6,7 @@ import typer
 from rich.console import Console
 
 from flowcore.cli.context import create_context
-from flowcore.cli.commands import init, doctor, version as version_cmd
+from flowcore.cli.commands import init, doctor, version as version_cmd, plugin
 from flowcore.cli.commands.validate import validate_command
 from flowcore.cli.commands.run import run_command
 import importlib.metadata
@@ -25,6 +25,7 @@ app = typer.Typer(
 app.add_typer(init.app, name="init", help="Initialize a new FlowCore project")
 app.add_typer(doctor.app, name="doctor", help="Check environment health and configuration")
 app.add_typer(version_cmd.app, name="version", help="Show the CLI version.")
+app.add_typer(plugin.app, name="plugin", help="Manage FlowCore plugins")
 app.command(name="validate", help="Validate FlowCore pipeline definitions")(validate_command)
 app.command(name="run", help="Run FlowCore pipelines locally")(run_command)
 
