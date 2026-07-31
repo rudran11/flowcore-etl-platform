@@ -1,0 +1,16 @@
+[project]
+name = "flowcore-connector-mysql"
+version = "0.1.0"
+description = "A MySQL Source and Destination connector for FlowCore."
+authors = [
+    { name = "FlowCore Contributors" }
+]
+dependencies = [
+    "flowcore-shared>=1.0.0",
+    "pymysql>=1.1.0",
+    "tenacity>=8.2.3"
+]
+
+[project.entry-points."flowcore.plugins"]
+source-mysql = "flowcore_connector_mysql.source:MysqlSourcePlugin"
+destination-mysql = "flowcore_connector_mysql.destination:MysqlDestinationPlugin"
