@@ -1,0 +1,16 @@
+version: "1.0"
+pipeline:
+  name: Local Storage Pipeline Test
+  workspace_id: 00000000-0000-0000-0000-000000000000
+  owner: test-user
+steps:
+  - step_id: extract
+    connector_id: source-local
+    parameters:
+      directory: ./my_test_source
+      chunk_size: 102400
+  - step_id: load
+    connector_id: destination-local
+    depends_on: ["extract"]
+    parameters:
+      directory: ./my_test_dest

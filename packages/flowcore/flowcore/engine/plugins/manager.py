@@ -54,7 +54,7 @@ class PluginManager:
         for ep in eps:
             try:
                 plugin_cls = ep.load()
-                if inspect.isclass(plugin_cls) and issubclass(plugin_cls, BasePlugin):
+                if inspect.isclass(plugin_cls) and issubclass(plugin_cls, BasePlugin) and not inspect.isabstract(plugin_cls):
                     discovered_classes.append(plugin_cls)
             except Exception as e:
                 # Log or ignore loading failures from third-party packages for now
@@ -82,7 +82,7 @@ class PluginManager:
 
         plugin_classes = []
         for _, obj in inspect.getmembers(module):
-            if inspect.isclass(obj) and issubclass(obj, BasePlugin) and obj is not BasePlugin:
+            if inspect.isclass(obj) and issubclass(obj, BasePlugin) and obj is not BasePlugin and not inspect.isabstract(obj):
                 plugin_classes.append(obj)
                 
         return plugin_classes
@@ -108,6 +108,9 @@ class PluginManager:
         
         # Verify uniqueness
         if plugin_id in self._metadata_registry:
+            existing_cls = type(self._instance_registry[plugin_id])
+            if existing_cls.__name__ == plugin_cls.__name__:
+                return # Ignore duplicate discovery of the same plugin
             raise PluginLoadError(f"Duplicate plugin_id detected: {plugin_id}")
             
         # Verify execute callable
