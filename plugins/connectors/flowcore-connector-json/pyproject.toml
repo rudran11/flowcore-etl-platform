@@ -1,0 +1,14 @@
+[project]
+name = "flowcore-connector-json"
+version = "0.1.0"
+description = "A JSON/JSONL Source and Destination connector for FlowCore."
+authors = [
+    { name = "FlowCore Contributors" }
+]
+dependencies = [
+    "flowcore-shared>=1.0.0"
+]
+
+[project.entry-points."flowcore.plugins"]
+source-json = "flowcore_connector_json.source:JsonSourcePlugin"
+destination-json = "flowcore_connector_json.destination:JsonDestinationPlugin"
