@@ -1,0 +1,11 @@
+[project]
+name = "test_proj"
+
+[server]
+url = "http://localhost:8000"
+
+[execution]
+mode = "local"
+
+[plugins]
+directory = "plugins"

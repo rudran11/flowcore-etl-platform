@@ -29,6 +29,7 @@ class RuntimeContext(BaseModel):
     # Internal context for pipelines
     message_stream: Any = Field(None, description="Stream of messages from upstream plugin")
     catalog: Any = Field(None, description="Catalog for discovery/sync")
+    state: Dict[str, Any] = Field(default_factory=dict, description="Incremental state dictionary")
     
     # Lineage tracking
     input_datasets: list = Field(default_factory=list, description="List of input datasets reported by the plugin")

@@ -4,11 +4,12 @@
 
 import time
 import concurrent.futures
-from typing import Dict
+from typing import Dict, Any
 from flowcore.engine.coordinator.manager import ExecutionCoordinator
 from flowcore.engine.plugins.manager import PluginManager
 from flowcore.engine.executor.base import AbstractExecutor
 from flowcore.engine.executor.models import ExecutionResult
+from flowcore_shared.plugins.cdk.messages import FlowCoreMessage, MessageType
 from .models import ExecutionTask
 from .events import ExecutionEventType
 
@@ -24,11 +25,13 @@ class EngineRunner:
         self,
         coordinator: ExecutionCoordinator,
         plugin_manager: PluginManager,
-        executor: AbstractExecutor
+        executor: AbstractExecutor,
+        state_store: Any = None
     ) -> None:
         self.coordinator = coordinator
         self.plugin_manager = plugin_manager
         self.executor = executor
+        self.state_store = state_store
         
         # Maps Future -> ExecutionTask
         self._pending_futures: Dict[concurrent.futures.Future, ExecutionTask] = {}
@@ -76,8 +79,34 @@ class EngineRunner:
             # Fetch plugin instance
             plugin = self.plugin_manager.get_plugin(task.plugin_id)
             
+            # Determine if task is a terminal node (no downstream dependencies)
+            is_terminal = len(self.coordinator._adj_list.get(task.step_id, [])) == 0
+
+            # Wrapper to execute and optionally consume the final stream
+            def _execute_and_drain(plugin_instance, context, terminal: bool, pipeline_id: str, step_id: str):
+                result = plugin_instance.execute(context)
+                
+                import inspect
+                if terminal and (inspect.isgenerator(result) or (hasattr(result, '__iter__') and not isinstance(result, (dict, list, str, tuple, set)))):
+                    for msg in result:
+                        if isinstance(msg, FlowCoreMessage):
+                            if msg.type == MessageType.STATE and msg.state and self.state_store:
+                                # Currently we associate state with the source's step_id, but the pipeline_id is known.
+                                # Since the generator bubbled up, we persist it under the pipeline_id.
+                                # (In a real system, state might track which source step it belongs to)
+                                self.state_store.set_state(pipeline_id, step_id, msg.state.state_data)
+                    return {"status": "drained"}
+                return result
+
             # Submit to executor
-            future = self.executor.submit(plugin.execute, task.runtime_context)
+            future = self.executor.submit(
+                _execute_and_drain, 
+                plugin, 
+                task.runtime_context, 
+                is_terminal,
+                task.runtime_context.pipeline_id,
+                task.step_id
+            )
             
             # Track
             self._pending_futures[future] = task

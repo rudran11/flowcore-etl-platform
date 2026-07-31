@@ -10,6 +10,7 @@ from flowcore_shared.schemas.base.enums import ExecutionState
 from flowcore.models.pipeline.retry import RetryPolicy
 from flowcore.engine.scheduler.manager import ExecutionScheduler
 from flowcore.engine.state.manager import StateManager
+from flowcore.engine.state.store import AbstractStateStore
 from flowcore.engine.retry.manager import RetryManager
 from flowcore.engine.exceptions.base import EngineError
 
@@ -28,11 +29,12 @@ class ExecutionCoordinator:
     A FatalPluginError (or exhausting retries) prevents downstream scheduling.
     """
 
-    def __init__(self, pipeline: PipelineVersion, graph: DependencyGraph, max_concurrent: int = 10) -> None:
+    def __init__(self, pipeline: PipelineVersion, graph: DependencyGraph, max_concurrent: int = 10, state_store: AbstractStateStore = None) -> None:
         self.pipeline = pipeline
         self.graph = graph
         self.scheduler = ExecutionScheduler(max_concurrent_tasks=max_concurrent)
         self.state_change_callback = None
+        self.state_store = state_store
         
         # Private working structures to preserve immutability of the metadata layer
         self._step_states: Dict[str, ExecutionState] = {}
@@ -100,6 +102,11 @@ class ExecutionCoordinator:
             upstream_id = upstream_ids[0]
             if upstream_id in self._step_outputs:
                 message_stream = self._step_outputs[upstream_id]
+                
+        # Inject state from store if available
+        step_state = {}
+        if self.state_store:
+            step_state = self.state_store.get_state(self.pipeline.pipeline_id, step_id) or {}
         
         context = RuntimeContext(
             run_id=self._run.id if self._run else "unknown",
@@ -113,7 +120,8 @@ class ExecutionCoordinator:
             variables=getattr(self, 'env_vars', {}),
             secrets=getattr(self, 'env_secrets', {}),
             logger=logging.getLogger(f"flowcore.step.{step_id}"),
-            message_stream=message_stream
+            message_stream=message_stream,
+            state=step_state
         )
         
         return ExecutionTask(
