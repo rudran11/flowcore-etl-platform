@@ -1,21 +1,25 @@
 import React, { useMemo, useEffect } from 'react';
-import { ReactFlow, MiniMap, Controls, Background, useNodesState, useEdgesState } from '@xyflow/react';
+import { ReactFlow, MiniMap, Controls, Background, useNodesState, useEdgesState, BackgroundVariant } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { ExecutionResponse } from '../../../api/executions';
 import { usePipeline } from '../../pipelines/hooks/usePipeline';
+import dagre from 'dagre';
+import { TriggerNode, StepNode } from '../../pipelines/components/CustomNodes';
+import { AnimatedEdge } from '../../pipelines/components/AnimatedEdge';
+import { useTheme } from 'next-themes';
+import { NodeInspectionPanel } from './NodeInspectionPanel';
 
 interface ExecutionDAGProps {
   run: ExecutionResponse;
 }
 
-const statusColors: Record<string, string> = {
-  PENDING: '#94a3b8',
-  QUEUED: '#94a3b8',
-  RUNNING: '#3b82f6',
-  COMPLETED: '#22c55e',
-  FAILED: '#ef4444',
-  CANCELLED: '#f59e0b',
-  SKIPPED: '#64748b'
+const nodeTypes = {
+  triggerNode: TriggerNode,
+  stepNode: StepNode,
+};
+
+const edgeTypes = {
+  animated: AnimatedEdge,
 };
 
 export const ExecutionDAG: React.FC<ExecutionDAGProps> = ({ run }) => {
@@ -27,60 +31,110 @@ export const ExecutionDAG: React.FC<ExecutionDAGProps> = ({ run }) => {
 
   const [nodes, setNodes, onNodesChange] = useNodesState<any>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<any>([]);
+  const [selectedNodeId, setSelectedNodeId] = React.useState<string | null>(null);
+
+  const { theme } = useTheme();
+  const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   useEffect(() => {
-    if (!currentVersion?.steps) {
+    if (!currentVersion?.dsl_definition) {
       setNodes([]);
       setEdges([]);
       return;
     }
+    
+    const dsl = currentVersion.dsl_definition;
+    const triggerData = dsl.trigger || { type: 'manual' };
+    
+    let newNodes: any[] = [];
+    let newEdges: any[] = [];
 
-    const newNodes = currentVersion.steps.map((step: any, index: number) => {
-      const stepRun = run.steps?.[step.step_id];
-      const status = stepRun?.status || 'PENDING';
-      const bgColor = statusColors[status] || '#94a3b8';
-      
-      return {
-        id: step.step_id,
-        position: { x: 250 * (index % 3), y: 100 * Math.floor(index / 3) }, // Basic auto layout
-        data: { 
-          label: (
-            <div 
-              className="flex flex-col items-center group relative"
-              title={`Status: ${status}\nRetries: ${stepRun?.retry_count || 0}\nDuration: ${stepRun?.duration_ms ? (stepRun.duration_ms / 1000).toFixed(1) + 's' : 'N/A'}`}
-            >
-              <span className="font-semibold text-sm">{step.step_id}</span>
-              <span className="text-xs mt-1 px-2 py-0.5 rounded-full bg-white/20 text-white">
-                {status}
-              </span>
-            </div>
-          )
-        },
-        style: {
-          background: bgColor,
-          color: '#fff',
-          border: 'none',
-          borderRadius: '8px',
-          padding: '10px',
-          width: 150,
-          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-        }
-      };
+    // Add Trigger Node
+    newNodes.push({
+      id: 'trigger',
+      type: 'triggerNode',
+      position: { x: 0, y: 0 },
+      data: { 
+        label: 'Trigger', 
+        type: triggerData.type, 
+        schedule: triggerData.schedule,
+        status: run.status.toLowerCase(), // mapping to custom nodes status format
+      }
     });
 
-    const newEdges: any[] = [];
-    currentVersion.steps.forEach((step: any) => {
-      if (step.depends_on) {
-        step.depends_on.forEach((dep: string) => {
-          newEdges.push({
-            id: `e-${dep}-${step.step_id}`,
-            source: dep,
-            target: step.step_id,
-            animated: run.steps?.[step.step_id]?.status === 'RUNNING' || run.status === 'RUNNING',
-            style: { stroke: '#94a3b8', strokeWidth: 2 }
-          });
+    if (dsl.steps) {
+      Object.entries(dsl.steps).forEach(([stepId, step]: [string, any]) => {
+        const stepRun = run.steps?.[stepId];
+        const status = stepRun?.status?.toLowerCase() || 'pending';
+        
+        newNodes.push({
+          id: stepId,
+          type: 'stepNode',
+          position: { x: 0, y: 0 },
+          data: { 
+            label: stepId, 
+            plugin_id: step.plugin_id, 
+            config: step.config,
+            status: status,
+            duration: stepRun?.duration_ms ? `${(stepRun.duration_ms / 1000).toFixed(1)}s` : undefined,
+            error: stepRun?.error_message ? true : false,
+          }
         });
-      }
+        
+        if (step.depends_on && step.depends_on.length > 0) {
+          step.depends_on.forEach((dep: string) => {
+            if (dep === 'trigger' || dep === 'Trigger') {
+              newEdges.push({
+                id: `e-trigger-${stepId}`,
+                source: 'trigger',
+                target: stepId,
+                type: 'animated',
+                data: { status: status }
+              });
+            } else {
+              newEdges.push({
+                id: `e-${dep}-${stepId}`,
+                source: dep,
+                target: stepId,
+                type: 'animated',
+                data: { status: status }
+              });
+            }
+          });
+        } else {
+          newEdges.push({
+            id: `e-trigger-${stepId}`,
+            source: 'trigger',
+            target: stepId,
+            type: 'animated',
+            data: { status: status }
+          });
+        }
+      });
+    }
+
+    // Auto Layout with Dagre
+    const dagreGraph = new dagre.graphlib.Graph();
+    dagreGraph.setDefaultEdgeLabel(() => ({}));
+    dagreGraph.setGraph({ rankdir: 'TB', ranksep: 100, nodesep: 100 });
+    
+    newNodes.forEach((node) => {
+      dagreGraph.setNode(node.id, { width: 250, height: 80 });
+    });
+    newEdges.forEach((edge) => {
+      dagreGraph.setEdge(edge.source, edge.target);
+    });
+    dagre.layout(dagreGraph);
+    
+    newNodes = newNodes.map((node) => {
+      const nodeWithPosition = dagreGraph.node(node.id);
+      return {
+        ...node,
+        position: {
+          x: nodeWithPosition.x - 250 / 2,
+          y: nodeWithPosition.y - 80 / 2,
+        },
+      };
     });
 
     setNodes(newNodes);
@@ -92,21 +146,46 @@ export const ExecutionDAG: React.FC<ExecutionDAGProps> = ({ run }) => {
   }
 
   return (
-    <div className="w-full h-[500px] border rounded-xl overflow-hidden bg-muted/10 relative">
-      <div className="absolute top-2 right-2 z-10 bg-background/80 p-2 rounded text-xs text-muted-foreground border">
-        Nodes: {nodes.length} | Edges: {edges.length} | Version steps: {currentVersion?.steps?.length || 0}
-      </div>
+    <div className="w-full h-[600px] border-b bg-background relative">
       <ReactFlow
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onNodeClick={(_, node) => setSelectedNodeId(node.id)}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         fitView
+        colorMode={isDark ? "dark" : "light"}
+        nodesDraggable={false}
+        nodesConnectable={false}
+        elementsSelectable={true}
       >
-        <Controls />
-        <MiniMap />
-        <Background gap={12} size={1} />
+        <Controls className="bg-card/80 backdrop-blur-md border-border/50 shadow-sm rounded-md overflow-hidden fill-foreground !flex !flex-col" showInteractive={false} />
+        <MiniMap 
+          nodeColor={(n) => {
+            if (n.type === 'triggerNode') return isDark ? '#10b981' : '#059669';
+            if (n.data?.error || n.data?.status === 'failed') return isDark ? '#f43f5e' : '#e11d48';
+            if (n.data?.status === 'completed') return isDark ? '#10b981' : '#059669';
+            if (n.data?.status === 'running') return isDark ? '#3b82f6' : '#2563eb';
+            return isDark ? '#a1a1aa' : '#71717a';
+          }}
+          maskColor={isDark ? "rgba(0, 0, 0, 0.7)" : "rgba(255, 255, 255, 0.7)"}
+          className="bg-card/80 backdrop-blur-md border border-border/50 shadow-sm rounded-md overflow-hidden"
+          style={{ width: 150, height: 100 }}
+          pannable
+          zoomable
+        />
+        <Background color={isDark ? "#ffffff" : "#000000"} gap={24} size={1.5} variant={BackgroundVariant.Dots} className={isDark ? "opacity-5" : "opacity-[0.03]"} />
       </ReactFlow>
+      
+      {selectedNodeId && (
+        <NodeInspectionPanel
+          nodeId={selectedNodeId}
+          run={run}
+          onClose={() => setSelectedNodeId(null)}
+        />
+      )}
     </div>
   );
 };

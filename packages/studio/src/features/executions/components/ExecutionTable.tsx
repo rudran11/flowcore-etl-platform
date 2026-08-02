@@ -7,6 +7,10 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../..
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
 import { ExecutionResponse } from '../../../api/executions';
 import { Progress } from '../../../components/ui/progress';
+import { Button } from '../../../components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../../../components/ui/dropdown-menu';
+import { MoreHorizontal, Download, GitMerge, FileText, Play, Activity } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface ExecutionTableProps {
   runs: ExecutionResponse[];
@@ -35,14 +39,14 @@ export const ExecutionTable: React.FC<ExecutionTableProps> = ({
   };
 
   return (
-    <Card className="col-span-3 border-muted bg-card shadow-sm h-full">
+    <div className="w-full h-full">
       {(title || description) && (
-        <CardHeader className="pb-3 border-b border-border/40">
-          {title && <CardTitle className="text-lg">{title}</CardTitle>}
-          {description && <CardDescription>{description}</CardDescription>}
-        </CardHeader>
+        <div className="pb-3 mb-4 border-b border-border/40 px-2">
+          {title && <h3 className="text-lg font-semibold">{title}</h3>}
+          {description && <p className="text-sm text-muted-foreground">{description}</p>}
+        </div>
       )}
-      <CardContent className="p-0">
+      <div className="p-0">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/30">
@@ -51,6 +55,7 @@ export const ExecutionTable: React.FC<ExecutionTableProps> = ({
               <TableHead className="font-semibold">Progress</TableHead>
               <TableHead className="font-semibold">Duration</TableHead>
               <TableHead className="font-semibold">Started</TableHead>
+              <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -62,13 +67,16 @@ export const ExecutionTable: React.FC<ExecutionTableProps> = ({
                   <TableCell><Skeleton className="h-2 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                  <TableCell><Skeleton className="h-8 w-8 rounded-md" /></TableCell>
                 </TableRow>
               ))
             ) : runs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
-                  <div className="flex flex-col items-center justify-center space-y-2">
-                    <span className="text-sm">No executions found</span>
+                <TableCell colSpan={6} className="h-48 text-center text-muted-foreground">
+                  <div className="flex flex-col items-center justify-center space-y-3">
+                    <Activity className="h-10 w-10 text-muted-foreground/30" />
+                    <div className="text-lg font-medium text-foreground">No executions found</div>
+                    <div className="text-sm">We couldn't find any executions matching your criteria.</div>
                   </div>
                 </TableCell>
               </TableRow>
@@ -101,13 +109,50 @@ export const ExecutionTable: React.FC<ExecutionTableProps> = ({
                         ? formatDistanceToNow(new Date(run.started_at), { addSuffix: true }) 
                         : (run.submitted_at ? formatDistanceToNow(new Date(run.submitted_at), { addSuffix: true }) : 'N/A')}
                     </TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => navigate(`/runs/${(run as any).id || run.run_id}?tab=dag`)}>
+                            <GitMerge className="mr-2 h-4 w-4" /> View DAG
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate(`/runs/${(run as any).id || run.run_id}?tab=logs`)}>
+                            <FileText className="mr-2 h-4 w-4" /> View Logs
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => {
+                            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(run, null, 2));
+                            const a = document.createElement('a');
+                            a.setAttribute("href", dataStr);
+                            a.setAttribute("download", `execution-${run.run_id}.json`);
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                            toast.success('Execution JSON exported');
+                          }}>
+                            <Download className="mr-2 h-4 w-4" /> Export JSON
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => {
+                             // Wait for milestone 12 for full re-run backend implementation
+                             toast.info("Re-run capability is planned for the next backend release.");
+                          }}>
+                            <Play className="mr-2 h-4 w-4" /> Re-run Pipeline
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
                   </TableRow>
                 );
               })
             )}
           </TableBody>
         </Table>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };

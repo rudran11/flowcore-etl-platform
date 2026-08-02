@@ -80,7 +80,8 @@ const TemplateDialog = () => {
 
 export const PipelineDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { data, isLoading } = usePipeline(id!);
+  const isNew = id === 'new';
+  const { data, isLoading } = usePipeline(isNew ? '' : id!);
   
   const { 
     setPipeline, 
@@ -91,7 +92,9 @@ export const PipelineDetailsPage: React.FC = () => {
 
   // Initialize Pipeline
   useEffect(() => {
-    if (data && data.pipeline && id) {
+    if (isNew) {
+      setPipeline({ id: 'new', name: 'Untitled Pipeline', description: 'Unsaved Pipeline' } as any, yaml.stringify({ trigger: { type: 'manual' }, steps: {} }));
+    } else if (data && data.pipeline && id) {
       // Check if we have an unsaved draft
       const hasDraft = loadDraftFromStorage(id, data.pipeline);
       
@@ -121,7 +124,7 @@ export const PipelineDetailsPage: React.FC = () => {
         }
       }
     }
-  }, [data, id, setPipeline, loadDraftFromStorage]);
+  }, [data, id, isNew, setPipeline, loadDraftFromStorage]);
 
   // Unsaved changes warning
   useEffect(() => {
@@ -198,7 +201,7 @@ export const PipelineDetailsPage: React.FC = () => {
     );
   }
 
-  if (!data || !data.pipeline) {
+  if (!isNew && (!data || !data.pipeline)) {
     return (
       <div className="flex-1 flex items-center justify-center bg-zinc-950">
         <div className="text-zinc-500">Pipeline not found.</div>

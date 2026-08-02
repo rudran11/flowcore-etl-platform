@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { usePipelines } from '../hooks/usePipelines';
 import { PipelineTable } from '../components/PipelineTable';
 import { PipelineSearch } from '../components/PipelineSearch';
 import { PageTransition } from '../../../components/ui/PageTransition';
 import { Button } from '../../../components/ui/button';
-import { ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Filter, GitMerge, Plus } from 'lucide-react';
+import { PageHeader } from '../../../components/ui/page-header';
+import { EmptyState } from '../../../components/ui/empty-state';
 import { toast } from 'sonner';
 import { Skeleton } from '../../../components/ui/skeleton';
 
 export const PipelinesPage: React.FC = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [skip, setSkip] = useState(0);
   const [limit] = useState(25);
@@ -31,13 +35,17 @@ export const PipelinesPage: React.FC = () => {
   const handlePrev = () => setSkip(prev => Math.max(0, prev - limit));
 
   return (
-    <PageTransition className="flex-1 space-y-6">
-      <div className="flex items-center justify-between space-y-2">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Pipelines</h2>
-          <p className="text-muted-foreground mt-1 text-sm">Manage and monitor all your data pipelines in one place.</p>
-        </div>
-      </div>
+    <PageTransition className="p-6 md:p-8 max-w-[1400px] mx-auto w-full space-y-6">
+      <PageHeader
+        title="Pipelines"
+        subtitle="Manage and monitor all your data pipelines in one place."
+        icon={GitMerge}
+        actions={
+          <Button className="shadow-md" onClick={() => navigate('/pipelines/new')}>
+            <Plus className="mr-2 h-4 w-4" /> New Pipeline
+          </Button>
+        }
+      />
 
       <div className="flex items-center gap-4">
         <div className="flex-1 max-w-md">
@@ -52,7 +60,7 @@ export const PipelinesPage: React.FC = () => {
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden"
+        className="w-full"
       >
         {isLoading ? (
           <div className="p-6 space-y-4">
@@ -64,6 +72,15 @@ export const PipelinesPage: React.FC = () => {
               </div>
             ))}
           </div>
+        ) : data?.items?.length === 0 ? (
+          <EmptyState
+            icon={GitMerge}
+            title="No pipelines found"
+            description="You don't have any data pipelines matching your query."
+            action={
+              <Button variant="outline">Clear filters</Button>
+            }
+          />
         ) : (
           <PipelineTable pipelines={data?.items || []} loading={isLoading} />
         )}

@@ -8,9 +8,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui
 import { PipelineStatusBadge } from '../../pipelines/components/PipelineStatusBadge';
 import { ExecutionDAG } from '../components/ExecutionDAG';
 import { ExecutionLogs } from '../components/ExecutionLogs';
-import { ArrowLeft, Clock, Zap, Download, XCircle, RotateCcw, AlertCircle } from 'lucide-react';
+import { ExecutionTimeline } from '../components/ExecutionTimeline';
+import { ArrowLeft, Clock, Zap, Download, XCircle, RotateCcw, AlertCircle, Activity, Server, Hash, FileJson, Play } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { Progress } from '../../../components/ui/progress';
+import { Separator } from '../../../components/ui/separator';
 
 export const ExecutionDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -29,6 +31,14 @@ export const ExecutionDetailsPage: React.FC = () => {
   }
 
   const isTerminal = ['COMPLETED', 'FAILED', 'CANCELLED'].includes(run.status);
+  
+  const formatDuration = (ms: number) => {
+    if (!ms) return '0s';
+    return `${(ms / 1000).toFixed(1)}s`;
+  };
+
+  const calculatedDuration = run?.duration_ms || (run?.finished_at && run?.submitted_at ? new Date(run.finished_at).getTime() - new Date(run.submitted_at).getTime() : 0);
+  const displayStartedAt = run?.started_at || run?.submitted_at;
   
   const handleCancel = () => {
     if (id) cancelExecution.mutate(id);
@@ -89,66 +99,17 @@ export const ExecutionDetailsPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardContent className="p-4 flex flex-row items-center gap-4">
-            <div className="p-2 bg-blue-500/10 rounded-lg">
-              <Clock className="h-5 w-5 text-blue-500" />
+      <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-140px)]">
+        {/* Main Content Area */}
+        <div className="flex-1 overflow-hidden flex flex-col min-w-0">
+          {run.error && (
+            <div className="bg-destructive/10 border-l-4 border-destructive p-4 rounded-r-lg mb-4 shrink-0">
+              <p className="text-destructive font-semibold">Execution Error</p>
+              <p className="text-sm mt-1 font-mono text-destructive/80">{run.error}</p>
             </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Duration</p>
-              <h3 className="text-lg font-bold">
-                {run.duration_ms ? `${(run.duration_ms / 1000).toFixed(1)}s` : 'In Progress'}
-              </h3>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex flex-row items-center gap-4">
-            <div className="p-2 bg-green-500/10 rounded-lg">
-              <Zap className="h-5 w-5 text-green-500" />
-            </div>
-            <div className="w-full">
-              <div className="flex justify-between items-center mb-1">
-                <p className="text-xs font-medium text-muted-foreground">Steps Completed</p>
-                <span className="text-xs font-bold">{completedSteps}/{totalSteps}</span>
-              </div>
-              <Progress value={progressValue} className="h-1.5 w-full" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex flex-row items-center gap-4">
-            <div className="p-2 bg-destructive/10 rounded-lg">
-              <AlertCircle className="h-5 w-5 text-destructive" />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Failed Steps</p>
-              <h3 className="text-lg font-bold">{failedSteps}</h3>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex flex-row items-center gap-4">
-            <div className="p-2 bg-amber-500/10 rounded-lg">
-              <RotateCcw className="h-5 w-5 text-amber-500" />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Total Retries</p>
-              <h3 className="text-lg font-bold">{totalRetries}</h3>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      
-      {run.error && (
-        <div className="bg-destructive/10 border-l-4 border-destructive p-4 rounded-r-lg">
-          <p className="text-destructive font-semibold">Execution Error</p>
-          <p className="text-sm mt-1 font-mono text-destructive/80">{run.error}</p>
-        </div>
-      )}
+          )}
 
-      <Card className="shadow-sm">
+          <Card className="shadow-sm flex-1 flex flex-col overflow-hidden border-border/50">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex items-center justify-between border-b px-4">
             <TabsList className="h-12 bg-transparent border-none p-0 space-x-6">
@@ -178,57 +139,17 @@ export const ExecutionDetailsPage: React.FC = () => {
               </TabsTrigger>
             </TabsList>
             <div className="text-xs text-muted-foreground">
-              Started {run.started_at ? formatDistanceToNow(new Date(run.started_at), { addSuffix: true }) : 'N/A'}
+              Started {displayStartedAt ? formatDistanceToNow(new Date(displayStartedAt), { addSuffix: true }) : 'N/A'}
             </div>
           </div>
           
-          <div className="p-0">
+          <div className="flex-1 overflow-y-auto">
             <TabsContent value="dag" className="m-0 border-0 p-0">
               <ExecutionDAG run={run} />
             </TabsContent>
             
-            <TabsContent value="timeline" className="m-0 p-6">
-              <div className="space-y-6">
-                <div className="flex gap-4">
-                  <div className="flex flex-col items-center">
-                    <div className="w-3 h-3 rounded-full bg-primary" />
-                    <div className="w-0.5 h-full bg-border mt-2" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm">Execution Submitted</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {format(new Date(run.submitted_at), 'MMM d, yyyy HH:mm:ss')}
-                    </p>
-                  </div>
-                </div>
-                {run.started_at && (
-                  <div className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className="w-3 h-3 rounded-full bg-blue-500" />
-                      <div className="w-0.5 h-full bg-border mt-2" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm">Execution Started</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {format(new Date(run.started_at), 'MMM d, yyyy HH:mm:ss')}
-                      </p>
-                    </div>
-                  </div>
-                )}
-                {run.finished_at && (
-                  <div className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className={`w-3 h-3 rounded-full ${run.status === 'COMPLETED' ? 'bg-green-500' : 'bg-destructive'}`} />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm">Execution {run.status}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {format(new Date(run.finished_at), 'MMM d, yyyy HH:mm:ss')}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
+            <TabsContent value="timeline" className="m-0 p-0 border-0">
+              <ExecutionTimeline run={run} />
             </TabsContent>
             
             <TabsContent value="logs" className="m-0 p-0 border-0">
@@ -244,7 +165,93 @@ export const ExecutionDetailsPage: React.FC = () => {
             </TabsContent>
           </div>
         </Tabs>
-      </Card>
+        </Card>
+        </div>
+
+        {/* Sidebar */}
+        <div className="w-full lg:w-80 shrink-0 flex flex-col gap-4 overflow-y-auto custom-scrollbar pr-1">
+          <Card className="border-border/50 shadow-sm overflow-hidden">
+            <div className="bg-muted/50 p-4 border-b border-border/50">
+              <h3 className="font-semibold text-sm flex items-center gap-2">
+                <Activity className="w-4 h-4 text-primary" /> Execution Details
+              </h3>
+            </div>
+            <CardContent className="p-0">
+              <div className="divide-y divide-border/50">
+                <div className="p-4 flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Pipeline Version</span>
+                  <span className="text-sm font-medium">v{run.pipeline_version}</span>
+                </div>
+                <div className="p-4 flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Trigger Type</span>
+                  <span className="text-sm font-medium flex items-center gap-1"><Play className="w-3 h-3"/> Manual</span>
+                </div>
+                <div className="p-4 flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Environment</span>
+                  <span className="text-sm font-medium flex items-center gap-1"><Server className="w-3 h-3"/> Production</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50 shadow-sm overflow-hidden">
+            <div className="bg-muted/50 p-4 border-b border-border/50">
+              <h3 className="font-semibold text-sm flex items-center gap-2">
+                <Clock className="w-4 h-4 text-blue-500" /> Timing & Performance
+              </h3>
+            </div>
+            <CardContent className="p-0">
+              <div className="divide-y divide-border/50">
+                <div className="p-4 flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Queue Wait Time</span>
+                  <span className="text-sm font-medium">
+                    {run.started_at && run.submitted_at 
+                      ? `${Math.max(0, (new Date(run.started_at).getTime() - new Date(run.submitted_at).getTime()) / 1000).toFixed(1)}s` 
+                      : '0s'}
+                  </span>
+                </div>
+                <div className="p-4 flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Total Duration</span>
+                  <span className="text-sm font-medium">{calculatedDuration ? `${(calculatedDuration / 1000).toFixed(1)}s` : 'Running'}</span>
+                </div>
+                <div className="p-4 flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Started At</span>
+                  <span className="text-sm font-medium">{displayStartedAt ? format(new Date(displayStartedAt), 'MMM d, yyyy HH:mm:ss') : 'N/A'}</span>
+                </div>
+                <div className="p-4 flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Ended At</span>
+                  <span className="text-sm font-medium">{run.finished_at ? format(new Date(run.finished_at), 'MMM d, yyyy HH:mm:ss') : 'N/A'}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50 shadow-sm overflow-hidden">
+            <div className="bg-muted/50 p-4 border-b border-border/50">
+              <h3 className="font-semibold text-sm flex items-center gap-2">
+                <Hash className="w-4 h-4 text-amber-500" /> Metrics
+              </h3>
+            </div>
+            <CardContent className="p-4 space-y-4">
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-xs text-muted-foreground">Steps Completed</span>
+                  <span className="text-xs font-bold">{completedSteps}/{totalSteps}</span>
+                </div>
+                <Progress value={progressValue} className="h-1.5 w-full bg-muted" />
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-muted-foreground flex items-center gap-1"><AlertCircle className="w-3 h-3 text-destructive"/> Failed Steps</span>
+                <span className="text-sm font-medium text-destructive">{failedSteps}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-muted-foreground flex items-center gap-1"><RotateCcw className="w-3 h-3 text-amber-500"/> Total Retries</span>
+                <span className="text-sm font-medium">{totalRetries}</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 };

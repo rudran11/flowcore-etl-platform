@@ -7,6 +7,9 @@ import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '../../../components/ui/dialog';
 import { useCreateEnvironment } from '../hooks/useEnvironments';
+import { PageHeader } from '../../../components/ui/page-header';
+import { StatCard } from '../../../components/ui/stat-card';
+import { EmptyState } from '../../../components/ui/empty-state';
 
 export const EnvironmentsPage: React.FC = () => {
   const { data: environments, isLoading } = useEnvironments();
@@ -51,16 +54,13 @@ export const EnvironmentsPage: React.FC = () => {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="p-6 md:p-8 max-w-[1400px] mx-auto space-y-8 animate-in fade-in duration-500 w-full">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-            Environments
-          </h1>
-          <p className="text-muted-foreground mt-2 text-lg">
-            Manage configuration profiles and secure secrets for your deployments.
-          </p>
-        </div>
+        <PageHeader
+          title="Environments"
+          subtitle="Manage configuration profiles and secure secrets for your deployments."
+          icon={Server}
+        />
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button size="lg" className="shadow-lg shadow-primary/20">
@@ -113,44 +113,27 @@ export const EnvironmentsPage: React.FC = () => {
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="p-6 rounded-xl border bg-card/50 backdrop-blur shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-primary/10 rounded-lg text-primary">
-              <Server className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground font-medium">Active Environments</p>
-              <h3 className="text-2xl font-bold">{environments?.length || 0}</h3>
-            </div>
-          </div>
-        </div>
-        <div className="p-6 rounded-xl border bg-card/50 backdrop-blur shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-red-500/10 rounded-lg text-red-500">
-              <Activity className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground font-medium">Production Profiles</p>
-              <h3 className="text-2xl font-bold">
-                {environments?.filter(e => e.type === 'PRODUCTION').length || 0}
-              </h3>
-            </div>
-          </div>
-        </div>
-        <div className="p-6 rounded-xl border bg-card/50 backdrop-blur shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-green-500/10 rounded-lg text-green-500">
-              <Shield className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground font-medium">Total Secrets Managed</p>
-              <h3 className="text-2xl font-bold">
-                {environments?.reduce((acc, env) => acc + env.variables.filter(v => v.is_secret).length, 0) || 0}
-              </h3>
-            </div>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <StatCard 
+          title="Active Environments" 
+          value={environments?.length || 0} 
+          icon={<Server className="h-4 w-4" />}
+          description="Total configured profiles"
+        />
+        <StatCard 
+          title="Production Profiles" 
+          value={environments?.filter(e => e.type === 'PRODUCTION').length || 0} 
+          icon={<Activity className="h-4 w-4" />}
+          description="High-security targets"
+          trend="up"
+          trendValue="Secured"
+        />
+        <StatCard 
+          title="Total Secrets Managed" 
+          value={environments?.reduce((acc, env) => acc + env.variables.filter(v => v.is_secret).length, 0) || 0} 
+          icon={<Shield className="h-4 w-4" />}
+          description="Encrypted variables"
+        />
       </div>
 
       <div className="flex items-center gap-4">
@@ -209,8 +192,12 @@ export const EnvironmentsPage: React.FC = () => {
             </div>
           ))}
           {filteredEnvs?.length === 0 && (
-            <div className="col-span-full py-20 text-center text-muted-foreground">
-              No environments found matching your search.
+            <div className="col-span-full">
+              <EmptyState 
+                icon={Server}
+                title="No environments found"
+                description="We couldn't find any environments matching your search query."
+              />
             </div>
           )}
         </div>

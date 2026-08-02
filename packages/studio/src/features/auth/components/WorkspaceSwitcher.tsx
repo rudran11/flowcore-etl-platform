@@ -35,13 +35,17 @@ export const WorkspaceSwitcher: React.FC = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" role="combobox" className="w-[200px] justify-between">
-          <Building className="mr-2 h-4 w-4" />
-          {activeWorkspace?.name || "Select Workspace"}
-          <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+        <Button variant="ghost" className="w-full justify-between px-2 text-sm font-medium hover:bg-accent/50">
+          <div className="flex items-center gap-2 truncate">
+            <div className="flex h-5 w-5 items-center justify-center rounded-sm bg-primary/10 text-primary">
+              <Building className="h-3 w-3" />
+            </div>
+            <span className="truncate">{activeWorkspace?.name || "Select Workspace"}</span>
+          </div>
+          <ChevronsUpDown className="h-3 w-3 shrink-0 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-[200px]">
+      <DropdownMenuContent className="w-[220px]" align="start">
         <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {workspaces.map((workspace) => (

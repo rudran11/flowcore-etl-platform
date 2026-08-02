@@ -56,6 +56,7 @@ export interface PipelineBuilderState {
   // Features
   autoLayout: (direction?: 'TB' | 'LR') => void;
   validatePipeline: () => void;
+  simulateExecution: () => void;
   
   // Clipboard
   copySelected: () => void;
@@ -129,7 +130,7 @@ const buildGraphFromYaml = (yamlString: string) => {
             id: `e-${dep}-${stepId}`,
             source: dep,
             target: stepId,
-            animated: true,
+            type: 'animated',
           });
         });
       } else {
@@ -137,7 +138,7 @@ const buildGraphFromYaml = (yamlString: string) => {
           id: `e-trigger-${stepId}`,
           source: 'trigger',
           target: stepId,
-          animated: true,
+          type: 'animated',
         });
       }
     });
@@ -214,7 +215,7 @@ export const usePipelineBuilderStore = create<PipelineBuilderState>((set, get) =
   onConnect: (connection: Connection) => {
     // Prevent cycles
     const { edges } = get();
-    const newEdges = addEdge({ ...connection, animated: true }, edges);
+    const newEdges = addEdge({ ...connection, type: 'animated' }, edges);
     set({ edges: newEdges });
     get().syncToYaml();
     get().saveHistory();
@@ -326,6 +327,36 @@ export const usePipelineBuilderStore = create<PipelineBuilderState>((set, get) =
       validationErrors: errors,
       nodes: [...nodes] // Trigger re-render with new data.error states
     });
+  },
+
+  simulateExecution: () => {
+    const { nodes, edges } = get();
+    set({
+      nodes: nodes.map(n => ({ ...n, data: { ...n.data, status: 'running' } })),
+      edges: edges.map(e => ({ ...e, data: { ...e.data, status: 'running' } }))
+    });
+    
+    setTimeout(() => {
+      const { nodes: currentNodes, edges: currentEdges } = get();
+      set({
+        nodes: currentNodes.map(n => ({ ...n, data: { ...n.data, status: 'success' } })),
+        edges: currentEdges.map(e => ({ ...e, data: { ...e.data, status: 'success' } }))
+      });
+      
+      setTimeout(() => {
+        const { nodes: finalNodes, edges: finalEdges } = get();
+        set({
+          nodes: finalNodes.map(n => {
+            const { status, ...restData } = n.data;
+            return { ...n, data: restData };
+          }),
+          edges: finalEdges.map(e => {
+            const { status, ...restData } = e.data || {};
+            return { ...e, data: restData };
+          })
+        });
+      }, 3000);
+    }, 4000);
   },
 
   undo: () => {

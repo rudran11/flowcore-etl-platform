@@ -1,94 +1,188 @@
-import { memo } from 'react';
-import { Handle, Position } from '@xyflow/react';
-import { Play, Puzzle, CheckCircle2, AlertCircle } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { memo, useState } from 'react';
+import { Handle, Position, NodeToolbar } from '@xyflow/react';
+import { Play, Puzzle, CheckCircle2, AlertCircle, Clock, Copy, Trash2, ChevronDown, ChevronRight, Activity } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { usePipelineBuilderStore } from '../../../stores/pipelineBuilderStore';
 
-export const TriggerNode = memo(({ data }: any) => {
+const NodeToolbarActions = ({ id, data, isHovered }: { id: string, data: any, isHovered: boolean }) => {
+  const { duplicateSelected, deleteSelected } = usePipelineBuilderStore();
+  
   return (
-    <motion.div 
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="bg-zinc-950 border-2 border-emerald-500/50 rounded-xl shadow-lg shadow-emerald-500/10 w-64 overflow-hidden"
+    <NodeToolbar isVisible={isHovered} position={Position.Top} className="flex items-center gap-1 bg-card/90 backdrop-blur-md border border-border/50 shadow-md p-1 rounded-lg mb-2">
+      <button 
+        onClick={(e) => { e.stopPropagation(); duplicateSelected(); }}
+        className="p-1.5 hover:bg-accent rounded-md text-muted-foreground hover:text-foreground transition-colors"
+        title="Duplicate"
+      >
+        <Copy className="w-3.5 h-3.5" />
+      </button>
+      <button 
+        onClick={(e) => { e.stopPropagation(); deleteSelected(); }}
+        className="p-1.5 hover:bg-destructive/10 rounded-md text-muted-foreground hover:text-destructive transition-colors"
+        title="Delete"
+      >
+        <Trash2 className="w-3.5 h-3.5" />
+      </button>
+    </NodeToolbar>
+  );
+};
+
+export const TriggerNode = memo(({ id, data, selected }: any) => {
+  const hasError = data.error;
+  const isFailed = data.status === 'failed';
+  const isWarning = hasError && !isFailed;
+  const [isHovered, setIsHovered] = useState(false);
+  
+  return (
+    <div 
+      className="group"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="bg-emerald-500/10 p-3 flex items-center gap-3 border-b border-emerald-500/20">
-        <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-          <Play className="w-4 h-4 text-emerald-500" />
+      <NodeToolbarActions id={id} data={data} isHovered={isHovered || selected} />
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        whileHover={{ y: -2 }}
+        className={`bg-card border-2 rounded-xl shadow-lg w-72 overflow-hidden transition-all duration-200 ${
+          selected ? 'border-primary ring-2 ring-primary/20 shadow-primary/10' : isFailed ? 'border-destructive' : isWarning ? 'border-amber-500' : 'border-border/50 hover:border-border'
+        }`}
+      >
+        <div className="p-3.5 flex items-center gap-3 border-b border-border/50 bg-accent/30">
+          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+            <Play className="w-4 h-4 text-emerald-500" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold text-foreground truncate">Pipeline Trigger</div>
+            <div className="text-xs text-muted-foreground truncate flex items-center gap-1 mt-0.5">
+              <span className="bg-accent px-1.5 py-0.5 rounded border border-border/50 text-[10px] uppercase font-medium">{data.type || 'Manual'}</span>
+            </div>
+          </div>
+          {isFailed && <AlertCircle className="w-4 h-4 text-destructive shrink-0" />}
+          {isWarning && <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />}
         </div>
-        <div>
-          <div className="text-sm font-semibold text-emerald-500">Trigger</div>
-          <div className="text-xs text-zinc-400">{data.type || 'Manual'}</div>
+        
+        <div className="p-3.5 text-xs text-muted-foreground flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Clock className="w-3.5 h-3.5" />
+            <span>{data.schedule || 'Run on demand'}</span>
+          </div>
         </div>
-      </div>
-      
-      {data.schedule && (
-        <div className="p-3 text-xs text-zinc-300">
-          <span className="text-zinc-500 mr-2">Schedule:</span>
-          <span className="font-mono bg-zinc-900 px-1.5 py-0.5 rounded">{data.schedule}</span>
-        </div>
-      )}
-      
-      <Handle type="source" position={Position.Bottom} className="w-3 h-3 bg-emerald-500 border-2 border-zinc-950" />
-    </motion.div>
+        
+        <Handle type="source" position={Position.Bottom} className="w-4 h-4 bg-background border-2 border-primary hover:scale-125 transition-transform" />
+      </motion.div>
+    </div>
   );
 });
 
-import { usePipelineBuilderStore } from '../../../stores/pipelineBuilderStore';
-
-export const StepNode = memo((props: any) => {
-  const { data, selected, id } = props;
+export const StepNode = memo(({ id, data, selected }: any) => {
   const hasError = data.error;
-  const { openTemplateDialog } = usePipelineBuilderStore();
+  const isFailed = data.status === 'failed';
+  const isWarning = hasError && !isFailed;
+  
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+
+  const isRunning = data.status === 'running';
+  const duration = data.duration || '0ms';
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className={`bg-zinc-950 border-2 rounded-xl shadow-lg w-64 overflow-hidden transition-colors ${
-        selected ? 'border-primary' : hasError ? 'border-rose-500/50' : 'border-white/10 hover:border-white/20'
-      } ${selected ? 'shadow-primary/20' : 'shadow-black/50'}`}
+    <div 
+      className="group relative"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      <Handle type="target" position={Position.Top} className={`w-3 h-3 ${hasError ? 'bg-rose-500' : 'bg-zinc-400'} border-2 border-zinc-950`} />
-      
-      <div className={`p-3 flex items-center gap-3 border-b ${hasError ? 'border-rose-500/20 bg-rose-500/5' : 'border-white/5 bg-zinc-900/50'}`}>
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${hasError ? 'bg-rose-500/20' : 'bg-zinc-800'}`}>
-          <Puzzle className={`w-4 h-4 ${hasError ? 'text-rose-500' : 'text-zinc-400'}`} />
+      <NodeToolbarActions id={id} data={data} isHovered={isHovered || selected} />
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        whileHover={{ y: -2 }}
+        className={`bg-card border-2 rounded-xl shadow-lg w-72 overflow-hidden transition-all duration-200 ${
+          selected ? 'border-primary ring-2 ring-primary/20 shadow-primary/10' : isFailed ? 'border-destructive shadow-destructive/10' : isWarning ? 'border-amber-500' : 'border-border/50 hover:border-border'
+        }`}
+      >
+        <Handle type="target" position={Position.Top} className={`w-4 h-4 bg-background border-2 ${isFailed ? 'border-destructive' : isWarning ? 'border-amber-500' : 'border-primary'} hover:scale-125 transition-transform`} />
+        
+        {/* Header */}
+        <div className={`p-3.5 flex items-center gap-3 border-b border-border/50 ${isFailed ? 'bg-destructive/5' : isWarning ? 'bg-amber-500/5' : 'bg-accent/30'}`}>
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${isFailed ? 'bg-destructive/10 border-destructive/20 text-destructive' : isWarning ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-background border-border/50 shadow-sm text-primary'}`}>
+            <Puzzle className="w-4 h-4" />
+          </div>
+          
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold text-foreground truncate">{data.label || 'Step'}</div>
+            <div className="text-[11px] text-muted-foreground truncate">{data.plugin_id || 'Unknown Plugin'}</div>
+          </div>
+          
+          <button 
+            onClick={(e) => { e.stopPropagation(); setIsCollapsed(!isCollapsed); }}
+            className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground transition-colors"
+          >
+            {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold text-white truncate">{data.label}</div>
-          <div className="text-xs text-zinc-500 truncate">{data.plugin_id || 'Unknown Plugin'}</div>
-        </div>
-        {hasError ? (
-          <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-        ) : (
-          <CheckCircle2 className="w-4 h-4 text-emerald-500/50 shrink-0" />
-        )}
-        <button 
-          onClick={(e) => {
-            e.stopPropagation();
-            openTemplateDialog({ id, type: 'stepNode', data, position: { x: 0, y: 0 } });
-          }}
-          className="ml-1 w-6 h-6 rounded flex items-center justify-center hover:bg-zinc-800 text-zinc-500 hover:text-white transition-colors"
-          title="Save as Template"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-        </button>
-      </div>
-      
-      <div className="p-3 bg-zinc-950/50">
-        <div className="text-xs text-zinc-500 mb-1">Configuration</div>
-        <div className="flex flex-wrap gap-1">
-          {data.config && Object.keys(data.config).slice(0, 3).map(k => (
-            <span key={k} className="text-[10px] bg-zinc-900 border border-white/5 px-1.5 py-0.5 rounded text-zinc-400">
-              {k}
-            </span>
-          ))}
-          {(!data.config || Object.keys(data.config).length === 0) && (
-            <span className="text-[10px] text-zinc-600 italic">Empty</span>
+        
+        {/* Body */}
+        <AnimatePresence>
+          {!isCollapsed && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="p-3.5 bg-background/50 border-b border-border/50">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground">Properties</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {data.config && Object.keys(data.config).slice(0, 3).map(k => (
+                    <span key={k} className="text-[10px] bg-accent border border-border/50 px-1.5 py-0.5 rounded text-foreground font-medium">
+                      {k}
+                    </span>
+                  ))}
+                  {(!data.config || Object.keys(data.config).length === 0) && (
+                    <span className="text-[10px] text-muted-foreground italic">No configuration</span>
+                  )}
+                </div>
+              </div>
+            </motion.div>
           )}
+        </AnimatePresence>
+
+        {/* Footer / Status */}
+        <div className="px-3.5 py-2.5 flex items-center justify-between bg-accent/10 text-xs">
+          <div className="flex items-center gap-2">
+            {isRunning ? (
+              <div className="flex items-center gap-1.5 text-primary">
+                <Activity className="w-3.5 h-3.5 animate-pulse" />
+                <span className="font-medium text-[11px]">Running</span>
+              </div>
+            ) : isFailed ? (
+              <div className="flex items-center gap-1.5 text-destructive">
+                <AlertCircle className="w-3.5 h-3.5" />
+                <span className="font-medium text-[11px]">Failed</span>
+              </div>
+            ) : isWarning ? (
+              <div className="flex items-center gap-1.5 text-amber-500">
+                <AlertCircle className="w-3.5 h-3.5" />
+                <span className="font-medium text-[11px]">Needs Config</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 text-emerald-500">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span className="font-medium text-[11px]">Ready</span>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-2 text-muted-foreground">
+            {data.duration && <span className="text-[11px] font-mono">{duration}</span>}
+          </div>
         </div>
-      </div>
-      
-      <Handle type="source" position={Position.Bottom} className={`w-3 h-3 ${hasError ? 'bg-rose-500' : 'bg-zinc-400'} border-2 border-zinc-950`} />
-    </motion.div>
+        
+        <Handle type="source" position={Position.Bottom} className={`w-4 h-4 bg-background border-2 ${isFailed ? 'border-destructive' : isWarning ? 'border-amber-500' : 'border-primary'} hover:scale-125 transition-transform`} />
+      </motion.div>
+    </div>
   );
 });

@@ -1,9 +1,9 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from './card';
 import { TrendingUp, TrendingDown } from 'lucide-react';
-import { cn } from '../../../lib/utils';
+import { cn } from '../../lib/utils';
 
-interface DashboardCardProps {
+export interface StatCardProps {
   title: string;
   value: string | number;
   icon?: React.ReactNode;
@@ -13,7 +13,7 @@ interface DashboardCardProps {
   className?: string;
 }
 
-export const DashboardCard: React.FC<DashboardCardProps> = ({ title, value, icon, description, trend, trendValue, className }) => {
+export const StatCard: React.FC<StatCardProps> = ({ title, value, icon, description, trend, trendValue, className }) => {
   return (
     <Card className={cn("group relative overflow-hidden transition-all duration-300 border-border/50 bg-card hover:border-primary/50 hover:shadow-md", className)}>
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />

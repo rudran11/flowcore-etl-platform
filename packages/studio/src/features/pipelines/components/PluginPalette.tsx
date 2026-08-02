@@ -76,95 +76,104 @@ export const PluginPalette: React.FC = () => {
   const templateCategories = Array.from(new Set(filteredTemplates.map(t => t.category)));
 
   return (
-    <div className="w-72 bg-zinc-950/80 border-r border-white/5 flex flex-col h-full backdrop-blur-md">
-      <div className="p-4 border-b border-white/5">
-        <div className="flex bg-zinc-900 rounded-lg p-1 mb-4 border border-white/5">
+    <div className="w-72 bg-card border-r border-border/50 flex flex-col h-full shadow-sm z-10">
+      <div className="p-4 border-b border-border/50 bg-background/50 backdrop-blur-sm">
+        <div className="flex bg-accent/50 rounded-lg p-1 mb-4 border border-border/50">
           <button 
-            className={`flex-1 text-xs font-medium py-1.5 rounded-md transition-colors ${activeTab === 'plugins' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+            className={`flex-1 text-xs font-semibold py-1.5 rounded-md transition-all ${activeTab === 'plugins' ? 'bg-background text-foreground shadow-sm ring-1 ring-border' : 'text-muted-foreground hover:text-foreground hover:bg-background/50'}`}
             onClick={() => setActiveTab('plugins')}
           >
-            Plugins
+            Connectors
           </button>
           <button 
-            className={`flex-1 text-xs font-medium py-1.5 rounded-md transition-colors ${activeTab === 'templates' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+            className={`flex-1 text-xs font-semibold py-1.5 rounded-md transition-all ${activeTab === 'templates' ? 'bg-background text-foreground shadow-sm ring-1 ring-border' : 'text-muted-foreground hover:text-foreground hover:bg-background/50'}`}
             onClick={() => setActiveTab('templates')}
           >
             Templates
           </button>
         </div>
         <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={`Search ${activeTab}...`} 
-            className="pl-9 bg-zinc-900/50 border-white/5 text-sm h-9"
+            className="pl-9 bg-background border-border/50 text-sm h-9 shadow-sm focus-visible:ring-primary/20"
           />
         </div>
       </div>
       
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-background/20">
         {activeTab === 'plugins' && (
           isLoading ? (
-            <>
-              <Skeleton className="h-16 w-full rounded-lg bg-white/5" />
-              <Skeleton className="h-16 w-full rounded-lg bg-white/5" />
-            </>
+            <div className="space-y-3">
+              <Skeleton className="h-16 w-full rounded-xl bg-accent" />
+              <Skeleton className="h-16 w-full rounded-xl bg-accent" />
+              <Skeleton className="h-16 w-full rounded-xl bg-accent" />
+            </div>
           ) : filteredPlugins.length === 0 ? (
-            <div className="text-center text-zinc-500 text-sm mt-8">No plugins match.</div>
+            <div className="text-center text-muted-foreground text-sm mt-8 p-4 bg-accent/30 rounded-xl border border-border/50">No plugins match your search.</div>
           ) : (
-            filteredPlugins.map(plugin => (
-              <motion.div
-                key={plugin.plugin_id}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onDragStart={(e: any) => onDragStartPlugin(e, plugin.plugin_id)}
-                draggable
-                className="p-3 bg-zinc-900/50 border border-white/5 rounded-lg cursor-grab active:cursor-grabbing hover:border-white/10 hover:bg-zinc-800/50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded bg-zinc-800 flex items-center justify-center text-zinc-400">
-                    {getCategoryIcon(plugin.category)}
+            <div className="space-y-2.5">
+              {filteredPlugins.map(plugin => (
+                <motion.div
+                  key={plugin.plugin_id}
+                  whileHover={{ scale: 1.01, y: -1 }}
+                  whileTap={{ scale: 0.99 }}
+                  onDragStart={(e: any) => onDragStartPlugin(e, plugin.plugin_id)}
+                  draggable
+                  className="group p-3 bg-card border border-border/50 rounded-xl cursor-grab active:cursor-grabbing hover:border-primary/50 hover:shadow-md transition-all"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-accent/50 flex items-center justify-center text-muted-foreground border border-border/50 group-hover:bg-primary/5 group-hover:text-primary transition-colors">
+                      {getCategoryIcon(plugin.category)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm font-semibold text-foreground truncate">{plugin.name}</div>
+                        <span className="text-[9px] font-mono bg-accent text-muted-foreground px-1.5 py-0.5 rounded border border-border/50">v1.0</span>
+                      </div>
+                      <div className="text-[11px] text-muted-foreground truncate mt-0.5">{plugin.category}</div>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-zinc-200 truncate">{plugin.name}</div>
-                    <div className="text-xs text-zinc-500 truncate">{plugin.category}</div>
-                  </div>
-                </div>
-              </motion.div>
-            ))
+                </motion.div>
+              ))}
+            </div>
           )
         )}
 
         {activeTab === 'templates' && (
           filteredTemplates.length === 0 ? (
-            <div className="text-center text-zinc-500 text-sm mt-8">No templates saved yet.<br/><br/>Click the Save icon on a node on the canvas to save it as a template.</div>
+            <div className="text-center text-muted-foreground text-sm mt-8 p-4 bg-accent/30 rounded-xl border border-border/50">
+              No templates saved yet.<br/><br/>Click the Save icon on a node on the canvas to save it as a template.
+            </div>
           ) : (
             templateCategories.map(cat => (
-              <div key={cat} className="mb-4">
-                <div className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-2">{cat}</div>
-                <div className="space-y-2">
+              <div key={cat} className="mb-5">
+                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2.5 px-1">{cat}</div>
+                <div className="space-y-2.5">
                   {filteredTemplates.filter(t => t.category === cat).map(tpl => (
                     <motion.div
                       key={tpl.id}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
+                      whileHover={{ scale: 1.01, y: -1 }}
+                      whileTap={{ scale: 0.99 }}
                       onDragStart={(e: any) => onDragStartTemplate(e, tpl)}
                       draggable
-                      className="group p-3 bg-zinc-900/80 border border-emerald-500/20 rounded-lg cursor-grab active:cursor-grabbing hover:border-emerald-500/40 transition-colors relative"
+                      className="group p-3 bg-card border border-emerald-500/20 rounded-xl cursor-grab active:cursor-grabbing hover:border-emerald-500/50 hover:shadow-md hover:shadow-emerald-500/5 transition-all relative overflow-hidden"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500/20 group-hover:bg-emerald-500 transition-colors" />
+                      <div className="flex items-center gap-3 pl-1">
+                        <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-500 border border-emerald-500/20">
                           {getCategoryIcon(tpl.category)}
                         </div>
                         <div className="flex-1 min-w-0 pr-6">
-                          <div className="text-sm font-medium text-emerald-100 truncate">{tpl.name}</div>
-                          <div className="text-[10px] text-zinc-500 truncate">Based on: {tpl.plugin_id}</div>
+                          <div className="text-sm font-semibold text-foreground truncate">{tpl.name}</div>
+                          <div className="text-[10px] text-muted-foreground truncate mt-0.5">Based on: {tpl.plugin_id}</div>
                         </div>
                       </div>
                       <button 
                         onClick={(e) => deleteTemplate(tpl.id, e)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-zinc-500 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-md opacity-0 group-hover:opacity-100 transition-all"
                         title="Delete Template"
                       >
                         <Trash2 className="w-4 h-4" />

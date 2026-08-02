@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Clock, Search, Play, Pause, Trash2, CalendarClock, MoreVertical } from 'lucide-react';
+import { Plus, Clock, Search, Play, Pause, Trash2, CalendarClock, MoreVertical, Calendar } from 'lucide-react';
 import { useSchedules, usePauseSchedule, useResumeSchedule, useTriggerSchedule, useDeleteSchedule } from '../hooks/useSchedules';
 import { ScheduleStatus, ScheduleType } from '../../../types/schedule';
 import { Button } from '../../../components/ui/button';
@@ -10,6 +10,9 @@ import { Skeleton } from '../../../components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 import { ScheduleFormDialog } from '../components/ScheduleFormDialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '../../../components/ui/dropdown-menu';
+import { PageHeader } from '../../../components/ui/page-header';
+import { StatCard } from '../../../components/ui/stat-card';
+import { EmptyState } from '../../../components/ui/empty-state';
 
 export const SchedulesPage: React.FC = () => {
   const { data: schedules, isLoading } = useSchedules();
@@ -38,34 +41,39 @@ export const SchedulesPage: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col p-8 max-w-7xl mx-auto w-full">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Schedules</h1>
-          <p className="text-zinc-400">Automate and monitor your pipeline executions.</p>
-        </div>
-        <Button 
-          className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20 gap-2"
-          onClick={() => setIsCreateOpen(true)}
-        >
-          <Plus className="w-4 h-4" />
-          Create Schedule
-        </Button>
-      </div>
+    <div className="flex-1 flex flex-col p-6 md:p-8 max-w-[1400px] mx-auto w-full space-y-8 animate-in fade-in duration-500">
+      <PageHeader
+        title="Schedules"
+        subtitle="Automate and monitor your pipeline executions."
+        icon={CalendarClock}
+        actions={
+          <Button onClick={() => setIsCreateOpen(true)} className="shadow-md">
+            <Plus className="mr-2 h-4 w-4" /> Create Schedule
+          </Button>
+        }
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-zinc-950/50 border border-white/5 rounded-xl p-4 flex flex-col justify-center">
-          <div className="text-sm text-zinc-400 mb-1">Total Schedules</div>
-          <div className="text-2xl font-bold text-white">{schedules?.length || 0}</div>
-        </div>
-        <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-4 flex flex-col justify-center">
-          <div className="text-sm text-emerald-500/70 mb-1">Active</div>
-          <div className="text-2xl font-bold text-emerald-500">{schedules?.filter((s: any) => s.status === ScheduleStatus.ACTIVE).length || 0}</div>
-        </div>
-        <div className="bg-yellow-500/5 border border-yellow-500/10 rounded-xl p-4 flex flex-col justify-center">
-          <div className="text-sm text-yellow-500/70 mb-1">Paused</div>
-          <div className="text-2xl font-bold text-yellow-500">{schedules?.filter((s: any) => s.status === ScheduleStatus.PAUSED).length || 0}</div>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <StatCard 
+          title="Total Schedules" 
+          value={schedules?.length || 0} 
+          icon={<CalendarClock className="h-4 w-4" />}
+          description="Configured in the system"
+        />
+        <StatCard 
+          title="Active Schedules" 
+          value={schedules?.filter((s: any) => s.status === ScheduleStatus.ACTIVE).length || 0} 
+          icon={<Clock className="h-4 w-4" />}
+          description="Currently running"
+          trend="up"
+          trendValue="Healthy"
+        />
+        <StatCard 
+          title="Paused Schedules" 
+          value={schedules?.filter((s: any) => s.status === ScheduleStatus.PAUSED).length || 0} 
+          icon={<Pause className="h-4 w-4" />}
+          description="Manually suspended"
+        />
       </div>
 
       <div className="flex items-center justify-between mb-6">
@@ -131,17 +139,22 @@ export const SchedulesPage: React.FC = () => {
       )}
 
       {viewMode === 'list' && (
-        <div className="bg-zinc-950/50 border border-white/5 rounded-xl overflow-hidden">
+        <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl overflow-hidden shadow-sm">
           {isLoading ? (
             <div className="p-4 space-y-4">
-            {[1,2,3].map(i => <Skeleton key={i} className="h-16 w-full rounded-lg bg-white/5" />)}
+            {[1,2,3].map(i => <Skeleton key={i} className="h-16 w-full rounded-lg" />)}
           </div>
         ) : filteredSchedules.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <CalendarClock className="w-12 h-12 text-zinc-600 mb-4" />
-            <h3 className="text-xl font-medium text-white mb-2">No schedules found</h3>
-            <p className="text-zinc-500">Create a schedule to run your pipelines automatically.</p>
-          </div>
+          <EmptyState 
+            icon={CalendarClock}
+            title="No schedules found"
+            description="Create a schedule to run your pipelines automatically."
+            action={
+              <Button onClick={() => setIsCreateOpen(true)} variant="outline">
+                <Plus className="mr-2 h-4 w-4" /> Create your first schedule
+              </Button>
+            }
+          />
         ) : (
           <div className="divide-y divide-white/5">
             {filteredSchedules.map((schedule: any) => (

@@ -1,89 +1,94 @@
 import React, { useState } from 'react';
 import { useExecutions } from '../hooks/useExecutions';
 import { ExecutionTable } from '../components/ExecutionTable';
-import { Card, CardContent } from '../../../components/ui/card';
 import { Input } from '../../../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { Button } from '../../../components/ui/button';
-import { RefreshCcw, Activity, CheckCircle2, XCircle } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { RefreshCcw, Activity, CheckCircle2, Clock, Zap } from 'lucide-react';
+import { PageHeader } from '../../../components/ui/page-header';
+import { StatCard } from '../../../components/ui/stat-card';
+import { EmptyState } from '../../../components/ui/empty-state';
+
+import { useExecutionMetrics } from '../hooks/useExecutionMetrics';
+import { formatDistanceToNow } from 'date-fns';
 
 export const ExecutionsPage: React.FC = () => {
   const [pipelineId, setPipelineId] = useState('');
   const [status, setStatus] = useState('ALL');
   
   const { data, isLoading, refetch, isRefetching } = useExecutions(25, 0, pipelineId || undefined, status);
+  const { data: metrics, isLoading: isMetricsLoading } = useExecutionMetrics();
   
   const runs = data?.items || [];
-  
-  // Calculate some simple metrics from the current page of runs for the mini summary cards
-  const totalRuns = data?.total || 0;
-  const completedRuns = runs.filter(r => r.status === 'COMPLETED').length;
-  const failedRuns = runs.filter(r => r.status === 'FAILED').length;
-  const successRate = runs.length > 0 ? Math.round((completedRuns / runs.length) * 100) : 0;
+
+  const formatDuration = (ms: number) => {
+    if (!ms) return '0s';
+    return `${(ms / 1000).toFixed(1)}s`;
+  };
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Executions</h1>
-          <p className="text-muted-foreground mt-1">
-            Monitor and manage all pipeline runs across the platform.
-          </p>
-        </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={() => refetch()}
-          className="gap-2"
-        >
-          <RefreshCcw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+    <div className="p-6 md:p-8 max-w-[1400px] mx-auto space-y-8 animate-in fade-in duration-500 w-full">
+      <PageHeader
+        title="Executions"
+        subtitle="Monitor and manage all pipeline runs across the platform."
+        icon={Activity}
+        actions={
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => refetch()}
+            className="gap-2"
+          >
+            <RefreshCcw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        }
+      />
+
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-5">
+        <StatCard 
+          title="Total Runs" 
+          value={metrics?.total || 0} 
+          icon={<Activity className="h-4 w-4" />}
+          description="All recorded executions"
+        />
+        <StatCard 
+          title="Running Now" 
+          value={metrics?.running || 0} 
+          icon={<RefreshCcw className="h-4 w-4" />}
+          description="Active executions"
+        />
+        <StatCard 
+          title="Queued" 
+          value={metrics?.queued || 0} 
+          icon={<Clock className="h-4 w-4" />}
+          description="Waiting for resources"
+        />
+        <StatCard 
+          title="Success Rate" 
+          value={`${metrics?.successRate || 0}%`} 
+          icon={<CheckCircle2 className="h-4 w-4" />}
+          description={`Failure: ${metrics?.failureRate || 0}%`}
+          trend={metrics?.successRate && metrics.successRate > 90 ? "up" : "down"}
+          trendValue={metrics?.successRate && metrics.successRate > 90 ? "Healthy" : "Needs Attention"}
+        />
+        <StatCard 
+          title="Avg Duration" 
+          value={formatDuration(metrics?.avgDuration || 0)} 
+          icon={<Zap className="h-4 w-4" />}
+          description={`Longest: ${formatDuration(metrics?.longestDuration || 0)}`}
+        />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <Card>
-            <CardContent className="p-6 flex flex-row items-center gap-4">
-              <div className="p-3 bg-blue-500/10 rounded-xl">
-                <Activity className="h-6 w-6 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Runs</p>
-                <h3 className="text-2xl font-bold">{totalRuns}</h3>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-        
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <Card>
-            <CardContent className="p-6 flex flex-row items-center gap-4">
-              <div className="p-3 bg-green-500/10 rounded-xl">
-                <CheckCircle2 className="h-6 w-6 text-green-500" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Success Rate (Recent)</p>
-                <h3 className="text-2xl font-bold">{successRate}%</h3>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-        
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <Card>
-            <CardContent className="p-6 flex flex-row items-center gap-4">
-              <div className="p-3 bg-destructive/10 rounded-xl">
-                <XCircle className="h-6 w-6 text-destructive" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Failed Runs (Recent)</p>
-                <h3 className="text-2xl font-bold">{failedRuns}</h3>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+      <div className="flex gap-4 text-xs text-muted-foreground bg-accent/30 p-2 px-4 rounded-md border border-border/50">
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-foreground">Last Success:</span>
+          {metrics?.lastSuccess ? formatDistanceToNow(new Date(metrics.lastSuccess), { addSuffix: true }) : 'N/A'}
+        </div>
+        <div className="flex items-center gap-2 border-l border-border/50 pl-4">
+          <span className="font-medium text-foreground">Last Failure:</span>
+          {metrics?.lastFailure ? formatDistanceToNow(new Date(metrics.lastFailure), { addSuffix: true }) : 'N/A'}
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row items-center gap-4">
@@ -112,12 +117,20 @@ export const ExecutionsPage: React.FC = () => {
       </div>
 
       <div className="mt-4">
-        <ExecutionTable 
-          runs={runs} 
-          loading={isLoading && !isRefetching} 
-          title=""
-          description=""
-        />
+        {runs.length === 0 && !isLoading && !isRefetching ? (
+          <EmptyState 
+            icon={Activity}
+            title="No executions found"
+            description="We couldn't find any executions matching your filters."
+          />
+        ) : (
+          <ExecutionTable 
+            runs={runs} 
+            loading={isLoading && !isRefetching} 
+            title=""
+            description=""
+          />
+        )}
       </div>
     </div>
   );
