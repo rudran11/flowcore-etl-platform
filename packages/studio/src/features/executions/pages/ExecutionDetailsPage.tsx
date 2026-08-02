@@ -9,10 +9,10 @@ import { PipelineStatusBadge } from '../../pipelines/components/PipelineStatusBa
 import { ExecutionDAG } from '../components/ExecutionDAG';
 import { ExecutionLogs } from '../components/ExecutionLogs';
 import { ExecutionTimeline } from '../components/ExecutionTimeline';
-import { ArrowLeft, Clock, Zap, Download, XCircle, RotateCcw, AlertCircle, Activity, Server, Hash, FileJson, Play } from 'lucide-react';
+import { ArrowLeft, Clock, Download, XCircle, RotateCcw, AlertCircle, Activity, Server, Hash, Play } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { Progress } from '../../../components/ui/progress';
-import { Separator } from '../../../components/ui/separator';
+
 
 export const ExecutionDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -32,10 +32,7 @@ export const ExecutionDetailsPage: React.FC = () => {
 
   const isTerminal = ['COMPLETED', 'FAILED', 'CANCELLED'].includes(run.status);
   
-  const formatDuration = (ms: number) => {
-    if (!ms) return '0s';
-    return `${(ms / 1000).toFixed(1)}s`;
-  };
+
 
   const calculatedDuration = run?.duration_ms || (run?.finished_at && run?.submitted_at ? new Date(run.finished_at).getTime() - new Date(run.submitted_at).getTime() : 0);
   const displayStartedAt = run?.started_at || run?.submitted_at;

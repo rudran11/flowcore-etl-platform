@@ -27,9 +27,59 @@ async def execute_pipeline(
 
 from typing import Optional, List
 from fastapi import Query
-from flowcore_server.models.pipeline import PipelinePaginatedResponse, PipelineDetailResponse
+from flowcore_server.models.pipeline import PipelinePaginatedResponse, PipelineDetailResponse, PipelineCreate, PipelineUpdate
+from flowcore.models.pipeline import Pipeline
 from flowcore_server.services.pipeline import PipelineService
 from flowcore_server.dependencies.pipeline import get_pipeline_service
+
+@router.post(
+    "",
+    response_model=Pipeline,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new pipeline"
+)
+async def create_pipeline(
+    request: PipelineCreate,
+    service: PipelineService = Depends(get_pipeline_service),
+    user: UserInDB = Depends(require_permissions(["pipeline:create"]))
+):
+    """
+    Creates a new pipeline.
+    """
+    return await service.create_pipeline(request, user.username)
+
+@router.put(
+    "/{pipeline_id}",
+    response_model=Pipeline,
+    status_code=status.HTTP_200_OK,
+    summary="Update pipeline metadata"
+)
+async def update_pipeline(
+    request: PipelineUpdate,
+    pipeline_id: str = Path(..., description="The ID of the pipeline"),
+    service: PipelineService = Depends(get_pipeline_service),
+    user: UserInDB = Depends(require_permissions(["pipeline:update"]))
+):
+    """
+    Updates pipeline metadata.
+    """
+    return await service.update_pipeline(pipeline_id, request)
+
+@router.delete(
+    "/{pipeline_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a pipeline"
+)
+async def delete_pipeline(
+    pipeline_id: str = Path(..., description="The ID of the pipeline"),
+    service: PipelineService = Depends(get_pipeline_service),
+    user: UserInDB = Depends(require_permissions(["pipeline:delete"]))
+):
+    """
+    Deletes a pipeline.
+    """
+    await service.delete_pipeline(pipeline_id)
+
 
 @router.get(
     "",

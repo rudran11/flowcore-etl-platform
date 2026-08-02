@@ -42,6 +42,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => 
       setError(null);
       setHasUnsavedChanges(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodeId]); // Intentionally not depending on node to avoid overriding editor on node update
 
   if (!nodeId || !node) return null;
@@ -186,7 +187,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => 
               <Puzzle className="w-8 h-8 text-muted-foreground" />
             </div>
             <h4 className="font-semibold text-foreground mb-2">Connector Documentation</h4>
-            <p className="text-xs text-muted-foreground">Documentation for {node.data.plugin_id} will be available here when the backend API is connected.</p>
+            <p className="text-xs text-muted-foreground">Documentation for {String(node.data.plugin_id)} will be available here when the backend API is connected.</p>
           </div>
         )}
       </div>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Clock, Search, Play, Pause, Trash2, CalendarClock, MoreVertical, Calendar } from 'lucide-react';
+import { Plus, Clock, Search, Play, Pause, Trash2, CalendarClock, MoreVertical } from 'lucide-react';
 import { useSchedules, usePauseSchedule, useResumeSchedule, useTriggerSchedule, useDeleteSchedule } from '../hooks/useSchedules';
 import { ScheduleStatus, ScheduleType } from '../../../types/schedule';
 import { Button } from '../../../components/ui/button';

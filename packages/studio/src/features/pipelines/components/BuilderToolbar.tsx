@@ -1,16 +1,18 @@
 import React, { useRef } from 'react';
 import { Button } from '../../../components/ui/button';
-import { Save, Play, Download, Upload, Undo, Redo, LayoutTemplate, Copy } from 'lucide-react';
+import { Save, Play, Download, Upload, Undo, Redo, LayoutTemplate } from 'lucide-react';
 import yaml from 'yaml';
 import { usePipelineBuilderStore } from '../../../stores/pipelineBuilderStore';
 import { toast } from 'sonner';
 import { usePipeline } from '../hooks/usePipeline';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../../components/ui/dropdown-menu';
-import { useParams } from 'react-router-dom';
-import { History, Maximize, Check } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '../../../components/ui/dropdown-menu';
+import { useParams, useNavigate } from 'react-router-dom';
+import { History, Maximize, Check, MoreHorizontal, Edit, Copy as CopyIcon, Trash } from 'lucide-react';
 import { EnvironmentSelector } from '../../environments/components/EnvironmentSelector';
 import { apiClient } from '../../../api/client';
+import { pipelinesApi } from '../../../api/pipelines';
 import { useQueryClient } from '@tanstack/react-query';
+import { RenamePipelineDialog } from './RenamePipelineDialog';
 
 export const BuilderToolbar: React.FC = () => {
   const { 
@@ -19,10 +21,12 @@ export const BuilderToolbar: React.FC = () => {
   } = usePipelineBuilderStore();
   
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { data } = usePipeline(id || '');
   const queryClient = useQueryClient();
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [renameDialogOpen, setRenameDialogOpen] = React.useState(false);
 
   const handleSave = async () => {
     if (!isValid) {
@@ -92,22 +96,22 @@ export const BuilderToolbar: React.FC = () => {
       }
     }
 
-    const runPromise = apiClient.post(`/pipelines/${id}/versions/${versionToRun}/execute`, {
-      parameters: {}
-    });
-
-    toast.promise(runPromise, {
-      loading: 'Compiling and starting pipeline...',
-      success: () => {
-        usePipelineBuilderStore.getState().simulateExecution();
-        return 'Execution started successfully!';
-      },
-      error: (err: any) => {
-        const detail = err.response?.data?.detail;
-        const msg = typeof detail === 'string' ? detail : (detail ? JSON.stringify(detail) : err.message);
-        return `Failed to start execution: ${msg}`;
-      },
-    });
+    toast.promise(
+      apiClient.post(`/pipelines/${id}/versions/${versionToRun}/execute`, { parameters: {} }),
+      {
+        loading: 'Compiling and starting pipeline...',
+        success: (response: any) => {
+          const runId = response.data.run_id;
+          setTimeout(() => navigate(`/runs/${runId}`), 500);
+          return 'Execution started successfully!';
+        },
+        error: (err: any) => {
+          const detail = err.response?.data?.detail;
+          const msg = typeof detail === 'string' ? detail : (detail ? JSON.stringify(detail) : err.message);
+          return `Failed to start execution: ${msg}`;
+        },
+      }
+    );
   };
 
   const handleExport = () => {
@@ -138,10 +142,7 @@ export const BuilderToolbar: React.FC = () => {
     }
   };
 
-  const handleCopyYaml = () => {
-    navigator.clipboard.writeText(rawYaml);
-    toast.success('YAML copied to clipboard');
-  };
+
 
   const handleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -152,6 +153,41 @@ export const BuilderToolbar: React.FC = () => {
       if (document.exitFullscreen) {
         document.exitFullscreen();
       }
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!id || id === 'new') return;
+    if (window.confirm('Are you sure you want to delete this pipeline? This cannot be undone.')) {
+      try {
+        await pipelinesApi.deletePipeline(id);
+        toast.success('Pipeline deleted');
+        navigate('/pipelines');
+      } catch (err: any) {
+        toast.error(err.response?.data?.detail || 'Failed to delete pipeline');
+      }
+    }
+  };
+
+  const handleDuplicate = async () => {
+    if (!id || id === 'new') return;
+    if (!data?.pipeline) return;
+    try {
+      const newPipeline = await pipelinesApi.createPipeline({
+        name: `${data.pipeline.name} (Copy)`,
+        description: data.pipeline.description,
+        tags: data.pipeline.tags
+      });
+      const { nodes, edges, rawYaml: latestYaml } = usePipelineBuilderStore.getState();
+      await pipelinesApi.savePipelineVersion(newPipeline.id, {
+        version_tag: `v${Date.now()}`,
+        dsl_definition: yaml.parse(latestYaml) || {},
+        graph_definition: { nodes, edges }
+      });
+      toast.success('Pipeline duplicated');
+      navigate(`/pipelines/${newPipeline.id}`);
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || 'Failed to duplicate pipeline');
     }
   };
 
@@ -262,7 +298,39 @@ export const BuilderToolbar: React.FC = () => {
           <Play className="w-4 h-4" />
           Run
         </Button>
+        
+        {id && id !== 'new' && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                <MoreHorizontal className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 bg-card border-border/50">
+              <DropdownMenuItem onClick={() => setRenameDialogOpen(true)} className="gap-2 cursor-pointer">
+                <Edit className="w-4 h-4" /> Rename
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDuplicate} className="gap-2 cursor-pointer">
+                <CopyIcon className="w-4 h-4" /> Duplicate
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-border/50" />
+              <DropdownMenuItem onClick={handleDelete} className="gap-2 text-destructive focus:bg-destructive/10 cursor-pointer">
+                <Trash className="w-4 h-4" /> Delete Pipeline
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
+
+      {id && data?.pipeline && (
+        <RenamePipelineDialog 
+          pipelineId={id} 
+          initialName={data.pipeline.name} 
+          initialDescription={data.pipeline.description || ''} 
+          open={renameDialogOpen} 
+          onOpenChange={setRenameDialogOpen} 
+        />
+      )}
     </div>
   );
 };

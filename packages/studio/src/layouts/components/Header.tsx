@@ -7,7 +7,7 @@ import { WorkspaceSwitcher } from '../../features/auth/components/WorkspaceSwitc
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
 import { useTheme } from 'next-themes';
 import { useAuthStore } from '../../stores/authStore';
-import { Avatar, AvatarImage, AvatarFallback } from '../../components/ui/avatar';
+import { Avatar, AvatarFallback } from '../../components/ui/avatar';
 
 export const Header: React.FC = () => {
   const location = useLocation();

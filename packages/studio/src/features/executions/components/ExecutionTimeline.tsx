@@ -118,7 +118,7 @@ export const ExecutionTimeline: React.FC<ExecutionTimelineProps> = ({ run }) => 
       <div className="absolute left-10 top-8 bottom-8 w-0.5 bg-border/60" />
       
       <div className="space-y-8 relative z-10">
-        {events.map((event, i) => (
+        {events.map((event) => (
           <div key={event.id} className="flex gap-6 group">
             <div className="flex flex-col items-center">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 transition-transform group-hover:scale-110 shadow-sm ${event.color} ${event.type === 'step' ? 'w-6 h-6 ml-1' : ''}`}>

@@ -138,12 +138,12 @@ const PipelineCanvasInner: React.FC = () => {
     [reactFlowInstance, nodes, setNodes, saveHistory, syncToYaml]
   );
 
-  const onPaneContextMenu = useCallback((event: React.MouseEvent) => {
+  const onPaneContextMenu = useCallback((event: React.MouseEvent | MouseEvent) => {
     event.preventDefault();
     setContextMenu({ show: true, x: event.clientX, y: event.clientY, type: 'pane' });
   }, []);
 
-  const onNodeContextMenu = useCallback((event: React.MouseEvent, node: any) => {
+  const onNodeContextMenu = useCallback((event: React.MouseEvent | MouseEvent, node: any) => {
     event.preventDefault();
     setSelectedNodeId(node.id);
     setNodes(nodes.map(n => ({ ...n, selected: n.id === node.id })));

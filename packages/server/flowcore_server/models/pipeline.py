@@ -6,6 +6,16 @@ class StepResponse(BaseModel):
     plugin_id: str = Field(..., description="Plugin identifier to execute.")
     name: Optional[str] = Field(None, description="Optional name of the step.")
 
+class PipelineCreate(BaseModel):
+    name: str = Field(..., description="Pipeline name.")
+    description: Optional[str] = Field(None, description="Pipeline description.")
+    tags: Optional[List[str]] = Field(default_factory=list, description="Tags for the pipeline.")
+
+class PipelineUpdate(BaseModel):
+    name: Optional[str] = Field(None, description="Pipeline name.")
+    description: Optional[str] = Field(None, description="Pipeline description.")
+    tags: Optional[List[str]] = Field(None, description="Tags for the pipeline.")
+
 class PipelineResponse(BaseModel):
     """
     DTO for returning pipeline metadata.

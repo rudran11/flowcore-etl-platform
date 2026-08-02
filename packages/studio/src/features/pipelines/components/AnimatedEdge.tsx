@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { BaseEdge, EdgeProps, getBezierPath, EdgeLabelRenderer } from '@xyflow/react';
 
 export const AnimatedEdge = ({
@@ -76,7 +76,7 @@ export const AnimatedEdge = ({
             }}
             className="bg-card border border-border/50 text-[10px] text-muted-foreground px-2 py-0.5 rounded shadow-sm font-medium"
           >
-            {data.label}
+            {String(data.label)}
           </div>
         </EdgeLabelRenderer>
       )}

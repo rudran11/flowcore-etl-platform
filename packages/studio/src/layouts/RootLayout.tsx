@@ -17,7 +17,7 @@ export const RootLayout: React.FC = () => {
         <Sidebar />
         <div className="flex flex-col flex-1 overflow-hidden relative">
           {/* Global Background Effects */}
-          <div className="absolute inset-0 bg-dot-pattern opacity-[0.03] dark:opacity-[0.02]" />
+          <div className="absolute inset-0 bg-dot-pattern opacity-[0.02] dark:opacity-[0.01]" />
           <div className="bg-radial-glow" />
           
           <Header />

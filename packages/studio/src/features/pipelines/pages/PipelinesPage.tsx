@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+
 import { motion } from 'framer-motion';
 import { usePipelines } from '../hooks/usePipelines';
 import { PipelineTable } from '../components/PipelineTable';
@@ -11,12 +11,13 @@ import { PageHeader } from '../../../components/ui/page-header';
 import { EmptyState } from '../../../components/ui/empty-state';
 import { toast } from 'sonner';
 import { Skeleton } from '../../../components/ui/skeleton';
+import { CreatePipelineDialog } from '../components/CreatePipelineDialog';
 
 export const PipelinesPage: React.FC = () => {
-  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [skip, setSkip] = useState(0);
   const [limit] = useState(25);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const { data, isLoading, error } = usePipelines({ 
     skip, 
@@ -41,7 +42,7 @@ export const PipelinesPage: React.FC = () => {
         subtitle="Manage and monitor all your data pipelines in one place."
         icon={GitMerge}
         actions={
-          <Button className="shadow-md" onClick={() => navigate('/pipelines/new')}>
+          <Button className="shadow-md" onClick={() => setCreateDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> New Pipeline
           </Button>
         }
@@ -115,6 +116,7 @@ export const PipelinesPage: React.FC = () => {
           </div>
         </div>
       )}
+      <CreatePipelineDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
     </PageTransition>
   );
 };

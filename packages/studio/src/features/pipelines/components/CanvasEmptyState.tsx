@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Network, Plus, ArrowLeft } from 'lucide-react';
-import { usePipelineBuilderStore } from '../../../stores/pipelineBuilderStore';
+import { Network, ArrowLeft } from 'lucide-react';
 
 export const CanvasEmptyState: React.FC = () => {
   return (

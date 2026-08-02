@@ -32,6 +32,21 @@ class PostgresPipelineRepository(AbstractPipelineRepository):
             return map_orm_to_pipeline(orm_obj)
         return None
 
+    async def update_pipeline(self, pipeline_id: str, updates: dict) -> Optional[Pipeline]:
+        stmt = select(OrmPipeline).where(OrmPipeline.id == pipeline_id).where(OrmPipeline.is_deleted == False).where(OrmPipeline.workspace_id == uuid.UUID(get_workspace_id()))
+        result = await self.session.execute(stmt)
+        orm_obj = result.scalar_one_or_none()
+        
+        if not orm_obj:
+            return None
+            
+        for key, value in updates.items():
+            if hasattr(orm_obj, key):
+                setattr(orm_obj, key, value)
+                
+        await self.session.flush()
+        return map_orm_to_pipeline(orm_obj)
+
     async def get_pipeline_by_name(self, name: str) -> Optional[Pipeline]:
         stmt = select(OrmPipeline).where(OrmPipeline.name == name).where(OrmPipeline.is_deleted == False).where(OrmPipeline.workspace_id == uuid.UUID(get_workspace_id()))
         result = await self.session.execute(stmt)

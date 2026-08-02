@@ -1,13 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useDashboard } from './hooks/useDashboard';
-import { useSchedules } from '../schedules/hooks/useSchedules';
-import { useEnvironments } from '../environments/hooks/useEnvironments';
 import { useDatasets } from '../datasets/hooks/useDatasets';
 import { DashboardCard } from './components/DashboardCard';
 import { ExecutionTrendChart } from './components/ExecutionTrendChart';
 import { ExecutionTable } from '../executions/components/ExecutionTable';
-import { Activity, Clock, PlayCircle, ServerCog, AlertOctagon, Server, Database, Sparkles, ArrowRight } from 'lucide-react';
+import { Activity, Clock, PlayCircle, ServerCog, AlertOctagon, Database, Sparkles, ArrowRight } from 'lucide-react';
 import { Skeleton } from '../../components/ui/skeleton';
 import { Button } from '../../components/ui/button';
 import { toast } from 'sonner';
@@ -32,9 +30,7 @@ const item = {
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { data, isLoading, error } = useDashboard();
-  const { data: schedules } = useSchedules();
   const { data: metrics } = useSchedulerMetrics();
-  const { data: environments } = useEnvironments();
   const { data: datasets } = useDatasets();
 
   React.useEffect(() => {

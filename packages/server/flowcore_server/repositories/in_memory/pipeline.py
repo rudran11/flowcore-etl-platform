@@ -13,6 +13,18 @@ class InMemoryPipelineRepository(AbstractPipelineRepository):
 
     async def get_pipeline(self, pipeline_id: str) -> Optional[Pipeline]:
         return self._pipelines.get(pipeline_id)
+
+    async def update_pipeline(self, pipeline_id: str, updates: dict) -> Optional[Pipeline]:
+        pipeline = self._pipelines.get(pipeline_id)
+        if not pipeline:
+            return None
+            
+        for key, value in updates.items():
+            if hasattr(pipeline, key):
+                setattr(pipeline, key, value)
+                
+        self._pipelines[pipeline_id] = pipeline
+        return pipeline
         
     async def get_pipeline_by_name(self, name: str) -> Optional[Pipeline]:
         for p in self._pipelines.values():

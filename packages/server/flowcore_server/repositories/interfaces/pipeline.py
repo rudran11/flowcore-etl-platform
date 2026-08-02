@@ -17,6 +17,10 @@ class AbstractPipelineRepository(abc.ABC):
         pass
         
     @abc.abstractmethod
+    async def update_pipeline(self, pipeline_id: str, updates: dict) -> Optional[Pipeline]:
+        pass
+        
+    @abc.abstractmethod
     async def get_pipeline_by_name(self, name: str) -> Optional[Pipeline]:
         pass
 

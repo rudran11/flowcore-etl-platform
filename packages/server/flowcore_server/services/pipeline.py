@@ -40,6 +40,48 @@ class PipelineService:
                 recent_runs=recent_runs
             )
 
+    async def create_pipeline(self, request: "flowcore_server.models.pipeline.PipelineCreate", owner: str) -> "flowcore.models.pipeline.Pipeline":
+        import uuid
+        from flowcore.models.pipeline import Pipeline
+        from flowcore_server.dependencies.context import get_workspace_id
+        
+        async with self.uow as uow:
+            pipeline = Pipeline(
+                id=str(uuid.uuid4()),
+                workspace_id=get_workspace_id(),
+                owner=owner,
+                name=request.name,
+                description=request.description,
+                tags=request.tags or []
+            )
+            saved_pipeline = await uow.pipelines.create_pipeline(pipeline)
+            await uow.commit()
+            return saved_pipeline
+            
+    async def update_pipeline(self, pipeline_id: str, request: "flowcore_server.models.pipeline.PipelineUpdate") -> "flowcore.models.pipeline.Pipeline":
+        async with self.uow as uow:
+            updates = request.model_dump(exclude_unset=True)
+            if not updates:
+                pipeline = await uow.pipelines.get_pipeline(pipeline_id)
+                if not pipeline:
+                    raise ResourceNotFoundError(f"Pipeline with ID {pipeline_id} not found")
+                return pipeline
+                
+            updated_pipeline = await uow.pipelines.update_pipeline(pipeline_id, updates)
+            if not updated_pipeline:
+                raise ResourceNotFoundError(f"Pipeline with ID {pipeline_id} not found")
+                
+            await uow.commit()
+            return updated_pipeline
+            
+    async def delete_pipeline(self, pipeline_id: str) -> bool:
+        async with self.uow as uow:
+            success = await uow.pipelines.delete_pipeline(pipeline_id)
+            if not success:
+                raise ResourceNotFoundError(f"Pipeline with ID {pipeline_id} not found")
+            await uow.commit()
+            return True
+
     async def create_pipeline_version(self, pipeline_id: str, request: "flowcore_server.models.pipeline_version.PipelineVersionCreate") -> "flowcore.models.pipeline.PipelineVersion":
         import uuid
         from flowcore.models.pipeline import PipelineVersion

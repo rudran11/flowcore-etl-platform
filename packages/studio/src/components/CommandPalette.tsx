@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Command } from 'cmdk';
 import { useNavigate } from 'react-router-dom';
-import { Search, GitMerge, Activity, Settings, Database, Server, CalendarClock, Puzzle, Moon, Sun } from 'lucide-react';
+import { Search, GitMerge, Activity, Settings, Database, Server, Puzzle, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Dialog, DialogContent, DialogTitle } from './ui/dialog';
 

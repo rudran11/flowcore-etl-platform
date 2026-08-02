@@ -47,7 +47,7 @@ export const ExecutionDAG: React.FC<ExecutionDAGProps> = ({ run }) => {
     const triggerData = dsl.trigger || { type: 'manual' };
     
     let newNodes: any[] = [];
-    let newEdges: any[] = [];
+    const newEdges: any[] = [];
 
     // Add Trigger Node
     newNodes.push({

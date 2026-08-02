@@ -7,8 +7,7 @@ import { Button } from '../../components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../components/ui/tooltip';
 import { useAuthStore } from '../../stores/authStore';
-import { LogOut, Sun, Moon } from 'lucide-react';
-import { useTheme } from 'next-themes';
+
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },

@@ -4,7 +4,7 @@ import { Play, Puzzle, CheckCircle2, AlertCircle, Clock, Copy, Trash2, ChevronDo
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePipelineBuilderStore } from '../../../stores/pipelineBuilderStore';
 
-const NodeToolbarActions = ({ id, data, isHovered }: { id: string, data: any, isHovered: boolean }) => {
+const NodeToolbarActions = ({ isHovered }: { id?: string, data?: any, isHovered: boolean }) => {
   const { duplicateSelected, deleteSelected } = usePipelineBuilderStore();
   
   return (

@@ -309,12 +309,14 @@ export const usePipelineBuilderStore = create<PipelineBuilderState>((set, get) =
       errors.push('Cycle detected in pipeline graph');
     }
 
-    // Disconnected nodes
     nodes.forEach(n => {
       if (n.id !== 'trigger') {
         const hasIncoming = edges.some(e => e.target === n.id);
         if (!hasIncoming) {
           errors.push(`Node '${n.id}' is disconnected`);
+          n.data = { ...n.data, error: true };
+        } else if (n.type === 'stepNode' && (!n.data.config || Object.keys(n.data.config).length === 0)) {
+          errors.push(`Node '${n.id}' has missing configuration`);
           n.data = { ...n.data, error: true };
         } else {
           n.data = { ...n.data, error: false }; // clear old error
@@ -347,11 +349,13 @@ export const usePipelineBuilderStore = create<PipelineBuilderState>((set, get) =
         const { nodes: finalNodes, edges: finalEdges } = get();
         set({
           nodes: finalNodes.map(n => {
-            const { status, ...restData } = n.data;
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { status: _status, ...restData } = n.data;
             return { ...n, data: restData };
           }),
           edges: finalEdges.map(e => {
-            const { status, ...restData } = e.data || {};
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { status: _status, ...restData } = e.data || {};
             return { ...e, data: restData };
           })
         });

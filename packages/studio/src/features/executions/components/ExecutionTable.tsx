@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { PipelineStatusBadge } from '../../pipelines/components/PipelineStatusBadge';
 import { Skeleton } from '../../../components/ui/skeleton';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/card';
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
 import { ExecutionResponse } from '../../../api/executions';
 import { Progress } from '../../../components/ui/progress';

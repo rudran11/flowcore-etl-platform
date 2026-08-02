@@ -17,7 +17,7 @@ export const ExecutionsPage: React.FC = () => {
   const [status, setStatus] = useState('ALL');
   
   const { data, isLoading, refetch, isRefetching } = useExecutions(25, 0, pipelineId || undefined, status);
-  const { data: metrics, isLoading: isMetricsLoading } = useExecutionMetrics();
+  const { data: metrics } = useExecutionMetrics();
   
   const runs = data?.items || [];
 
