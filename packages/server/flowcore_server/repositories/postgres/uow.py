@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from flowcore_server.repositories.interfaces.uow import AbstractUnitOfWork
 from flowcore_server.repositories.postgres.pipeline import PostgresPipelineRepository
+from flowcore_server.repositories.postgres.folder import PostgresFolderRepository
 from flowcore_server.repositories.postgres.execution import PostgresExecutionRepository
 from flowcore_server.repositories.postgres.schedule import PostgresScheduleRepository
 from flowcore_server.repositories.postgres.environment import AsyncSqlAlchemyEnvironmentRepository as PostgresEnvironmentRepository
@@ -21,6 +22,7 @@ class AsyncSqlAlchemyUnitOfWork(AbstractUnitOfWork):
     async def __aenter__(self) -> "AsyncSqlAlchemyUnitOfWork":
         self.session: AsyncSession = self.session_factory()
         self._pipelines = PostgresPipelineRepository(self.session)
+        self._folders = PostgresFolderRepository(self.session)
         self._executions = PostgresExecutionRepository(self.session)
         self._schedules = PostgresScheduleRepository(self.session)
         self._environments = PostgresEnvironmentRepository(self.session)
@@ -45,6 +47,10 @@ class AsyncSqlAlchemyUnitOfWork(AbstractUnitOfWork):
     @property
     def pipelines(self):
         return self._pipelines
+
+    @property
+    def folders(self):
+        return self._folders
         
     @property
     def executions(self):

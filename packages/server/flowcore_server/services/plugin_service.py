@@ -18,6 +18,9 @@ class PluginService:
         instance = self._manager.get_plugin(plugin_id)
         return instance.metadata
 
+    def get_plugin_instance(self, plugin_id: str):
+        return self._manager.get_plugin(plugin_id)
+
     def get_plugin_health(self, plugin_id: str) -> str:
         state = self._manager.get_lifecycle_state(plugin_id)
         return state.value

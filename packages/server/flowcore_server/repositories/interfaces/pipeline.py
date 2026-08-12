@@ -30,7 +30,13 @@ class AbstractPipelineRepository(abc.ABC):
         skip: int = 0,
         limit: int = 100,
         search: Optional[str] = None,
-        tags: Optional[List[str]] = None
+        tags: Optional[List[str]] = None,
+        folder_id: Optional[str] = None,
+        is_archived: Optional[bool] = None,
+        is_favorite: Optional[bool] = None,
+        user_id: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        sort_order: Optional[str] = "desc"
     ) -> List[Pipeline]:
         pass
 
@@ -58,6 +64,14 @@ class AbstractPipelineRepository(abc.ABC):
     async def count_pipelines(
         self,
         search: Optional[str] = None,
-        tags: Optional[List[str]] = None
+        tags: Optional[List[str]] = None,
+        folder_id: Optional[str] = None,
+        is_archived: Optional[bool] = None,
+        is_favorite: Optional[bool] = None,
+        user_id: Optional[str] = None
     ) -> int:
+        pass
+
+    @abc.abstractmethod
+    async def set_favorite(self, pipeline_id: str, user_id: str, is_favorite: bool) -> None:
         pass

@@ -24,13 +24,13 @@ export const AnimatedEdge = ({
   });
 
   const isRunning = data?.status === 'running';
-  const hasError = data?.status === 'error';
-  const isSuccess = data?.status === 'success';
+  const isFailed = data?.status === 'failed';
+  const hasError = data?.error;
 
   let strokeColor = 'hsl(var(--border))';
   if (selected) strokeColor = 'hsl(var(--primary))';
-  else if (hasError) strokeColor = 'hsl(var(--destructive))';
-  else if (isSuccess) strokeColor = '#10b981';
+  else if (hasError || isFailed) strokeColor = 'hsl(var(--destructive))';
+  else if (isRunning) strokeColor = 'hsl(var(--primary))';
 
   return (
     <>
@@ -49,11 +49,16 @@ export const AnimatedEdge = ({
           strokeWidth: selected ? 2.5 : 1.5,
           stroke: strokeColor,
           transition: 'stroke 0.3s ease, stroke-width 0.3s ease',
-          ...(isRunning && {
+          ...(isRunning ? {
             strokeDasharray: '5, 5',
             animation: 'dashdraw 1s linear infinite',
             stroke: 'hsl(var(--primary))',
-          }),
+          } : {}),
+          ...(hasError ? {
+            strokeDasharray: '5, 5',
+            animation: 'dashdraw 1s linear infinite reverse',
+            stroke: 'hsl(var(--destructive))',
+          } : {}),
         }}
         id={id}
       />

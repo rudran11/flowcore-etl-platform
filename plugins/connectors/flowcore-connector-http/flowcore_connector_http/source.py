@@ -5,6 +5,7 @@
 import time
 from typing import Any, Dict, Iterator, List, Optional
 import httpx
+from pydantic import BaseModel, Field, SecretStr
 
 from flowcore_shared.plugins.cdk.source import SourcePlugin
 from flowcore_shared.plugins.cdk.messages import FlowCoreMessage, MessageType, RecordMessage, StateMessage
@@ -16,6 +17,14 @@ from flowcore_shared.plugins.framework.rest import (
     get_retry_after, RateLimitError, retry_on_http_transient
 )
 from flowcore_shared.plugins.framework.schema import infer_schema
+
+class HttpSourceConfig(BaseModel):
+    base_url: str = Field(..., description="Base URL of the API.")
+    auth_type: str = Field("none", description="Authentication type.", json_schema_extra={"enum": ["none", "api_key"]})
+    api_key: Optional[SecretStr] = Field(None, description="API Key if auth_type is api_key.")
+    api_key_header: str = Field("x-api-key", description="Header name for the API key.")
+    pagination_type: str = Field("none", description="Pagination type.", json_schema_extra={"enum": ["none", "cursor", "offset", "page_number"]})
+    stream_name: str = Field("http_stream", description="Name of the stream to emit.")
 
 class HttpSourcePlugin(SourcePlugin):
     @property
@@ -34,7 +43,8 @@ class HttpSourcePlugin(SourcePlugin):
                 supports_schema_discovery=True,
                 supports_parallel_read=False,
                 supports_batch_write=False
-            )
+            ),
+            config_schema=HttpSourceConfig.model_json_schema()
         )
         
     def _get_authenticator(self, config: Dict[str, Any]) -> Optional[Authenticator]:

@@ -60,10 +60,34 @@ class PostgresPipelineRepository(AbstractPipelineRepository):
         skip: int = 0,
         limit: int = 100,
         search: Optional[str] = None,
-        tags: Optional[List[str]] = None
+        tags: Optional[List[str]] = None,
+        folder_id: Optional[str] = None,
+        is_archived: Optional[bool] = None,
+        is_favorite: Optional[bool] = None,
+        user_id: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        sort_order: Optional[str] = "desc"
     ) -> List[Pipeline]:
         from sqlalchemy import or_
+        from flowcore_server.db.models import UserPipelineFavorite
+        
         stmt = select(OrmPipeline).where(OrmPipeline.is_deleted == False).where(OrmPipeline.workspace_id == uuid.UUID(get_workspace_id()))
+        
+        if is_archived is not None:
+            stmt = stmt.where(OrmPipeline.is_archived == is_archived)
+            
+        if folder_id is not None:
+            if folder_id == "root":
+                stmt = stmt.where(OrmPipeline.folder_id.is_(None))
+            else:
+                stmt = stmt.where(OrmPipeline.folder_id == uuid.UUID(folder_id))
+                
+        if is_favorite is not None and user_id is not None:
+            if is_favorite:
+                stmt = stmt.join(UserPipelineFavorite, OrmPipeline.id == UserPipelineFavorite.pipeline_id).where(UserPipelineFavorite.user_id == uuid.UUID(user_id))
+            else:
+                stmt = stmt.outerjoin(UserPipelineFavorite, (OrmPipeline.id == UserPipelineFavorite.pipeline_id) & (UserPipelineFavorite.user_id == uuid.UUID(user_id)))
+                stmt = stmt.where(UserPipelineFavorite.pipeline_id.is_(None))
         
         if search:
             search_pattern = f"%{search}%"
@@ -75,13 +99,38 @@ class PostgresPipelineRepository(AbstractPipelineRepository):
             )
         
         if tags:
+            # Assuming tags is a JSONB list of strings for now (will switch to Tag mapping if requested)
             stmt = stmt.where(OrmPipeline.tags.contains(tags))
             
-        stmt = stmt.offset(skip).limit(limit).order_by(OrmPipeline.created_at.desc())
-        
+        # Sorting
+        order_col = OrmPipeline.created_at
+        if sort_by == "name":
+            order_col = OrmPipeline.name
+        elif sort_by == "updated_at":
+            order_col = OrmPipeline.updated_at
+            
+        if sort_order == "asc":
+            stmt = stmt.offset(skip).limit(limit).order_by(order_col.asc())
+        else:
+            stmt = stmt.offset(skip).limit(limit).order_by(order_col.desc())
+            
         result = await self.session.execute(stmt)
         orm_objs = result.scalars().all()
-        return [map_orm_to_pipeline(obj) for obj in orm_objs]
+        
+        favorites_set = set()
+        if user_id:
+            fav_stmt = select(UserPipelineFavorite.pipeline_id).where(UserPipelineFavorite.user_id == uuid.UUID(user_id))
+            fav_result = await self.session.execute(fav_stmt)
+            favorites_set = {str(pid) for pid in fav_result.scalars().all()}
+            
+        pipelines = []
+        for obj in orm_objs:
+            p = map_orm_to_pipeline(obj)
+            if user_id:
+                p = p.model_copy(update={"is_favorite": str(p.id) in favorites_set})
+            pipelines.append(p)
+            
+        return pipelines
 
     async def delete_pipeline(self, pipeline_id: str) -> bool:
         stmt = select(OrmPipeline).where(OrmPipeline.id == pipeline_id).where(OrmPipeline.workspace_id == uuid.UUID(get_workspace_id()))
@@ -92,6 +141,19 @@ class PostgresPipelineRepository(AbstractPipelineRepository):
             await self.session.flush()
             return True
         return False
+
+    async def set_favorite(self, pipeline_id: str, user_id: str, is_favorite: bool) -> None:
+        from flowcore_server.db.models import UserPipelineFavorite
+        if is_favorite:
+            stmt = select(UserPipelineFavorite).where(UserPipelineFavorite.pipeline_id == uuid.UUID(pipeline_id), UserPipelineFavorite.user_id == uuid.UUID(user_id))
+            result = await self.session.execute(stmt)
+            if not result.scalar_one_or_none():
+                fav = UserPipelineFavorite(pipeline_id=uuid.UUID(pipeline_id), user_id=uuid.UUID(user_id))
+                self.session.add(fav)
+        else:
+            stmt = delete(UserPipelineFavorite).where(UserPipelineFavorite.pipeline_id == uuid.UUID(pipeline_id), UserPipelineFavorite.user_id == uuid.UUID(user_id))
+            await self.session.execute(stmt)
+        await self.session.flush()
 
     async def create_pipeline_version(self, version: PipelineVersion) -> PipelineVersion:
         # Map version domain object to ORM
@@ -136,10 +198,32 @@ class PostgresPipelineRepository(AbstractPipelineRepository):
     async def count_pipelines(
         self,
         search: Optional[str] = None,
-        tags: Optional[List[str]] = None
+        tags: Optional[List[str]] = None,
+        folder_id: Optional[str] = None,
+        is_archived: Optional[bool] = None,
+        is_favorite: Optional[bool] = None,
+        user_id: Optional[str] = None
     ) -> int:
-        from sqlalchemy import func, or_
+        from sqlalchemy import or_, func
+        from flowcore_server.db.models import UserPipelineFavorite
+        
         stmt = select(func.count(OrmPipeline.id)).where(OrmPipeline.is_deleted == False).where(OrmPipeline.workspace_id == uuid.UUID(get_workspace_id()))
+        
+        if is_archived is not None:
+            stmt = stmt.where(OrmPipeline.is_archived == is_archived)
+            
+        if folder_id is not None:
+            if folder_id == "root":
+                stmt = stmt.where(OrmPipeline.folder_id.is_(None))
+            else:
+                stmt = stmt.where(OrmPipeline.folder_id == uuid.UUID(folder_id))
+                
+        if is_favorite is not None and user_id is not None:
+            if is_favorite:
+                stmt = stmt.join(UserPipelineFavorite, OrmPipeline.id == UserPipelineFavorite.pipeline_id).where(UserPipelineFavorite.user_id == uuid.UUID(user_id))
+            else:
+                stmt = stmt.outerjoin(UserPipelineFavorite, (OrmPipeline.id == UserPipelineFavorite.pipeline_id) & (UserPipelineFavorite.user_id == uuid.UUID(user_id)))
+                stmt = stmt.where(UserPipelineFavorite.pipeline_id.is_(None))
         
         if search:
             search_pattern = f"%{search}%"
@@ -149,7 +233,7 @@ class PostgresPipelineRepository(AbstractPipelineRepository):
                     OrmPipeline.description.ilike(search_pattern)
                 )
             )
-            
+        
         if tags:
             stmt = stmt.where(OrmPipeline.tags.contains(tags))
             

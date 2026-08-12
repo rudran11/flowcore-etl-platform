@@ -23,6 +23,8 @@ async def plugin_load_error_handler(request: Request, exc: PluginLoadError):
     return JSONResponse(status_code=500, content=err.model_dump())
 
 async def validation_error_handler(request: Request, exc: ValidationError | RequestValidationError):
+    print("VALIDATION ERROR DETAIL:", str(exc))
+    print("VALIDATION ERROR ERRORS:", exc.errors() if hasattr(exc, 'errors') else 'no errors attr')
     req_id = get_request_id()
     err = RFC7807Error(
         type="about:blank",

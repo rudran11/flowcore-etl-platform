@@ -10,6 +10,15 @@ from flowcore_shared.plugins.cdk.source import SourcePlugin
 from flowcore_shared.plugins.cdk.messages import FlowCoreMessage, MessageType, RecordMessage, StateMessage
 from flowcore_shared.plugins.models import PluginMetadata, ConnectorCapabilities
 from flowcore_shared.plugins.enums import PluginType
+from pydantic import BaseModel, Field, SecretStr
+
+class S3Config(BaseModel):
+    bucket: str = Field(..., description="Amazon S3 bucket name.")
+    aws_access_key_id: Optional[str] = Field(None, description="AWS Access Key ID.")
+    aws_secret_access_key: Optional[SecretStr] = Field(None, description="AWS Secret Access Key.")
+    region_name: str = Field("us-east-1", description="AWS Region name.")
+    endpoint_url: Optional[str] = Field(None, description="Custom endpoint URL (e.g., for MinIO).")
+    prefix: Optional[str] = Field(None, description="S3 Key prefix.")
 
 class S3SourcePlugin(SourcePlugin):
     @property
@@ -28,7 +37,8 @@ class S3SourcePlugin(SourcePlugin):
                 supports_schema_discovery=True,
                 supports_parallel_read=False,
                 supports_batch_write=False
-            )
+            ),
+            config_schema=S3Config.model_json_schema()
         )
         
     def _get_client(self, config: Dict[str, Any]):

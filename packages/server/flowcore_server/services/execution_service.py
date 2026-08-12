@@ -183,11 +183,16 @@ class ExecutionService:
             else:
                 run = await self.uow.executions.get_run(run_id)
             
+            
             if not run:
                 return
             
+            # Determine overall status from steps
+            has_failures = any(step.status in [ExecutionState.FAILED, ExecutionState.RETRYING] for step in run.steps.values())
+            overall_status = ExecutionState.FAILED if has_failures else ExecutionState.COMPLETED
+            
             run = run.model_copy(update={
-                "status": ExecutionState.COMPLETED,
+                "status": overall_status,
                 "end_time": datetime.now(timezone.utc)
             })
             await self.uow.executions.save(run)

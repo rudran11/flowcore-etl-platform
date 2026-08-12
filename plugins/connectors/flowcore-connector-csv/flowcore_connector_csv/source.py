@@ -6,12 +6,18 @@ import csv
 import os
 from typing import Any, Dict, Iterator, List, Optional
 from pathlib import Path
+from pydantic import BaseModel, Field
 
 from flowcore_shared.plugins.cdk.source import SourcePlugin
 from flowcore_shared.plugins.cdk.messages import FlowCoreMessage, MessageType, RecordMessage, StateMessage
 from flowcore_shared.plugins.models import PluginMetadata, ConnectorCapabilities
 from flowcore_shared.plugins.enums import PluginType
 from flowcore_shared.plugins.framework.schema import infer_schema
+
+class CsvSourceConfig(BaseModel):
+    file_path: str = Field(..., description="Path to the CSV file.")
+    delimiter: str = Field(",", description="Delimiter used in the CSV.")
+    has_header: bool = Field(True, description="Whether the CSV has a header row.")
 
 class CsvSourcePlugin(SourcePlugin):
     """
@@ -34,7 +40,8 @@ class CsvSourcePlugin(SourcePlugin):
                 supports_schema_discovery=True,
                 supports_parallel_read=False,
                 supports_batch_write=False
-            )
+            ),
+            config_schema=CsvSourceConfig.model_json_schema()
         )
         
     def check(self, config: Dict[str, Any]) -> bool:

@@ -12,6 +12,15 @@ from flowcore_shared.plugins.cdk.messages import FlowCoreMessage, MessageType
 from flowcore_shared.plugins.models import PluginMetadata, ConnectorCapabilities
 from flowcore_shared.plugins.enums import PluginType
 from flowcore_shared.plugins.framework.db import retry_on_transient
+from pydantic import BaseModel, Field, SecretStr
+from typing import Optional
+
+class PostgresConfig(BaseModel):
+    host: str = Field("localhost", description="PostgreSQL server hostname or IP address.")
+    port: int = Field(5432, description="PostgreSQL server port.")
+    database: str = Field("test_db", description="Name of the database to connect to.")
+    username: str = Field("postgres", description="Username for authentication.")
+    password: Optional[SecretStr] = Field(None, description="Password for authentication.")
 
 class PostgresDestinationPlugin(DestinationPlugin):
     @property
@@ -30,21 +39,22 @@ class PostgresDestinationPlugin(DestinationPlugin):
                 supports_schema_discovery=False,
                 supports_parallel_read=False,
                 supports_batch_write=True
-            )
+            ),
+            config_schema=PostgresConfig.model_json_schema()
         )
         
     def _get_conn(self, config: Dict[str, Any]):
         return psycopg2.connect(
-            host=config["host"],
+            host=config.get("host", "localhost"),
             port=config.get("port", 5432),
-            user=config["username"],
-            password=config["password"],
-            dbname=config["database"]
+            user=config.get("username", "postgres"),
+            password=config.get("password", ""),
+            dbname=config.get("database", "test_db")
         )
 
     @retry_on_transient((OperationalError,))
     def check(self, config: Dict[str, Any]) -> bool:
-        required = ["host", "username", "password", "database"]
+        required = []
         for req in required:
             if not config.get(req):
                 raise ValueError(f"Missing '{req}' in config")

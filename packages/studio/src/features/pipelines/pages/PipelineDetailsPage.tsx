@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { useState } from 'react';
+import { useBlocker } from 'react-router-dom';
 
 const TemplateDialog = () => {
   const { isTemplateDialogOpen, templateNodeToSave, closeTemplateDialog } = usePipelineBuilderStore();
@@ -87,46 +88,45 @@ export const PipelineDetailsPage: React.FC = () => {
     setPipeline, 
     undo, redo, 
     copySelected, pasteClipboard, duplicateSelected, deleteSelected,
-    saveDraftToStorage, loadDraftFromStorage
+    saveDraftToStorage, loadDraftFromStorage, clearDraft, isDirty
   } = usePipelineBuilderStore();
+
+  const [draftPromptOpen, setDraftPromptOpen] = useState(false);
+
+  // Unsaved changes blocker
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      isDirty && currentLocation.pathname !== nextLocation.pathname
+  );
 
   // Initialize Pipeline
   useEffect(() => {
     if (isNew) {
       setPipeline({ id: 'new', name: 'Untitled Pipeline', description: 'Unsaved Pipeline' } as any, yaml.stringify({ trigger: { type: 'manual' }, steps: {} }));
     } else if (data && data.pipeline && id) {
-      // Check if we have an unsaved draft
-      const hasDraft = loadDraftFromStorage(id, data.pipeline);
-      
-      if (hasDraft) {
-        toast.info('Loaded unsaved draft');
+      const draft = localStorage.getItem(`flowcore_pipeline_draft_${id}`);
+      if (draft) {
+        setDraftPromptOpen(true);
+      }
+
+      const latestVersion = data.versions && data.versions.length > 0 ? data.versions[0] : null;
+      if (latestVersion && latestVersion.dsl_definition) {
+         setPipeline(data.pipeline, yaml.stringify(latestVersion.dsl_definition));
+         
+         if (latestVersion.graph_definition && latestVersion.graph_definition.nodes) {
+           usePipelineBuilderStore.setState({
+             nodes: latestVersion.graph_definition.nodes,
+             edges: latestVersion.graph_definition.edges
+           });
+           usePipelineBuilderStore.getState().validatePipeline();
+         }
       } else {
-        const latestVersion = data.versions && data.versions.length > 0 ? data.versions[0] : null;
-        if (latestVersion && latestVersion.dsl_definition) {
-           setPipeline(data.pipeline, yaml.stringify(latestVersion.dsl_definition));
-           
-           if (latestVersion.graph_definition && latestVersion.graph_definition.nodes) {
-             const savedNodes = latestVersion.graph_definition.nodes;
-             const posMap = new Map<string, { x: number; y: number }>(savedNodes.map((n: any) => [n.id, n.position as { x: number; y: number }]));
-             
-             usePipelineBuilderStore.setState(state => ({
-               nodes: state.nodes.map(n => {
-                 const pos = posMap.get(n.id);
-                 return {
-                   ...n,
-                   position: (pos ? { x: pos.x, y: pos.y } : n.position)
-                 } as any;
-               })
-             }));
-           }
-        } else {
-           setPipeline(data.pipeline, yaml.stringify({ trigger: { type: 'manual' }, steps: {} }));
-        }
+         setPipeline(data.pipeline, yaml.stringify({ trigger: { type: 'manual' }, steps: {} }));
       }
     }
-  }, [data, id, isNew, setPipeline, loadDraftFromStorage]);
+  }, [data, id, isNew, setPipeline]);
 
-  // Unsaved changes warning
+  // Unsaved changes warning for tab close
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (usePipelineBuilderStore.getState().isDirty) {
@@ -213,6 +213,56 @@ export const PipelineDetailsPage: React.FC = () => {
     <div className="flex-1 flex flex-col h-full overflow-hidden">
       <PipelineCanvas />
       <TemplateDialog />
+      <Dialog open={draftPromptOpen} onOpenChange={setDraftPromptOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Unsaved Draft Found</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              We found an unsaved draft of this pipeline. Would you like to restore it or discard it?
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              if (id) clearDraft(id);
+              setDraftPromptOpen(false);
+            }}>
+              Discard
+            </Button>
+            <Button onClick={() => {
+              if (id && data?.pipeline) {
+                loadDraftFromStorage(id, data.pipeline);
+                toast.success('Draft restored');
+              }
+              setDraftPromptOpen(false);
+            }}>
+              Restore Draft
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={blocker.state === "blocked"} onOpenChange={(open) => !open && blocker.state === "blocked" && blocker.reset?.()}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Unsaved Changes</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              You have unsaved changes. Are you sure you want to leave this page? Your changes will be saved as a draft.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => blocker.reset?.()}>
+              Stay
+            </Button>
+            <Button variant="destructive" onClick={() => blocker.proceed?.()}>
+              Leave
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

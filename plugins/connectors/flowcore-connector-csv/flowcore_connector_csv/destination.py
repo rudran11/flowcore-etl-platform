@@ -11,6 +11,12 @@ from flowcore_shared.plugins.cdk.destination import DestinationPlugin
 from flowcore_shared.plugins.cdk.messages import FlowCoreMessage, MessageType
 from flowcore_shared.plugins.models import PluginMetadata, ConnectorCapabilities
 from flowcore_shared.plugins.enums import PluginType
+from pydantic import BaseModel, Field
+
+class CsvDestConfig(BaseModel):
+    output_directory: str = Field(..., description="Directory to write CSV files.")
+    delimiter: str = Field(",", description="Delimiter used in the CSV.")
+    include_header: bool = Field(True, description="Whether to include a header row.")
 
 class CsvDestinationPlugin(DestinationPlugin):
     """
@@ -32,8 +38,9 @@ class CsvDestinationPlugin(DestinationPlugin):
                 supports_incremental=False,
                 supports_schema_discovery=False,
                 supports_parallel_read=False,
-                supports_batch_write=False
-            )
+                supports_batch_write=True
+            ),
+            config_schema=CsvDestConfig.model_json_schema()
         )
         
     def check(self, config: Dict[str, Any]) -> bool:

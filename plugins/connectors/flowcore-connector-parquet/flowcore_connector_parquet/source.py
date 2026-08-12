@@ -14,6 +14,9 @@ from flowcore_shared.plugins.models import PluginMetadata, ConnectorCapabilities
 from flowcore_shared.plugins.enums import PluginType
 from flowcore_shared.plugins.framework.schema import infer_schema
 
+class ParquetSourceConfig(BaseModel):
+    file_path: str = Field(..., description="Path to the Parquet file or directory.")
+
 class ParquetSourcePlugin(SourcePlugin):
     """
     Parquet Source Connector for FlowCore.
@@ -35,7 +38,8 @@ class ParquetSourcePlugin(SourcePlugin):
                 supports_schema_discovery=True,
                 supports_parallel_read=False,
                 supports_batch_write=False
-            )
+            ),
+            config_schema=ParquetSourceConfig.model_json_schema()
         )
         
     def check(self, config: Dict[str, Any]) -> bool:

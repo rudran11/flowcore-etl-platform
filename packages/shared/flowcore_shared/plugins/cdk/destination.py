@@ -20,6 +20,13 @@ class DestinationPlugin(BasePlugin):
         config = getattr(context, "parameters", {})
         message_stream = getattr(context, "message_stream", iter([]))
         catalog = getattr(context, "catalog", None)
+        
+        # Automatically infer and report dataset lineage
+        if hasattr(context, "report_output_dataset"):
+            dataset_name = config.get("table") or config.get("file_path") or config.get("channel") or config.get("bucket") or "unknown_destination"
+            dataset_type = "DATABASE_TABLE" if "table" in config else "FILE"
+            context.report_output_dataset(name=str(dataset_name), dataset_type=dataset_type)
+            
         return self.write(config, catalog, message_stream)
         
     @abstractmethod

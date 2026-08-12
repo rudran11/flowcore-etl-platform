@@ -10,11 +10,18 @@ class PipelineCreate(BaseModel):
     name: str = Field(..., description="Pipeline name.")
     description: Optional[str] = Field(None, description="Pipeline description.")
     tags: Optional[List[str]] = Field(default_factory=list, description="Tags for the pipeline.")
+    folder_id: Optional[str] = Field(None, description="Folder ID")
+    icon: Optional[str] = Field(None, description="Icon identifier")
+    color: Optional[str] = Field(None, description="Color code")
 
 class PipelineUpdate(BaseModel):
     name: Optional[str] = Field(None, description="Pipeline name.")
     description: Optional[str] = Field(None, description="Pipeline description.")
     tags: Optional[List[str]] = Field(None, description="Tags for the pipeline.")
+    folder_id: Optional[str] = Field(None, description="Folder ID")
+    is_archived: Optional[bool] = Field(None, description="Is Archived")
+    icon: Optional[str] = Field(None, description="Icon identifier")
+    color: Optional[str] = Field(None, description="Color code")
 
 class PipelineResponse(BaseModel):
     """

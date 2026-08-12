@@ -3,23 +3,26 @@ import { useNavigate } from 'react-router-dom';
 import { Skeleton } from '../../../components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
 import { Badge } from '../../../components/ui/badge';
-import { Database, User } from 'lucide-react';
-
-interface Pipeline {
-  id: string;
-  name: string;
-  owner: string;
-  description?: string;
-  tags: string[];
-}
+import { Database, User, MoreHorizontal, Edit2, Copy, Trash2, Folder, Star, Archive as ArchiveIcon } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from '../../../components/ui/dropdown-menu';
+import { Button } from '../../../components/ui/button';
+import { Pipeline } from '../../../types/pipeline';
+import { useFolders } from '../hooks/useFolders';
 
 interface PipelineTableProps {
   pipelines: Pipeline[];
   loading?: boolean;
+  onRename?: (pipeline: Pipeline) => void;
+  onDuplicate?: (pipeline: Pipeline) => void;
+  onDelete?: (pipeline: Pipeline) => void;
+  onFavorite?: (pipeline: Pipeline, is_favorite: boolean) => void;
+  onArchive?: (pipeline: Pipeline, is_archived: boolean) => void;
+  onMove?: (pipeline: Pipeline, folder_id: string | null) => void;
 }
 
-export const PipelineTable: React.FC<PipelineTableProps> = ({ pipelines, loading = false }) => {
+export const PipelineTable: React.FC<PipelineTableProps> = ({ pipelines, loading = false, onRename, onDuplicate, onDelete, onFavorite, onArchive, onMove }) => {
   const navigate = useNavigate();
+  const { data: folders } = useFolders();
 
   return (
     <Table>
@@ -29,6 +32,7 @@ export const PipelineTable: React.FC<PipelineTableProps> = ({ pipelines, loading
           <TableHead className="font-semibold">Owner</TableHead>
           <TableHead className="font-semibold">Description</TableHead>
           <TableHead className="font-semibold">Tags</TableHead>
+          <TableHead className="w-[50px]"></TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -43,7 +47,7 @@ export const PipelineTable: React.FC<PipelineTableProps> = ({ pipelines, loading
           ))
         ) : pipelines.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={4} className="h-48 text-center text-muted-foreground">
+            <TableCell colSpan={5} className="h-48 text-center text-muted-foreground">
               <div className="flex flex-col items-center justify-center space-y-3">
                 <Database className="h-10 w-10 text-muted-foreground/30" />
                 <div className="text-lg font-medium text-foreground">No pipelines found</div>
@@ -82,6 +86,51 @@ export const PipelineTable: React.FC<PipelineTableProps> = ({ pipelines, loading
                     <span className="text-muted-foreground">-</span>
                   )}
                 </div>
+              </TableCell>
+              <TableCell onClick={(e) => e.stopPropagation()}>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => onRename && onRename(pipeline as any)}>
+                      <Edit2 className="h-4 w-4 mr-2" /> Rename
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onDuplicate && onDuplicate(pipeline as any)}>
+                      <Copy className="h-4 w-4 mr-2" /> Duplicate
+                    </DropdownMenuItem>
+                    
+                    <DropdownMenuItem onClick={() => onFavorite && onFavorite(pipeline as any, !pipeline.is_favorite)}>
+                      <Star className="h-4 w-4 mr-2" /> {pipeline.is_favorite ? 'Unfavorite' : 'Favorite'}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onArchive && onArchive(pipeline as any, !pipeline.is_archived)}>
+                      <ArchiveIcon className="h-4 w-4 mr-2" /> {pipeline.is_archived ? 'Unarchive' : 'Archive'}
+                    </DropdownMenuItem>
+
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>
+                        <Folder className="h-4 w-4 mr-2" /> Move to Folder
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuItem onClick={() => onMove && onMove(pipeline as any, null)}>
+                          [Root - No Folder]
+                        </DropdownMenuItem>
+                        {folders?.map(f => (
+                          <DropdownMenuItem key={f.folder.id} onClick={() => onMove && onMove(pipeline as any, f.folder.id)}>
+                            <Folder className="h-4 w-4 mr-2" /> {f.folder.name}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive" onClick={() => onDelete && onDelete(pipeline as any)}>
+                      <Trash2 className="h-4 w-4 mr-2" /> Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </TableCell>
             </TableRow>
           ))

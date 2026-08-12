@@ -18,6 +18,7 @@ def map_plugin_to_response(plugin: PluginMetadata) -> PluginResponse:
         supported_operations=plugin.supported_operations,
         example_yaml=plugin.example_yaml,
         documentation=plugin.documentation,
+        config_schema=plugin.config_schema,
         flowcore_version_constraint=plugin.flowcore_version_constraint,
         dependencies=plugin.dependencies
     )

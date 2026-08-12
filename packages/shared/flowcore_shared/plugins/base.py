@@ -25,3 +25,10 @@ class BasePlugin(ABC):
         The context parameter is typed as Any to avoid coupling with the engine's RuntimeContext.
         """
         pass
+
+    def validate_config(self, config: dict) -> dict:
+        """
+        Validates the configuration against the plugin's schema.
+        Returns a dictionary with 'success', 'warnings', and 'errors'.
+        """
+        return {"success": True, "warnings": [], "errors": []}

@@ -9,9 +9,10 @@ import { pipelinesApi } from '../../../api/pipelines';
 interface CreatePipelineDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  folderId?: string;
 }
 
-export const CreatePipelineDialog: React.FC<CreatePipelineDialogProps> = ({ open, onOpenChange }) => {
+export const CreatePipelineDialog: React.FC<CreatePipelineDialogProps> = ({ open, onOpenChange, folderId }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,7 +25,8 @@ export const CreatePipelineDialog: React.FC<CreatePipelineDialogProps> = ({ open
       const pipeline = await pipelinesApi.createPipeline({
         name,
         description,
-        tags: []
+        tags: [],
+        folder_id: folderId
       });
       toast.success('Pipeline created successfully');
       onOpenChange(false);

@@ -10,6 +10,15 @@ from flowcore_shared.plugins.cdk.messages import FlowCoreMessage, MessageType
 from flowcore_shared.plugins.models import PluginMetadata, ConnectorCapabilities
 from flowcore_shared.plugins.enums import PluginType
 from flowcore_shared.plugins.framework.db import retry_on_transient
+from pydantic import BaseModel, Field, SecretStr
+from typing import Optional
+
+class MysqlConfig(BaseModel):
+    host: str = Field(..., description="MySQL server hostname or IP address.", json_schema_extra={"placeholder": "localhost"})
+    port: int = Field(3306, description="MySQL server port.")
+    database: str = Field(..., description="Name of the database to connect to.", json_schema_extra={"placeholder": "my_db"})
+    username: str = Field(..., description="Username for authentication.")
+    password: Optional[SecretStr] = Field(None, description="Password for authentication.")
 
 class MysqlDestinationPlugin(DestinationPlugin):
     @property
@@ -28,21 +37,22 @@ class MysqlDestinationPlugin(DestinationPlugin):
                 supports_schema_discovery=False,
                 supports_parallel_read=False,
                 supports_batch_write=True
-            )
+            ),
+            config_schema=MysqlConfig.model_json_schema()
         )
         
     def _get_conn(self, config: Dict[str, Any]):
         return pymysql.connect(
-            host=config["host"],
+            host=config.get("host", "localhost"),
             port=config.get("port", 3306),
-            user=config["username"],
-            password=config["password"],
-            database=config["database"]
+            user=config.get("username", "root"),
+            password=config.get("password", ""),
+            database=config.get("database", "test_db")
         )
 
     @retry_on_transient((pymysql.OperationalError,))
     def check(self, config: Dict[str, Any]) -> bool:
-        required = ["host", "username", "password", "database"]
+        required = []
         for req in required:
             if not config.get(req):
                 raise ValueError(f"Missing '{req}' in config")

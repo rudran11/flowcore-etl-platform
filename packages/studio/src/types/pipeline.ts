@@ -4,6 +4,9 @@ export interface Pipeline {
   owner: string;
   description?: string;
   tags: string[];
+  is_favorite?: boolean;
+  is_archived?: boolean;
+  folder_id?: string;
 }
 
 export interface PipelineVersion {

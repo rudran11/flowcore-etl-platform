@@ -3,7 +3,7 @@
 # See LICENSE file in the project root for full license information.
 
 import re
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from pydantic import Field, field_validator
 from flowcore_shared.schemas.base.models import FlowCoreBaseModel
 from .enums import PluginType
@@ -28,6 +28,7 @@ class PluginMetadata(FlowCoreBaseModel):
     supported_operations: List[str] = Field(default_factory=list, description="List of supported operations.")
     example_yaml: Optional[str] = Field(None, description="Example YAML configuration.")
     documentation: Optional[str] = Field(None, description="Detailed Markdown documentation.")
+    config_schema: Optional[Dict[str, Any]] = Field(default_factory=dict, description="JSON Schema for the plugin configuration.")
     flowcore_version_constraint: str = Field(">=0.9.0", description="FlowCore version compatibility.")
     dependencies: List[str] = Field(default_factory=list, description="List of plugin dependencies.")
 

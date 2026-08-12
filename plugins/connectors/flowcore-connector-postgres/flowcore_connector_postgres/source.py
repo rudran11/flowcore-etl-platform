@@ -13,6 +13,16 @@ from flowcore_shared.plugins.models import PluginMetadata, ConnectorCapabilities
 from flowcore_shared.plugins.enums import PluginType
 from flowcore_shared.plugins.framework.db import retry_on_transient
 from flowcore_shared.plugins.framework.schema import infer_schema
+from pydantic import BaseModel, Field, SecretStr
+from typing import Optional
+
+class PostgresConfig(BaseModel):
+    host: str = Field("localhost", description="PostgreSQL server hostname or IP address.")
+    port: int = Field(5432, description="PostgreSQL server port.")
+    database: str = Field("test_db", description="Name of the database to connect to.")
+    username: str = Field("postgres", description="Username for authentication.")
+    password: Optional[SecretStr] = Field(None, description="Password for authentication.")
+    query: Optional[str] = Field(None, description="Custom SQL query to extract data.", json_schema_extra={"format": "multiline", "placeholder": "SELECT * FROM users"})
 
 class PostgresSourcePlugin(SourcePlugin):
     @property
@@ -31,21 +41,22 @@ class PostgresSourcePlugin(SourcePlugin):
                 supports_schema_discovery=True,
                 supports_parallel_read=False,
                 supports_batch_write=False
-            )
+            ),
+            config_schema=PostgresConfig.model_json_schema()
         )
         
     def _get_conn(self, config: Dict[str, Any]):
         return psycopg2.connect(
-            host=config["host"],
+            host=config.get("host", "localhost"),
             port=config.get("port", 5432),
-            user=config["username"],
-            password=config["password"],
-            dbname=config["database"]
+            user=config.get("username", "postgres"),
+            password=config.get("password", ""),
+            dbname=config.get("database", "test_db")
         )
 
     @retry_on_transient((OperationalError,))
     def check(self, config: Dict[str, Any]) -> bool:
-        required = ["host", "username", "password", "database"]
+        required = [] # Validation is handled by Pydantic schema in UI and defaults here
         for req in required:
             if not config.get(req):
                 raise ValueError(f"Missing '{req}' in config")
@@ -92,14 +103,19 @@ class PostgresSourcePlugin(SourcePlugin):
             with conn.cursor(name="stream_cursor", cursor_factory=psycopg2.extras.DictCursor) as cur:
                 cur.itersize = 2000
                 
-                query = f"SELECT * FROM {table_name}"
-                params = []
-                
-                if replication_key and cursor_value:
-                    query += f" WHERE {replication_key} > %s ORDER BY {replication_key} ASC"
-                    params.append(cursor_value)
-                elif replication_key:
-                    query += f" ORDER BY {replication_key} ASC"
+                custom_query = config.get("query")
+                if custom_query:
+                    query = custom_query
+                    params = []
+                else:
+                    query = f"SELECT * FROM {table_name}"
+                    params = []
+                    
+                    if replication_key and cursor_value:
+                        query += f" WHERE {replication_key} > %s ORDER BY {replication_key} ASC"
+                        params.append(cursor_value)
+                    elif replication_key:
+                        query += f" ORDER BY {replication_key} ASC"
                     
                 cur.execute(query, params)
                 

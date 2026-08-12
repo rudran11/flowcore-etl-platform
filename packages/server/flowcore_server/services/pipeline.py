@@ -12,11 +12,17 @@ class PipelineService:
         skip: int = 0,
         limit: int = 100,
         search: Optional[str] = None,
-        tags: Optional[List[str]] = None
+        tags: Optional[List[str]] = None,
+        folder_id: Optional[str] = None,
+        is_archived: Optional[bool] = None,
+        is_favorite: Optional[bool] = None,
+        user_id: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        sort_order: Optional[str] = "desc"
     ) -> PipelinePaginatedResponse:
         async with self.uow as uow:
-            items = await uow.pipelines.list_pipelines(skip, limit, search, tags)
-            total = await uow.pipelines.count_pipelines(search, tags)
+            items = await uow.pipelines.list_pipelines(skip, limit, search, tags, folder_id, is_archived, is_favorite, user_id, sort_by, sort_order)
+            total = await uow.pipelines.count_pipelines(search, tags, folder_id, is_archived, is_favorite, user_id)
             
             return PipelinePaginatedResponse(
                 items=items,
@@ -52,7 +58,11 @@ class PipelineService:
                 owner=owner,
                 name=request.name,
                 description=request.description,
-                tags=request.tags or []
+                tags=request.tags or [],
+                folder_id=request.folder_id,
+                icon=request.icon,
+                color=request.color,
+                is_archived=False
             )
             saved_pipeline = await uow.pipelines.create_pipeline(pipeline)
             await uow.commit()
@@ -121,3 +131,39 @@ class PipelineService:
             saved_version = await uow.pipelines.create_pipeline_version(version)
             await uow.commit()
             return saved_version
+
+    async def toggle_favorite(self, pipeline_id: str, user_id: str, is_favorite: bool) -> None:
+        # For a full implementation, we'd have a UserPipelineFavorite repo, but we can do it directly or add a method.
+        # Since I haven't added it to repo yet, I will add it to the repo interface and postgres implementation next.
+        async with self.uow as uow:
+            await uow.pipelines.set_favorite(pipeline_id, user_id, is_favorite)
+            await uow.commit()
+
+    async def bulk_delete(self, pipeline_ids: List[str]) -> int:
+        count = 0
+        async with self.uow as uow:
+            for pid in pipeline_ids:
+                if await uow.pipelines.delete_pipeline(pid):
+                    count += 1
+            await uow.commit()
+        return count
+        
+    async def bulk_archive(self, pipeline_ids: List[str], archive: bool) -> int:
+        count = 0
+        async with self.uow as uow:
+            for pid in pipeline_ids:
+                updated = await uow.pipelines.update_pipeline(pid, {"is_archived": archive})
+                if updated:
+                    count += 1
+            await uow.commit()
+        return count
+        
+    async def bulk_move(self, pipeline_ids: List[str], folder_id: Optional[str]) -> int:
+        count = 0
+        async with self.uow as uow:
+            for pid in pipeline_ids:
+                updated = await uow.pipelines.update_pipeline(pid, {"folder_id": folder_id})
+                if updated:
+                    count += 1
+            await uow.commit()
+        return count

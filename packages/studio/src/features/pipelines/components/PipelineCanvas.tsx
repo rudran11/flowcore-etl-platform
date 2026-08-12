@@ -14,6 +14,8 @@ import { TriggerNode, StepNode } from './CustomNodes';
 import { PluginPalette } from './PluginPalette';
 import { BuilderToolbar } from './BuilderToolbar';
 import { ConfigPanel } from './ConfigPanel';
+import { ValidationPanel } from './ValidationPanel';
+import { ExecutionMonitorPanel } from './ExecutionMonitorPanel';
 import { CanvasEmptyState } from './CanvasEmptyState';
 import { AnimatedEdge } from './AnimatedEdge';
 import { useTheme } from 'next-themes';
@@ -35,7 +37,8 @@ const PipelineCanvasInner: React.FC = () => {
     saveHistory,
     syncToYaml,
     autoLayout,
-    deleteSelected, duplicateSelected, pasteClipboard
+    deleteSelected, duplicateSelected, pasteClipboard,
+    validatePipeline
   } = usePipelineBuilderStore();
   
   const reactFlowInstance = useReactFlow();
@@ -85,6 +88,9 @@ const PipelineCanvasInner: React.FC = () => {
       } else if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
         e.preventDefault();
         usePipelineBuilderStore.getState().duplicateSelected();
+      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'v') {
+        e.preventDefault();
+        validatePipeline();
       }
     };
     
@@ -231,12 +237,21 @@ const PipelineCanvasInner: React.FC = () => {
             </div>
           )}
 
+          <ValidationPanel />
+          <ExecutionMonitorPanel />
+
           {selectedNodeId && (
             <ConfigPanel 
               nodeId={selectedNodeId} 
-              onClose={() => setSelectedNodeId(null)} 
+              onClose={() => {
+                setSelectedNodeId(null);
+                const currentNodes = usePipelineBuilderStore.getState().nodes;
+                setNodes(currentNodes.map(n => ({ ...n, selected: false })));
+              }} 
             />
           )}
+
+          {/* Context Menu */}
         </div>
       </div>
     </div>

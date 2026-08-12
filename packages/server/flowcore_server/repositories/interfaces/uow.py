@@ -1,6 +1,7 @@
 import abc
 from typing import Any
 from flowcore_server.repositories.interfaces.pipeline import AbstractPipelineRepository
+from flowcore_server.repositories.interfaces.folder import AbstractFolderRepository
 from flowcore_server.repositories.interfaces.execution import AbstractExecutionRepository
 from flowcore_server.repositories.interfaces.schedule import AbstractScheduleRepository
 from flowcore_server.repositories.interfaces.environment import AbstractEnvironmentRepository
@@ -42,6 +43,12 @@ class AbstractUnitOfWork(abc.ABC):
     @abc.abstractmethod
     def pipelines(self) -> 'AbstractPipelineRepository':
         """Access the Pipeline Repository."""
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def folders(self) -> 'AbstractFolderRepository':
+        """Access the Folder Repository."""
         raise NotImplementedError
         
     @property

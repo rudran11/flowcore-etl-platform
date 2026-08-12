@@ -92,6 +92,11 @@ async def list_pipelines(
     limit: int = Query(100, ge=1, le=1000, description="Pagination limit"),
     search: Optional[str] = Query(None, description="Search term for name/description"),
     tags: Optional[List[str]] = Query(None, description="Tags to filter by"),
+    folder_id: Optional[str] = Query(None, description="Folder ID or 'root'"),
+    is_archived: Optional[bool] = Query(None, description="Filter by archive status"),
+    is_favorite: Optional[bool] = Query(None, description="Filter by favorite status"),
+    sort_by: Optional[str] = Query(None, description="Field to sort by"),
+    sort_order: Optional[str] = Query("desc", description="Sort order (asc/desc)"),
     service: PipelineService = Depends(get_pipeline_service),
     user: UserInDB = Depends(require_permissions([]))
 ):
@@ -99,7 +104,11 @@ async def list_pipelines(
     Retrieves a paginated list of pipelines.
     Supports filtering by search term and tags.
     """
-    return await service.list_pipelines(skip=skip, limit=limit, search=search, tags=tags)
+    return await service.list_pipelines(
+        skip=skip, limit=limit, search=search, tags=tags, 
+        folder_id=folder_id, is_archived=is_archived, is_favorite=is_favorite, 
+        user_id=str(user.id), sort_by=sort_by, sort_order=sort_order
+    )
 
 @router.get(
     "/{pipeline_id}",
@@ -133,3 +142,40 @@ async def save_pipeline_version(
     Saves a new pipeline version (e.g. from the builder).
     """
     return await service.create_pipeline_version(pipeline_id, request)
+
+from pydantic import BaseModel
+
+class BulkActionRequest(BaseModel):
+    action: str
+    pipeline_ids: List[str]
+    folder_id: Optional[str] = None
+    archive: Optional[bool] = None
+
+@router.post("/bulk", status_code=status.HTTP_200_OK)
+async def bulk_action(
+    request: BulkActionRequest,
+    service: PipelineService = Depends(get_pipeline_service),
+    user: UserInDB = Depends(require_permissions(["pipeline:update"]))
+):
+    if request.action == "delete":
+        count = await service.bulk_delete(request.pipeline_ids)
+        return {"success": True, "count": count, "action": "delete"}
+    elif request.action == "archive":
+        count = await service.bulk_archive(request.pipeline_ids, request.archive if request.archive is not None else True)
+        return {"success": True, "count": count, "action": "archive"}
+    elif request.action == "move":
+        count = await service.bulk_move(request.pipeline_ids, request.folder_id)
+        return {"success": True, "count": count, "action": "move"}
+    else:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Invalid bulk action")
+
+@router.post("/{pipeline_id}/favorite", status_code=status.HTTP_200_OK)
+async def toggle_favorite(
+    pipeline_id: str = Path(...),
+    is_favorite: bool = Query(...),
+    service: PipelineService = Depends(get_pipeline_service),
+    user: UserInDB = Depends(require_permissions([]))
+):
+    await service.toggle_favorite(pipeline_id, str(user.id), is_favorite)
+    return {"success": True}

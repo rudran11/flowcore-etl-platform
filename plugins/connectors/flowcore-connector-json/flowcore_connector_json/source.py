@@ -12,6 +12,10 @@ from flowcore_shared.plugins.cdk.messages import FlowCoreMessage, MessageType, R
 from flowcore_shared.plugins.models import PluginMetadata, ConnectorCapabilities
 from flowcore_shared.plugins.enums import PluginType
 from flowcore_shared.plugins.framework.schema import infer_schema
+from pydantic import BaseModel, Field
+
+class JsonSourceConfig(BaseModel):
+    file_path: str = Field(..., description="Path to the JSON file or directory.")
 
 class JsonSourcePlugin(SourcePlugin):
     """
@@ -34,7 +38,8 @@ class JsonSourcePlugin(SourcePlugin):
                 supports_schema_discovery=True,
                 supports_parallel_read=False,
                 supports_batch_write=False
-            )
+            ),
+            config_schema=JsonSourceConfig.model_json_schema()
         )
         
     def check(self, config: Dict[str, Any]) -> bool:

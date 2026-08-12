@@ -10,10 +10,14 @@ def map_orm_to_pipeline(orm_obj: OrmPipeline) -> DomainPipeline:
     return DomainPipeline(
         id=str(orm_obj.id),
         workspace_id=str(orm_obj.workspace_id) if orm_obj.workspace_id else "",
-        name=orm_obj.name,
-        owner=orm_obj.owner,
+        name=orm_obj.name or "",
+        owner=orm_obj.owner or "",
         description=orm_obj.description,
-        tags=orm_obj.tags,
+        tags=orm_obj.tags or [],
+        folder_id=str(orm_obj.folder_id) if orm_obj.folder_id else None,
+        is_archived=bool(orm_obj.is_archived),
+        icon=orm_obj.icon,
+        color=orm_obj.color,
         created_at=orm_obj.created_at,
         updated_at=orm_obj.updated_at
     )
@@ -26,6 +30,10 @@ def map_pipeline_to_orm(domain_obj: DomainPipeline) -> OrmPipeline:
         owner=domain_obj.owner,
         description=domain_obj.description,
         tags=domain_obj.tags,
+        folder_id=uuid.UUID(domain_obj.folder_id) if domain_obj.folder_id else None,
+        is_archived=domain_obj.is_archived,
+        icon=domain_obj.icon,
+        color=domain_obj.color,
         created_at=domain_obj.created_at,
         updated_at=domain_obj.updated_at
     )

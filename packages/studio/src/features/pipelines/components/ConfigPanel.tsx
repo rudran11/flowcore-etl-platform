@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, AlertTriangle, Puzzle, Play } from 'lucide-react';
+import { X, AlertTriangle, Puzzle, Play, CheckCircle2, Loader2, Activity } from 'lucide-react';
 import Editor from '@monaco-editor/react';
-import yaml from 'yaml';
 import { usePipelineBuilderStore } from '../../../stores/pipelineBuilderStore';
 import { Button } from '../../../components/ui/button';
-import { Input } from '../../../components/ui/input';
 import { useTheme } from 'next-themes';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../components/ui/tabs';
+import { ScrollArea } from '../../../components/ui/scroll-area';
+import { SchemaForm } from './SchemaForm';
+import { toast } from 'sonner';
+import { pluginsApi } from '../../../api/plugins';
 
 interface ConfigPanelProps {
   nodeId: string | null;
@@ -23,23 +26,64 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => 
   const { theme } = useTheme();
   const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
   
-  const [activeTab, setActiveTab] = useState<'form' | 'yaml' | 'docs'>('form');
+  const [activeTab, setActiveTab] = useState<'config' | 'docs' | 'schema' | 'json'>('config');
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isFormValid, setIsFormValid] = useState(true);
+  
+  const [pluginMeta, setPluginMeta] = useState<any>(null);
+  
+  // Test connection state
+  const [isTesting, setIsTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{success: boolean, message?: string, latency?: number, timestamp?: Date} | null>(null);
   const isRunning = node?.data?.status === 'running';
 
   useEffect(() => {
     if (node) {
       if (node.type === 'triggerNode') {
         const triggerData = { type: node.data.type || 'schedule', schedule: node.data.schedule || '0 0 * * *' };
-        setEditorValue(yaml.stringify(triggerData));
+        setEditorValue(JSON.stringify(triggerData, null, 2));
         setFormData(triggerData);
+        setPluginMeta({
+           name: 'Pipeline Trigger',
+           documentation: 'Configure how this pipeline is triggered.',
+           config_schema: {
+             type: 'object',
+             properties: {
+               type: { type: 'string', enum: ['manual', 'schedule', 'webhook'] },
+               schedule: { type: 'string', description: 'Cron expression for schedule type' }
+             },
+             required: ['type']
+           }
+        });
       } else {
         const configData = node.data.config || {};
-        setEditorValue(yaml.stringify(configData));
+        setEditorValue(JSON.stringify(configData, null, 2));
         setFormData(configData);
+        
+        // Fetch plugin metadata
+        if (node.data.plugin_id) {
+          pluginsApi.getPlugin(node.data.plugin_id as string).then(res => {
+            setPluginMeta(res);
+            
+            // Auto-populate empty config with defaults from schema
+            if (res.config_schema?.properties && (!configData || Object.keys(configData).length === 0)) {
+              const defaults: Record<string, any> = {};
+              for (const [k, prop] of Object.entries(res.config_schema.properties)) {
+                if ((prop as any).default !== undefined) {
+                  defaults[k] = (prop as any).default;
+                }
+              }
+              setFormData(defaults);
+              setEditorValue(JSON.stringify(defaults, null, 2));
+            }
+          }).catch(err => {
+            console.error("Failed to load plugin metadata:", err);
+          });
+        }
       }
       setError(null);
+      setTestResult(null);
       setHasUnsavedChanges(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -47,9 +91,47 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => 
 
   if (!nodeId || !node) return null;
 
+  const handleTestConnection = async () => {
+    if (node.type === 'triggerNode' || !node.data.plugin_id) return;
+    
+    setIsTesting(true);
+    setTestResult(null);
+    try {
+      const res = await pluginsApi.validatePlugin({
+        plugin_id: node.data.plugin_id as string,
+        config: formData
+      });
+      if (res.success) {
+        setTestResult({ success: true, latency: 0, timestamp: new Date() });
+        toast.success('Connection test successful!');
+      } else {
+        setTestResult({ success: false, message: res.errors?.[0] || 'Connection failed', timestamp: new Date() });
+        toast.error('Connection test failed');
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.detail || err.message || 'Unknown error';
+      setTestResult({ success: false, message: msg, timestamp: new Date() });
+      toast.error('Connection test failed');
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
   const handleApply = () => {
     try {
-      const parsed = activeTab === 'yaml' ? (yaml.parse(editorValue) || {}) : formData;
+      let parsed = activeTab === 'json' ? (JSON.parse(editorValue) || {}) : formData;
+      
+      // Merge defaults from schema if using the visual form
+      if (activeTab === 'config' && pluginMeta?.config_schema?.properties) {
+        const defaults: Record<string, any> = {};
+        for (const [k, prop] of Object.entries(pluginMeta.config_schema.properties)) {
+          if ((prop as any).default !== undefined) {
+            defaults[k] = (prop as any).default;
+          }
+        }
+        parsed = { ...defaults, ...parsed };
+      }
+
       setError(null);
       
       setNodes(nodes.map(n => {
@@ -57,7 +139,11 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => 
           if (n.type === 'triggerNode') {
             return { ...n, data: { ...n.data, type: parsed.type, schedule: parsed.schedule, error: false } };
           } else {
-            return { ...n, data: { ...n.data, config: parsed, error: Object.keys(parsed).length === 0 } };
+            let hasError = false;
+            if (pluginMeta?.config_schema?.required) {
+              hasError = pluginMeta.config_schema.required.some((key: string) => !parsed[key]);
+            }
+            return { ...n, data: { ...n.data, config: parsed, error: hasError } };
           }
         }
         return n;
@@ -72,14 +158,27 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => 
   };
 
   const handleFormChange = (key: string, value: string) => {
-    setFormData(prev => ({ ...prev, [key]: value }));
+    setFormData(prev => {
+      const next = { ...prev, [key]: value };
+      setEditorValue(JSON.stringify(next, null, 2));
+      return next;
+    });
     setHasUnsavedChanges(true);
   };
   
   const handleYamlChange = (val: string | undefined) => {
     setEditorValue(val || '');
+    try {
+      const parsed = JSON.parse(val || '{}');
+      setFormData(parsed);
+      setError(null);
+    } catch (e) {
+      // Ignore parse errors while typing
+    }
     setHasUnsavedChanges(true);
   };
+
+  // Removed getMaskedJson as it corrupts data on edit
 
   return (
     <motion.div
@@ -104,120 +203,133 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => 
             <X className="w-4 h-4" />
           </Button>
         </div>
-        
-        <div className="flex px-4 gap-4 mt-2">
-          <button 
-            className={`text-xs font-semibold pb-2 border-b-2 transition-colors ${activeTab === 'form' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
-            onClick={() => setActiveTab('form')}
-          >
-            Form
-          </button>
-          <button 
-            className={`text-xs font-semibold pb-2 border-b-2 transition-colors ${activeTab === 'yaml' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
-            onClick={() => setActiveTab('yaml')}
-          >
-            YAML
-          </button>
-          <button 
-            className={`text-xs font-semibold pb-2 border-b-2 transition-colors ${activeTab === 'docs' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
-            onClick={() => setActiveTab('docs')}
-          >
-            Docs
-          </button>
-        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar relative">
-        {isRunning && (
-          <div className="absolute inset-0 bg-background/50 backdrop-blur-[1px] z-10 flex flex-col items-center justify-center p-6 text-center">
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
-              <Play className="w-5 h-5 text-primary" />
+      <div className="flex-1 overflow-hidden flex flex-col relative bg-zinc-950/50">
+        <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="flex-1 flex flex-col h-full overflow-hidden">
+          <div className="px-4 py-2 border-b border-white/5 bg-zinc-950/80 sticky top-0 z-10 backdrop-blur-md">
+              <TabsList className="grid w-full grid-cols-4 bg-zinc-900 border border-white/10 p-1 h-9">
+                <TabsTrigger value="config" className="text-[11px] data-[state=active]:bg-primary/20 data-[state=active]:text-primary rounded-sm h-7">Config</TabsTrigger>
+                <TabsTrigger value="docs" className="text-[11px] data-[state=active]:bg-primary/20 data-[state=active]:text-primary rounded-sm h-7">Docs</TabsTrigger>
+                <TabsTrigger value="schema" className="text-[11px] data-[state=active]:bg-primary/20 data-[state=active]:text-primary rounded-sm h-7">Schema</TabsTrigger>
+                <TabsTrigger value="json" className="text-[11px] data-[state=active]:bg-primary/20 data-[state=active]:text-primary rounded-sm h-7">JSON</TabsTrigger>
+              </TabsList>
             </div>
-            <h4 className="text-sm font-semibold text-foreground mb-1">Pipeline is Running</h4>
-            <p className="text-xs text-muted-foreground">Configuration is read-only during execution.</p>
-          </div>
-        )}
+            
+            <div className="flex-1 overflow-hidden relative">
+              <TabsContent value="config" className="h-full m-0 data-[state=inactive]:hidden flex flex-col">
+                <ScrollArea className="flex-1">
+                  <div className="pb-6">
+                    <SchemaForm 
+                      schema={pluginMeta?.config_schema} 
+                      formData={formData} 
+                      onChange={handleFormChange} 
+                      setIsValid={setIsFormValid}
+                    />
+                    
+                    {node.type !== 'triggerNode' && (
+                      <div className="px-4 pt-2 pb-4 mb-4 border-t border-white/5 mx-4 mt-2">
+                        <Button 
+                          variant="outline" 
+                          className="w-full bg-zinc-900 border-white/10 hover:bg-zinc-800 hover:text-white"
+                          onClick={handleTestConnection}
+                          disabled={isTesting || !isFormValid}
+                        >
+                          {isTesting ? (
+                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Testing...</>
+                          ) : (
+                            <><Activity className="w-4 h-4 mr-2" /> Test Connection</>
+                          )}
+                        </Button>
+                        
+                        {testResult && (
+                          <div className={`mt-3 p-3 rounded-md border text-sm flex flex-col gap-1 ${
+                            testResult.success 
+                              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+                              : 'bg-red-500/10 border-red-500/20 text-red-400'
+                          }`}>
+                            <div className="flex items-center gap-2 font-medium">
+                              {testResult.success ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+                              {testResult.success ? 'Connection Successful' : 'Connection Failed'}
+                            </div>
+                            {testResult.message && (
+                              <p className="text-xs opacity-80 mt-1">{testResult.message}</p>
+                            )}
+                            <div className="flex justify-between items-center mt-1 text-[10px] opacity-60">
+                              <span>Tested: Just now</span>
+                              {testResult.latency !== undefined && <span>{testResult.latency} ms</span>}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+              </TabsContent>
 
-        {activeTab === 'form' && (
-          <div className="p-4 flex flex-col gap-4">
-            {Object.keys(formData).length === 0 ? (
-              <div className="text-center text-sm text-muted-foreground p-8 bg-accent/30 rounded-xl border border-border/50">
-                No configuration fields defined. Try using the YAML editor.
-              </div>
-            ) : (
-              Object.entries(formData).map(([key, value]) => (
-                <div key={key} className="space-y-1.5">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{key}</label>
-                  <Input 
-                    value={String(value)}
-                    onChange={(e) => handleFormChange(key, e.target.value)}
-                    className="h-9 bg-accent/50 border-border/50 shadow-sm focus-visible:ring-primary/20"
-                    disabled={isRunning}
-                  />
-                </div>
-              ))
-            )}
-          </div>
-        )}
+              <TabsContent value="docs" className="h-full m-0 data-[state=inactive]:hidden p-4">
+                <ScrollArea className="h-full pr-4">
+                  <div className="prose prose-invert prose-sm max-w-none">
+                    {pluginMeta?.documentation ? (
+                      <div dangerouslySetInnerHTML={{ __html: pluginMeta.documentation.replace(/\n/g, '<br/>') }} />
+                    ) : (
+                      <p className="text-muted-foreground">No documentation available for this connector.</p>
+                    )}
+                  </div>
+                </ScrollArea>
+              </TabsContent>
+              
+              <TabsContent value="schema" className="h-full m-0 data-[state=inactive]:hidden relative">
+                 <Editor
+                    height="100%"
+                    language="json"
+                    theme={isDark ? "vs-dark" : "light"}
+                    value={pluginMeta?.config_schema ? JSON.stringify(pluginMeta.config_schema, null, 2) : '{}'}
+                    options={{ minimap: { enabled: false }, fontSize: 12, wordWrap: 'on', padding: { top: 16 }, readOnly: true }}
+                 />
+              </TabsContent>
 
-        {activeTab === 'yaml' && (
-          <div className="h-full">
-            <Editor
-              height="100%"
-              defaultLanguage="yaml"
-              theme={isDark ? "vs-dark" : "light"}
-              value={editorValue}
-              onChange={handleYamlChange}
-              options={{
-                minimap: { enabled: false },
-                fontSize: 13,
-                wordWrap: 'on',
-                lineNumbers: 'on',
-                scrollBeyondLastLine: false,
-                padding: { top: 16 },
-                readOnly: isRunning,
-              }}
-            />
+              <TabsContent value="json" className="h-full m-0 data-[state=inactive]:hidden relative">
+                 <Editor
+                    height="100%"
+                    language="json"
+                    theme={isDark ? "vs-dark" : "light"}
+                    value={editorValue}
+                    onChange={handleYamlChange}
+                    options={{ minimap: { enabled: false }, fontSize: 12, wordWrap: 'on', padding: { top: 16 } }}
+                 />
+            </TabsContent>
           </div>
-        )}
-
-        {activeTab === 'docs' && (
-          <div className="p-6 text-center">
-            <div className="w-16 h-16 bg-accent rounded-2xl mx-auto flex items-center justify-center mb-4 border border-border/50">
-              <Puzzle className="w-8 h-8 text-muted-foreground" />
-            </div>
-            <h4 className="font-semibold text-foreground mb-2">Connector Documentation</h4>
-            <p className="text-xs text-muted-foreground">Documentation for {String(node.data.plugin_id)} will be available here when the backend API is connected.</p>
-          </div>
-        )}
+        </Tabs>
       </div>
 
-      <div className="p-4 border-t border-border/50 bg-background/50 backdrop-blur-sm flex items-center justify-between sticky bottom-0">
-        {hasUnsavedChanges ? (
-          <span className="text-[11px] font-medium text-amber-500 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5"/> Unsaved changes</span>
-        ) : (
-          <span className="text-[11px] font-medium text-muted-foreground">All changes saved</span>
-        )}
-        
+      <div className="border-t border-border/50 p-4 bg-background/80 backdrop-blur-sm shrink-0 sticky bottom-0 z-10 shadow-[0_-4px_12px_rgba(0,0,0,0.1)]">
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: 'auto' }}
+              exit={{ opacity: 0, y: 10, height: 0 }}
+              className="mb-4 text-[12px] bg-red-500/10 text-red-500 p-3 rounded-md flex gap-2 items-start border border-red-500/20"
+            >
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+              <div className="font-medium leading-relaxed">{error}</div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={onClose} className="h-8 text-xs px-3 border-border/50 shadow-sm" disabled={isRunning}>Cancel</Button>
-          <Button size="sm" onClick={handleApply} className="h-8 text-xs px-4 shadow-sm" disabled={!hasUnsavedChanges || isRunning}>Save Changes</Button>
+          <Button variant="outline" className="flex-1 h-9 text-xs font-medium" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button 
+            className="flex-1 h-9 text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90"
+            onClick={handleApply}
+            disabled={isRunning || !isFormValid || (activeTab === 'config' && !hasUnsavedChanges && !error && Object.keys(node?.data?.config || {}).length > 0)}
+          >
+            {hasUnsavedChanges || Object.keys(node?.data?.config || {}).length === 0 ? 'Apply Changes' : 'Applied'}
+          </Button>
         </div>
       </div>
-
-      <AnimatePresence>
-        {error && (
-          <motion.div 
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 20, opacity: 0 }}
-            className="absolute bottom-16 left-4 right-4 bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex gap-2 items-start shadow-sm backdrop-blur-md"
-          >
-            <AlertTriangle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
-            <div className="text-xs text-destructive font-mono break-all">{error}</div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </motion.div>
   );
 };

@@ -16,6 +16,7 @@ import yaml from 'yaml';
 import dagre from 'dagre';
 import { Pipeline } from '../types/pipeline';
 import { toast } from 'sonner';
+import { ValidationIssue, validatePipelineGraph } from '../features/pipelines/utils/validationEngine';
 
 export interface PipelineBuilderState {
   nodes: Node[];
@@ -24,8 +25,17 @@ export interface PipelineBuilderState {
   rawYaml: string;
   isDirty: boolean;
   isValid: boolean;
-  validationErrors: string[];
+  isSaving: boolean;
+  isExecuting: boolean;
+  lastSavedAt: Date | null;
+  activeRunId: string | null;
+  isExecutionMonitorOpen: boolean;
+  validationIssues: ValidationIssue[];
+  healthScore: number;
   clipboard: Node[];
+  isValidationPanelOpen: boolean;
+  setValidationPanelOpen: (open: boolean) => void;
+  setExecutionMonitorOpen: (open: boolean, runId?: string) => void;
   
   // Templates
   isTemplateDialogOpen: boolean;
@@ -154,8 +164,20 @@ export const usePipelineBuilderStore = create<PipelineBuilderState>((set, get) =
   rawYaml: '',
   isDirty: false,
   isValid: true,
-  validationErrors: [],
+  isSaving: false,
+  isExecuting: false,
+  lastSavedAt: null,
+  activeRunId: null,
+  isExecutionMonitorOpen: false,
+  validationIssues: [],
+  healthScore: 100,
   clipboard: [],
+  isValidationPanelOpen: false,
+  setValidationPanelOpen: (open) => set({ isValidationPanelOpen: open }),
+  setExecutionMonitorOpen: (open: boolean, runId?: string) => set(state => ({ 
+    isExecutionMonitorOpen: open,
+    activeRunId: runId !== undefined ? runId : state.activeRunId
+  })),
   isTemplateDialogOpen: false,
   templateNodeToSave: null,
   
@@ -250,7 +272,7 @@ export const usePipelineBuilderStore = create<PipelineBuilderState>((set, get) =
       get().validatePipeline();
       get().saveHistory();
     } catch (e) {
-      set({ rawYaml: yamlString, isDirty: true, isValid: false, validationErrors: ['Invalid YAML syntax'] });
+      set({ rawYaml: yamlString, isDirty: true, isValid: false, validationIssues: [{ id: 'yaml_error', severity: 'error', title: 'Invalid YAML syntax', description: 'Fix formatting errors before continuing' }] });
     }
   },
 
@@ -298,36 +320,29 @@ export const usePipelineBuilderStore = create<PipelineBuilderState>((set, get) =
 
   validatePipeline: () => {
     const { nodes, edges } = get();
-    const errors: string[] = [];
-    
-    // Cycle detection
-    const dagreGraph = new dagre.graphlib.Graph();
-    nodes.forEach(n => dagreGraph.setNode(n.id, {}));
-    edges.forEach(e => dagreGraph.setEdge(e.source, e.target));
-    
-    if (!dagre.graphlib.alg.isAcyclic(dagreGraph)) {
-      errors.push('Cycle detected in pipeline graph');
-    }
+    const result = validatePipelineGraph(nodes, edges);
 
-    nodes.forEach(n => {
-      if (n.id !== 'trigger') {
-        const hasIncoming = edges.some(e => e.target === n.id);
-        if (!hasIncoming) {
-          errors.push(`Node '${n.id}' is disconnected`);
-          n.data = { ...n.data, error: true };
-        } else if (n.type === 'stepNode' && (!n.data.config || Object.keys(n.data.config).length === 0)) {
-          errors.push(`Node '${n.id}' has missing configuration`);
-          n.data = { ...n.data, error: true };
-        } else {
-          n.data = { ...n.data, error: false }; // clear old error
-        }
-      }
+    // Update node states based on issues
+    const updatedNodes = nodes.map(n => {
+      const nodeIssues = result.issues.filter(i => i.nodeId === n.id);
+      const hasError = nodeIssues.some(i => i.severity === 'error');
+      const hasWarning = nodeIssues.some(i => i.severity === 'warning');
+      return { ...n, data: { ...n.data, error: hasError, warning: hasWarning, issues: nodeIssues } };
+    });
+
+    // Update edge states based on issues
+    const updatedEdges = edges.map(e => {
+      const edgeIssues = result.issues.filter(i => i.edgeId === e.id);
+      const hasError = edgeIssues.some(i => i.severity === 'error');
+      return { ...e, data: { ...e.data, error: hasError } };
     });
 
     set({ 
-      isValid: errors.length === 0, 
-      validationErrors: errors,
-      nodes: [...nodes] // Trigger re-render with new data.error states
+      isValid: result.isValid, 
+      validationIssues: result.issues,
+      healthScore: result.healthScore,
+      nodes: updatedNodes,
+      edges: updatedEdges
     });
   },
 
@@ -423,27 +438,42 @@ export const usePipelineBuilderStore = create<PipelineBuilderState>((set, get) =
   },
 
   saveDraftToStorage: (id: string) => {
-    const { rawYaml, isDirty } = get();
+    const { rawYaml, nodes, edges, isDirty } = get();
     if (isDirty) {
-      localStorage.setItem(`${STORAGE_KEY_PREFIX}${id}`, rawYaml);
+      localStorage.setItem(`${STORAGE_KEY_PREFIX}${id}`, JSON.stringify({ rawYaml, nodes, edges }));
     }
   },
 
   loadDraftFromStorage: (id: string, pipeline: Pipeline) => {
-    const draft = localStorage.getItem(`${STORAGE_KEY_PREFIX}${id}`);
-    if (draft) {
-      const { nodes, edges } = buildGraphFromYaml(draft);
-      set({ 
-        pipeline,
-        rawYaml: draft, 
-        nodes, 
-        edges, 
-        isDirty: true,
-        history: [{ nodes, edges, rawYaml: draft }],
-        historyIndex: 0
-      });
-      get().autoLayout('TB');
-      return true;
+    const draftStr = localStorage.getItem(`${STORAGE_KEY_PREFIX}${id}`);
+    if (draftStr) {
+      try {
+        const draft = JSON.parse(draftStr);
+        // support old drafts that were just rawYaml string
+        if (typeof draft === 'string') {
+          const { nodes, edges } = buildGraphFromYaml(draft);
+          set({ pipeline, rawYaml: draft, nodes, edges, isDirty: true, history: [{ nodes, edges, rawYaml: draft }], historyIndex: 0 });
+          return true;
+        }
+        
+        set({ 
+          pipeline,
+          rawYaml: draft.rawYaml, 
+          nodes: draft.nodes, 
+          edges: draft.edges, 
+          isDirty: true,
+          history: [{ nodes: draft.nodes, edges: draft.edges, rawYaml: draft.rawYaml }],
+          historyIndex: 0
+        });
+        get().validatePipeline();
+        return true;
+      } catch (e) {
+        // Fallback for old pure string yaml drafts if parsing JSON fails
+        const { nodes, edges } = buildGraphFromYaml(draftStr);
+        set({ pipeline, rawYaml: draftStr, nodes, edges, isDirty: true, history: [{ nodes, edges, rawYaml: draftStr }], historyIndex: 0 });
+        get().validatePipeline();
+        return true;
+      }
     }
     return false;
   },

@@ -7,15 +7,69 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 from .base import Base
 
+class Folder(Base):
+    __tablename__ = "folders"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    workspace_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True, nullable=True)
+    parent_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("folders.id", ondelete="CASCADE"), index=True, nullable=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    color: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    
+    # Relationships
+    subfolders: Mapped[List["Folder"]] = relationship("Folder", backref="parent", remote_side=[id])
+    pipelines: Mapped[List["Pipeline"]] = relationship("Pipeline", back_populates="folder")
+
+class Tag(Base):
+    __tablename__ = "tags"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    workspace_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True, nullable=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    color: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+
+class PipelineTag(Base):
+    __tablename__ = "pipeline_tags"
+    
+    pipeline_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("pipelines.id", ondelete="CASCADE"), primary_key=True)
+    tag_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True)
+
+class UserPipelineFavorite(Base):
+    __tablename__ = "user_pipeline_favorites"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    pipeline_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("pipelines.id", ondelete="CASCADE"), primary_key=True)
+
+class UserRecentPipeline(Base):
+    __tablename__ = "user_recent_pipelines"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    pipeline_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("pipelines.id", ondelete="CASCADE"), primary_key=True)
+    last_accessed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+
+class UserWorkspaceSettings(Base):
+    __tablename__ = "user_workspace_settings"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    preferred_view: Mapped[str] = mapped_column(String(50), default="grid", nullable=False)
+    default_sort: Mapped[str] = mapped_column(String(50), default="updated_at", nullable=False)
+    sidebar_collapsed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    expanded_folders: Mapped[list] = mapped_column(JSONB, default=[], nullable=False)
+
+
 class Pipeline(Base):
     __tablename__ = "pipelines"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     workspace_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True, nullable=True)
+    folder_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("folders.id", ondelete="SET NULL"), index=True, nullable=True)
     name: Mapped[str] = mapped_column(String(255), index=True, nullable=False)
     owner: Mapped[str] = mapped_column(String(255), default="unknown", nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
-    tags: Mapped[list] = mapped_column(JSONB, default=[], nullable=False)
+    tags: Mapped[list] = mapped_column(JSONB, default=[], nullable=False) # Legacy text tags
+    icon: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    color: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    is_archived: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     version_number: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 
@@ -26,6 +80,7 @@ class Pipeline(Base):
         cascade="all, delete-orphan",
         lazy="selectin"
     )
+    folder: Mapped[Optional["Folder"]] = relationship("Folder", back_populates="pipelines")
 
 class PipelineVersion(Base):
     __tablename__ = "pipeline_versions"

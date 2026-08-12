@@ -9,6 +9,7 @@ from datetime import datetime
 
 class DatasetType(str, Enum):
     DATABASE_TABLE = "DATABASE_TABLE"
+    TABLE = "TABLE"  # Legacy alias
     FILE = "FILE"
     API = "API"
     STREAM = "STREAM"

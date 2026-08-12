@@ -15,7 +15,9 @@ from flowcore_server.repositories.in_memory.auth import (
 class InMemoryUnitOfWork(AbstractUnitOfWork):
     def __init__(self):
         # We instantiate them once so state persists across UoW contexts
+        # For now, folders can be None in tests if they don't test folders
         self._pipelines = InMemoryPipelineRepository()
+        self._folders = None
         self._executions = InMemoryExecutionRepository()
         self._schedules = InMemoryScheduleRepository()
         self._lineage = InMemoryLineageRepository()
@@ -43,6 +45,10 @@ class InMemoryUnitOfWork(AbstractUnitOfWork):
     @property
     def pipelines(self):
         return self._pipelines
+
+    @property
+    def folders(self):
+        return self._folders
         
     @property
     def executions(self):

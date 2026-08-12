@@ -8,7 +8,7 @@ export const pluginsApi = {
   },
 
   getPlugin: async (pluginId: string): Promise<PluginResponse> => {
-    const response = await apiClient.get(`/plugins/${pluginId}`);
+    const response = await apiClient.get(`/plugins/${pluginId}?_t=${Date.now()}`);
     return response.data;
   },
 

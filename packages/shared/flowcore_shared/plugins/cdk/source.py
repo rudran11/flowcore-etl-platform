@@ -20,6 +20,13 @@ class SourcePlugin(BasePlugin):
         config = getattr(context, "parameters", {})
         state = getattr(context, "state", {})
         catalog = getattr(context, "catalog", None)
+        
+        # Automatically infer and report dataset lineage
+        if hasattr(context, "report_input_dataset"):
+            dataset_name = config.get("table") or config.get("file_path") or config.get("endpoint") or config.get("bucket") or "unknown_source"
+            dataset_type = "DATABASE_TABLE" if "table" in config else "FILE"
+            context.report_input_dataset(name=str(dataset_name), dataset_type=dataset_type)
+            
         return self.read(config, catalog, state)
         
     @abstractmethod

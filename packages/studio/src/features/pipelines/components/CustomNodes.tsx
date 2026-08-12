@@ -29,8 +29,9 @@ const NodeToolbarActions = ({ isHovered }: { id?: string, data?: any, isHovered:
 
 export const TriggerNode = memo(({ id, data, selected }: any) => {
   const hasError = data.error;
+  const hasWarning = data.warning;
   const isFailed = data.status === 'failed';
-  const isWarning = hasError && !isFailed;
+  const isWarning = hasWarning && !isFailed;
   const [isHovered, setIsHovered] = useState(false);
   
   return (
@@ -40,12 +41,15 @@ export const TriggerNode = memo(({ id, data, selected }: any) => {
       onMouseLeave={() => setIsHovered(false)}
     >
       <NodeToolbarActions id={id} data={data} isHovered={isHovered || selected} />
+      {hasError && (
+        <div className="absolute -inset-1.5 bg-red-500/20 rounded-2xl animate-pulse pointer-events-none" />
+      )}
       <motion.div 
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         whileHover={{ y: -2 }}
-        className={`bg-card border-2 rounded-xl shadow-lg w-72 overflow-hidden transition-all duration-200 ${
-          selected ? 'border-primary ring-2 ring-primary/20 shadow-primary/10' : isFailed ? 'border-destructive' : isWarning ? 'border-amber-500' : 'border-border/50 hover:border-border'
+        className={`bg-card border-2 rounded-xl shadow-lg w-72 overflow-hidden transition-all duration-200 relative ${
+          selected ? 'border-primary ring-2 ring-primary/20 shadow-primary/10' : isFailed || hasError ? 'border-destructive shadow-destructive/20' : isWarning ? 'border-amber-500' : 'border-border/50 hover:border-border'
         }`}
       >
         <div className="p-3.5 flex items-center gap-3 border-b border-border/50 bg-accent/30">
@@ -77,8 +81,9 @@ export const TriggerNode = memo(({ id, data, selected }: any) => {
 
 export const StepNode = memo(({ id, data, selected }: any) => {
   const hasError = data.error;
+  const hasWarning = data.warning;
   const isFailed = data.status === 'failed';
-  const isWarning = hasError && !isFailed;
+  const isWarning = hasWarning && !isFailed;
   
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -93,19 +98,22 @@ export const StepNode = memo(({ id, data, selected }: any) => {
       onMouseLeave={() => setIsHovered(false)}
     >
       <NodeToolbarActions id={id} data={data} isHovered={isHovered || selected} />
+      {hasError && (
+        <div className="absolute -inset-1.5 bg-red-500/20 rounded-2xl animate-pulse pointer-events-none" />
+      )}
       <motion.div 
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         whileHover={{ y: -2 }}
-        className={`bg-card border-2 rounded-xl shadow-lg w-72 overflow-hidden transition-all duration-200 ${
-          selected ? 'border-primary ring-2 ring-primary/20 shadow-primary/10' : isFailed ? 'border-destructive shadow-destructive/10' : isWarning ? 'border-amber-500' : 'border-border/50 hover:border-border'
+        className={`bg-card border-2 rounded-xl shadow-lg w-72 overflow-hidden transition-all duration-200 relative ${
+          selected ? 'border-primary ring-2 ring-primary/20 shadow-primary/10' : isFailed || hasError ? 'border-destructive shadow-destructive/10' : isWarning ? 'border-amber-500' : 'border-border/50 hover:border-border'
         }`}
       >
-        <Handle type="target" position={Position.Top} className={`w-4 h-4 bg-background border-2 ${isFailed ? 'border-destructive' : isWarning ? 'border-amber-500' : 'border-primary'} hover:scale-125 transition-transform`} />
+        <Handle type="target" position={Position.Top} className={`w-4 h-4 bg-background border-2 ${isFailed || hasError ? 'border-destructive' : isWarning ? 'border-amber-500' : 'border-primary'} hover:scale-125 transition-transform`} />
         
         {/* Header */}
-        <div className={`p-3.5 flex items-center gap-3 border-b border-border/50 ${isFailed ? 'bg-destructive/5' : isWarning ? 'bg-amber-500/5' : 'bg-accent/30'}`}>
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${isFailed ? 'bg-destructive/10 border-destructive/20 text-destructive' : isWarning ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-background border-border/50 shadow-sm text-primary'}`}>
+        <div className={`p-3.5 flex items-center gap-3 border-b border-border/50 ${isFailed || hasError ? 'bg-destructive/5' : isWarning ? 'bg-amber-500/5' : 'bg-accent/30'}`}>
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${isFailed || hasError ? 'bg-destructive/10 border-destructive/20 text-destructive' : isWarning ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-background border-border/50 shadow-sm text-primary'}`}>
             <Puzzle className="w-4 h-4" />
           </div>
           
@@ -158,15 +166,25 @@ export const StepNode = memo(({ id, data, selected }: any) => {
                 <Activity className="w-3.5 h-3.5 animate-pulse" />
                 <span className="font-medium text-[11px]">Running</span>
               </div>
-            ) : isFailed ? (
-              <div className="flex items-center gap-1.5 text-destructive">
+            ) : isFailed || hasError ? (
+              <div className="flex items-center gap-1.5 text-destructive group relative cursor-help">
                 <AlertCircle className="w-3.5 h-3.5" />
-                <span className="font-medium text-[11px]">Failed</span>
+                <span className="font-medium text-[11px]">{isFailed ? 'Failed' : 'Error'}</span>
+                {data.issues && data.issues.length > 0 && (
+                  <div className="absolute bottom-full left-0 mb-1 hidden group-hover:block w-48 p-2 bg-zinc-900 border border-border/50 shadow-lg rounded text-[10px] text-white z-50">
+                    {data.issues[0].title}
+                  </div>
+                )}
               </div>
             ) : isWarning ? (
-              <div className="flex items-center gap-1.5 text-amber-500">
+              <div className="flex items-center gap-1.5 text-amber-500 group relative cursor-help">
                 <AlertCircle className="w-3.5 h-3.5" />
-                <span className="font-medium text-[11px]">Needs Config</span>
+                <span className="font-medium text-[11px]">Warning</span>
+                {data.issues && data.issues.length > 0 && (
+                  <div className="absolute bottom-full left-0 mb-1 hidden group-hover:block w-48 p-2 bg-zinc-900 border border-border/50 shadow-lg rounded text-[10px] text-white z-50">
+                    {data.issues[0].title}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex items-center gap-1.5 text-emerald-500">

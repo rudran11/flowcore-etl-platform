@@ -17,6 +17,7 @@ class PluginResponse(BaseModel):
     supported_operations: List[str] = Field(default_factory=list, description="List of supported operations.")
     example_yaml: Optional[str] = Field(None, description="Example YAML configuration.")
     documentation: Optional[str] = Field(None, description="Detailed Markdown documentation.")
+    config_schema: Optional[Dict[str, Any]] = Field(default_factory=dict, description="JSON Schema for the plugin configuration.")
     flowcore_version_constraint: str = Field(">=0.9.0", description="FlowCore version compatibility.")
     dependencies: List[str] = Field(default_factory=list, description="List of plugin dependencies.")
 
@@ -28,6 +29,7 @@ class PluginValidationResponse(BaseModel):
     success: bool
     warnings: List[str] = []
     errors: List[str] = []
+    latency_ms: Optional[int] = None
 
 class PluginHealthResponse(BaseModel):
     status: str
