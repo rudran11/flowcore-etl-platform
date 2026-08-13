@@ -28,7 +28,7 @@ export const ExecutionTimeline: React.FC<ExecutionTimelineProps> = ({ run }) => 
         id: 'pipeline-submitted',
         time: new Date(run.submitted_at),
         title: 'Execution Submitted',
-        description: `Triggered manually, version ${run.pipeline_version}`,
+        description: `Triggered via ${run.parameters?.trigger_type || 'MANUAL'}, version ${run.pipeline_version}`,
         status: 'PENDING',
         type: 'pipeline',
         icon: <ArrowRight className="w-4 h-4 text-white" />,

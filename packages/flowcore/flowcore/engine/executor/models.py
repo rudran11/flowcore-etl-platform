@@ -3,7 +3,7 @@
 # See LICENSE file in the project root for full license information.
 
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, Optional, Dict
 from datetime import datetime
 from enum import Enum
 
@@ -26,3 +26,4 @@ class ExecutionResult:
     started_at: datetime
     finished_at: datetime
     duration_ms: float
+    metrics: Optional[Dict[str, Any]] = None

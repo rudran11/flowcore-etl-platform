@@ -1,7 +1,10 @@
 import React from 'react';
-import { Settings } from 'lucide-react';
+import { Settings, Users, Key, Sliders } from 'lucide-react';
 import { PageHeader } from '../../../components/ui/page-header';
-import { EmptyState } from '../../../components/ui/empty-state';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { GeneralTab } from '../components/GeneralTab';
+import { MembersTab } from '../components/MembersTab';
+import { ApiKeysTab } from '../components/ApiKeysTab';
 
 export const SettingsPage: React.FC = () => {
   return (
@@ -12,11 +15,34 @@ export const SettingsPage: React.FC = () => {
         icon={Settings}
       />
       
-      <EmptyState
-        icon={Settings}
-        title="Settings module under construction"
-        description="We are currently building out the settings and administration capabilities for FlowCore Studio."
-      />
+      <Tabs defaultValue="general" className="w-full">
+        <TabsList className="bg-black/40 border border-white/10 p-1 mb-8">
+          <TabsTrigger value="general" className="data-[state=active]:bg-white/10 data-[state=active]:text-white">
+            <Sliders className="h-4 w-4 mr-2" />
+            General
+          </TabsTrigger>
+          <TabsTrigger value="members" className="data-[state=active]:bg-white/10 data-[state=active]:text-white">
+            <Users className="h-4 w-4 mr-2" />
+            Members
+          </TabsTrigger>
+          <TabsTrigger value="apikeys" className="data-[state=active]:bg-white/10 data-[state=active]:text-white">
+            <Key className="h-4 w-4 mr-2" />
+            API Keys
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="general" className="mt-0 outline-none">
+          <GeneralTab />
+        </TabsContent>
+        
+        <TabsContent value="members" className="mt-0 outline-none">
+          <MembersTab />
+        </TabsContent>
+        
+        <TabsContent value="apikeys" className="mt-0 outline-none">
+          <ApiKeysTab />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

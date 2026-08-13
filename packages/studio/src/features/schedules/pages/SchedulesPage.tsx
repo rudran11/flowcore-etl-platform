@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Clock, Search, Play, Pause, Trash2, CalendarClock, MoreVertical } from 'lucide-react';
+import { Plus, Clock, Search, Play, Pause, Trash2, CalendarClock, MoreVertical, RefreshCw } from 'lucide-react';
 import { useSchedules, usePauseSchedule, useResumeSchedule, useTriggerSchedule, useDeleteSchedule } from '../hooks/useSchedules';
 import { ScheduleStatus, ScheduleType } from '../../../types/schedule';
 import { Button } from '../../../components/ui/button';
@@ -15,7 +15,7 @@ import { StatCard } from '../../../components/ui/stat-card';
 import { EmptyState } from '../../../components/ui/empty-state';
 
 export const SchedulesPage: React.FC = () => {
-  const { data: schedules, isLoading } = useSchedules();
+  const { data: schedules, isLoading, refetch, isRefetching } = useSchedules();
   const [search, setSearch] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
@@ -47,9 +47,15 @@ export const SchedulesPage: React.FC = () => {
         subtitle="Automate and monitor your pipeline executions."
         icon={CalendarClock}
         actions={
-          <Button onClick={() => setIsCreateOpen(true)} className="shadow-md">
-            <Plus className="mr-2 h-4 w-4" /> Create Schedule
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" onClick={() => refetch()} disabled={isRefetching}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefetching ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <Button onClick={() => setIsCreateOpen(true)} className="shadow-md">
+              <Plus className="mr-2 h-4 w-4" /> Create Schedule
+            </Button>
+          </div>
         }
       />
 

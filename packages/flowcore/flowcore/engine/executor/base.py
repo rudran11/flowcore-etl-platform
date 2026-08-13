@@ -58,11 +58,17 @@ class AbstractExecutor(ABC):
             finished_at = datetime.now(timezone.utc)
             duration_ms = (finished_at - started_at).total_seconds() * 1000.0
 
+        metrics = None
+        if isinstance(output, dict) and output.get("status") == "drained":
+            metrics = output.get("metrics")
+            # We don't overwrite output, we just keep it as the dictionary
+
         return ExecutionResult(
             success=success,
             output=output,
             exception=exception,
             started_at=started_at,
             finished_at=finished_at,
-            duration_ms=duration_ms
+            duration_ms=duration_ms,
+            metrics=metrics
         )

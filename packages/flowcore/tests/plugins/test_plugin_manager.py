@@ -126,7 +126,8 @@ def test_missing_execute_method():
             f.write(MISSING_EXECUTE_CODE)
             
         manager = PluginManager()
-        with pytest.raises(PluginLoadError) as exc:
-            manager.discover_plugins([temp_dir])
-        # It will fail at instantiation because BasePlugin requires execute
-        assert "Failed to instantiate" in str(exc.value)
+        manager.discover_plugins([temp_dir])
+        
+        # It is skipped during discovery because it's evaluated as an abstract class
+        plugins = manager.list_plugins()
+        assert len(plugins) == 0

@@ -12,6 +12,7 @@ export interface PluginResponse {
   documentation?: string;
   compatibility: string;
   dependencies: string[];
+  config_schema?: Record<string, any>;
 }
 
 export interface PluginValidationRequest {

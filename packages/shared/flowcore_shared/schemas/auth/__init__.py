@@ -6,6 +6,8 @@ from .rbac import (
     Permission,
     WorkspaceMember, WorkspaceMemberCreate
 )
+from .api_key import ApiKeyCreate, ApiKeyResponse, ApiKeyCreateResponse
+from .principal import Principal
 
 __all__ = [
     "UserCreate", "UserUpdate", "UserInDB", "UserResponse",
@@ -13,5 +15,7 @@ __all__ = [
     "Workspace", "WorkspaceCreate", "WorkspaceUpdate",
     "Role", "RoleCreate", "RoleUpdate",
     "Permission",
-    "WorkspaceMember", "WorkspaceMemberCreate"
+    "WorkspaceMember", "WorkspaceMemberCreate",
+    "ApiKeyCreate", "ApiKeyResponse", "ApiKeyCreateResponse",
+    "Principal"
 ]

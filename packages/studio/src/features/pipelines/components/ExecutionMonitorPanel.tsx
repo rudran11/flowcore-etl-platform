@@ -2,7 +2,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../../api/client';
 import { usePipelineBuilderStore } from '../../../stores/pipelineBuilderStore';
-import { X, PlayCircle, CheckCircle, XCircle, Clock, Activity, FileText } from 'lucide-react';
+import { X, CheckCircle, XCircle, Clock, Activity, FileText } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ScrollArea } from '../../../components/ui/scroll-area';
@@ -19,8 +19,8 @@ export const ExecutionMonitorPanel: React.FC = () => {
     enabled: !!activeRunId && isExecutionMonitorOpen,
     refetchInterval: (data: any) => {
       // Poll every 2 seconds if running or queued
-      const status = data?.state?.state?.[data?.state?.state.length - 1]?.status;
-      if (status === 'QUEUED' || status === 'RUNNING') return 2000;
+      const status = data?.status;
+      if (status === 'QUEUED' || status === 'RUNNING' || status === 'PENDING') return 2000;
       return false;
     }
   });
@@ -31,16 +31,17 @@ export const ExecutionMonitorPanel: React.FC = () => {
       case 'SUCCESS':
         return { icon: <CheckCircle className="w-5 h-5 text-emerald-500" />, color: 'text-emerald-500', bg: 'bg-emerald-500/10' };
       case 'FAILED':
-        return { icon: <XCircle className="w-5 h-5 text-destructive" />, color: 'text-destructive', bg: 'bg-destructive/10' };
+        return { icon: <XCircle className="w-5 h-5 text-status-error" />, color: 'text-status-error', bg: 'bg-status-error/10' };
       case 'RUNNING':
-        return { icon: <Activity className="w-5 h-5 text-primary animate-pulse" />, color: 'text-primary', bg: 'bg-primary/10' };
+        return { icon: <Activity className="w-5 h-5 text-status-running animate-pulse" />, color: 'text-status-running', bg: 'bg-status-running/10 border border-status-running/20 shadow-[0_0_15px_rgba(var(--status-running),0.2)]' };
       case 'QUEUED':
+      case 'PENDING':
       default:
-        return { icon: <Clock className="w-5 h-5 text-muted-foreground" />, color: 'text-muted-foreground', bg: 'bg-muted' };
+        return { icon: <Clock className="w-5 h-5 text-muted-foreground" />, color: 'text-muted-foreground', bg: 'bg-accent/50' };
     }
   };
 
-  const currentStatus = runDetails?.state?.state?.[runDetails?.state?.state.length - 1]?.status || 'QUEUED';
+  const currentStatus = runDetails?.status || 'QUEUED';
   const statusInfo = getStatusInfo(currentStatus);
 
   return (
@@ -51,51 +52,64 @@ export const ExecutionMonitorPanel: React.FC = () => {
           animate={{ x: 0 }}
           exit={{ x: '100%' }}
           transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-          className="fixed top-14 right-0 w-[450px] bottom-0 bg-card/95 backdrop-blur-xl border-l border-border shadow-2xl z-40 flex flex-col"
+          className="fixed top-[52px] right-0 w-[450px] bottom-0 bg-card/95 backdrop-blur-xl border-l border-border shadow-surface-elevated z-40 flex flex-col"
         >
-          <div className="flex items-center justify-between p-4 border-b border-border/50">
+          <div className="flex items-center justify-between p-4 border-b border-border">
             <div className="flex items-center gap-2">
-              <PlayCircle className="w-5 h-5 text-muted-foreground" />
-              <h2 className="text-sm font-semibold">Execution Monitor</h2>
+              <Activity className="w-4 h-4 text-primary" />
+              <h2 className="text-sm font-semibold tracking-tight uppercase">Execution Trace</h2>
             </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => setExecutionMonitorOpen(false)}>
+            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md hover:bg-accent" onClick={() => setExecutionMonitorOpen(false)}>
               <X className="w-4 h-4" />
             </Button>
           </div>
 
-          <div className="p-6 border-b border-border/50 flex flex-col items-center justify-center gap-4">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center ${statusInfo.bg}`}>
-              {React.cloneElement(statusInfo.icon as React.ReactElement<any>, { className: "w-8 h-8" })}
+          <div className="p-6 border-b border-border flex flex-col items-center justify-center gap-4 bg-accent/20 relative overflow-hidden">
+            <div className="absolute inset-0 bg-dot-topology opacity-50 pointer-events-none" />
+            <div className={`w-14 h-14 rounded-xl flex items-center justify-center relative z-10 ${statusInfo.bg}`}>
+              {React.cloneElement(statusInfo.icon as React.ReactElement<any>, { className: "w-6 h-6" })}
             </div>
-            <div className="text-center">
-              <h3 className={`text-xl font-bold capitalize ${statusInfo.color}`}>{currentStatus.toLowerCase()}</h3>
-              <p className="text-xs text-muted-foreground font-mono mt-1">Run ID: {activeRunId}</p>
+            <div className="text-center relative z-10">
+              <h3 className={`text-xl font-bold tracking-tight uppercase ${statusInfo.color}`}>{currentStatus}</h3>
+              <p className="text-[11px] text-muted-foreground font-mono mt-1 px-2 py-0.5 bg-background border border-border rounded shadow-sm">ID: {activeRunId}</p>
             </div>
           </div>
 
           <ScrollArea className="flex-1 p-6">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-2">
-              <FileText className="w-4 h-4" /> Runtime Logs
+            <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-2">
+              <FileText className="w-3.5 h-3.5" /> Runtime Telemetry
             </h4>
             
             {!runDetails ? (
-              <div className="flex flex-col gap-3 animate-pulse">
-                <div className="h-4 bg-white/5 rounded w-3/4"></div>
-                <div className="h-4 bg-white/5 rounded w-full"></div>
-                <div className="h-4 bg-white/5 rounded w-5/6"></div>
+              <div className="flex flex-col gap-3 animate-pulse opacity-50">
+                <div className="h-3 bg-accent rounded w-3/4"></div>
+                <div className="h-3 bg-accent rounded w-full"></div>
+                <div className="h-3 bg-accent rounded w-5/6"></div>
               </div>
             ) : (
-              <div className="space-y-4 font-mono text-[11px]">
-                {runDetails.state?.state?.map((s: any, idx: number) => (
-                  <div key={idx} className="flex flex-col gap-1 border-l-2 border-border pl-3 pb-4">
+              <div className="space-y-0 font-mono text-[11px]">
+                {Object.values(runDetails.steps || {}).map((s: any, idx: number) => (
+                  <div key={idx} className="flex flex-col gap-1 border-l border-border pl-4 pb-5 relative before:absolute before:left-[-4px] before:top-1.5 before:w-2 before:h-2 before:bg-background before:border before:border-primary before:rounded-full">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-foreground">{s.status}</span>
-                      <span className="text-muted-foreground">{new Date(s.timestamp).toLocaleTimeString()}</span>
+                      <span className="font-semibold text-foreground">Step: {s.step_id} - {s.status}</span>
+                      {s.end_time && (
+                        <span className="text-muted-foreground">{new Date(s.end_time).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                      )}
                     </div>
-                    {s.message && <p className="text-muted-foreground mt-1">{s.message}</p>}
-                    {s.node_id && (
-                      <div className="mt-2 bg-black/40 rounded p-2 text-primary border border-primary/20">
-                        Node: {s.node_id}
+                    {s.error_message && <p className="text-status-error mt-0.5 whitespace-pre-wrap">{s.error_message}</p>}
+                    
+                    {s.outputs?.metrics && Object.keys(s.outputs.metrics).length > 0 && (
+                      <div className="mt-2 bg-accent/40 rounded p-2 text-primary border border-border shadow-sm flex flex-col gap-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Activity className="w-3 h-3" />
+                          <span className="font-semibold">Metrics</span>
+                        </div>
+                        {Object.entries(s.outputs.metrics).map(([k, v]) => (
+                          <div key={k} className="flex justify-between">
+                            <span className="text-muted-foreground">{k}</span>
+                            <span>{String(v)}</span>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>

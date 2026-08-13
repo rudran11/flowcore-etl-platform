@@ -17,6 +17,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 from flowcore_server.db.models import Base
+from flowcore_server.db.auth_models import * # Ensure auth models are loaded
 from flowcore_server.config.settings import settings
 
 target_metadata = Base.metadata

@@ -22,3 +22,11 @@ class AbstractScheduleRepository(ABC):
     @abstractmethod
     async def delete_schedule(self, schedule_id: str) -> bool:
         pass
+
+    @abstractmethod
+    async def create_run_history(self, schedule_id: str, execution_id: str, status: str) -> None:
+        pass
+
+    @abstractmethod
+    async def update_last_run_at(self, schedule_id: str, last_run_at: any) -> None:
+        pass

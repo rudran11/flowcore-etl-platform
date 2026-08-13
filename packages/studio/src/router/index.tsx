@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter } from 'react-router-dom';
 import { RootLayout } from '../layouts/RootLayout';
 import { ProtectedRoute } from '../features/auth/components/ProtectedRoute';
 import { LoginPage } from '../features/auth/LoginPage';
@@ -17,7 +17,13 @@ import { DatasetsPage } from '../features/datasets/DatasetsPage';
 import { DatasetDetailsPage } from '../features/datasets/DatasetDetailsPage';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 
+import { LandingPage } from '../features/landing/pages/LandingPage';
+
 export const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <LandingPage />,
+  },
   {
     path: '/login',
     element: <LoginPage />,
@@ -27,17 +33,12 @@ export const router = createBrowserRouter([
     element: <ProtectedRoute />,
     children: [
       {
-        path: '/',
         element: (
           <ErrorBoundary>
             <RootLayout />
           </ErrorBoundary>
         ),
         children: [
-      {
-        index: true,
-        element: <Navigate to="/dashboard" replace />,
-      },
       {
         path: 'dashboard',
         element: <DashboardPage />,

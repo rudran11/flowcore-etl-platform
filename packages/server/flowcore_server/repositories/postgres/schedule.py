@@ -78,3 +78,24 @@ class PostgresScheduleRepository(AbstractScheduleRepository):
             await self.session.flush()
             return True
         return False
+
+    async def create_run_history(self, schedule_id: str, execution_id: str, status: str) -> None:
+        from flowcore_server.db.models import ScheduleRunHistory as OrmScheduleRunHistory
+        from datetime import timezone
+        
+        orm_obj = OrmScheduleRunHistory(
+            id=uuid.uuid4(),
+            workspace_id=uuid.UUID(get_workspace_id()),
+            schedule_id=uuid.UUID(schedule_id),
+            execution_id=uuid.UUID(execution_id),
+            status=status,
+            triggered_at=datetime.now(timezone.utc)
+        )
+        self.session.add(orm_obj)
+        await self.session.flush()
+
+    async def update_last_run_at(self, schedule_id: str, last_run_at: datetime) -> None:
+        from sqlalchemy import update
+        stmt = update(OrmSchedule).where(OrmSchedule.id == schedule_id).values(last_run_at=last_run_at)
+        await self.session.execute(stmt)
+        await self.session.flush()

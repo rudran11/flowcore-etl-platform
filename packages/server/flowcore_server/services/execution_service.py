@@ -139,6 +139,10 @@ class ExecutionService:
             try:
                 # Engine is synchronous, offload to thread
                 await asyncio.to_thread(runner.run)
+                import json
+                logger.info("FINAL RUN STATE STEPS OUTPUTS:")
+                for sid, s in coordinator._run.steps.items():
+                    logger.info(f"Step {sid}: {json.dumps(s.outputs)}")
                 await self.complete_execution(run.id, final_run_state=coordinator._run)
             except Exception as e:
                 logger.error(f"Background task failed: {e}", exc_info=True)
@@ -269,3 +273,175 @@ class ExecutionService:
                 limit=limit,
                 skip=skip
             )
+
+    async def preview_execution(
+        self, 
+        request: Any, 
+        workspace_id: str
+    ) -> Any:
+        from flowcore.models.dependencies.dependency_graph import DependencyGraph
+        from flowcore.models.dependencies.node import Node
+        from flowcore.models.dependencies.edge import Edge
+        from flowcore.models.operational.execution import ExecutionRun
+        from flowcore_server.models.execution import PreviewResponse
+        from flowcore.engine.context.runtime import PreviewExecutionContext
+        from flowcore.models.pipeline.pipeline_version import PipelineVersion
+        from flowcore.models.pipeline.execution_step import ExecutionStep
+        import uuid
+        import asyncio
+        import copy
+
+        pipeline_version = request.pipeline
+
+        # Prune DAG using reverse BFS from preview_node_id to find ancestors
+        ancestors = set()
+        queue = [request.preview_node_id]
+        
+        # Build reverse adjacency list
+        reverse_adj = {}
+        for step in pipeline_version.steps:
+            reverse_adj[step.step_id] = step.depends_on
+            
+        if request.preview_node_id not in reverse_adj:
+            return PreviewResponse(
+                success=False, 
+                error_message=f"Node {request.preview_node_id} not found in pipeline"
+            )
+
+        while queue:
+            current = queue.pop(0)
+            if current not in ancestors:
+                ancestors.add(current)
+                queue.extend(reverse_adj.get(current, []))
+
+        # Build pruned graph
+        nodes = {step_id: Node(node_id=step_id) for step_id in ancestors}
+        edges = []
+        pruned_steps = []
+        for step in pipeline_version.steps:
+            if step.step_id in ancestors:
+                # Security Check: Reject destinations
+                plugin = self.plugin_manager.get_plugin(step.plugin_id)
+                if not plugin:
+                    return PreviewResponse(success=False, error_message=f"Plugin {step.plugin_id} not found")
+                
+                from flowcore_shared.plugins.models import PluginType
+                if plugin.metadata.connector_type == "Destination":
+                    return PreviewResponse(
+                        success=False, 
+                        error_message="Previewing destination plugins is not allowed for safety"
+                    )
+                
+                pruned_steps.append(step)
+                for dep in step.depends_on:
+                    if dep in ancestors:
+                        edges.append(Edge(source=dep, target=step.step_id))
+
+        graph = DependencyGraph(nodes=nodes, edges=edges)
+        
+        # Convert to proper PipelineVersion model expected by engine
+        engine_steps = []
+        for step in pruned_steps:
+            engine_steps.append(ExecutionStep(
+                step_id=step.step_id,
+                connector_id=step.plugin_id,
+                depends_on=step.depends_on,
+                parameters=step.parameters
+            ))
+
+        mock_pipeline_version = PipelineVersion(
+            id="preview-version",
+            pipeline_id="preview-pipeline",
+            version="preview",
+            steps=engine_steps,
+            dsl_definition=pipeline_version.dsl_definition,
+            graph_definition=pipeline_version.graph_definition
+        )
+
+        # Generate ephemeral run ID
+        run_id = str(uuid.uuid4())
+        run = ExecutionRun(
+            id=run_id,
+            workspace_id=workspace_id or "default",
+            pipeline_id="preview-pipeline",
+            pipeline_version_id="preview-version",
+            trigger_type="PREVIEW",
+            status=ExecutionState.PENDING
+        )
+
+        coordinator = self.engine_factory.create_coordinator(mock_pipeline_version, graph)
+        coordinator.initialize_run(run)
+        
+        coordinator.env_vars = {}
+        coordinator.env_secrets = {}
+        coordinator.env_type = "PREVIEW"
+        coordinator.state_change_callback = None
+        coordinator.preview_context = PreviewExecutionContext(
+            is_preview=True,
+            record_limit=request.limit or 50
+        )
+        coordinator.preview_context = PreviewExecutionContext(is_preview=True, record_limit=request.limit)
+        
+        runner = self.engine_factory.create_runner(coordinator, self.plugin_manager)
+
+        try:
+            # Execute synchronously with strict timeout
+            await asyncio.wait_for(asyncio.to_thread(runner.run), timeout=15.0)
+            
+            # Extract preview data from the target node
+            final_run_state = coordinator._run
+            if not final_run_state or request.preview_node_id not in final_run_state.steps:
+                return PreviewResponse(success=False, error_message="Preview execution failed to produce state")
+                
+            step_state = final_run_state.steps[request.preview_node_id]
+            outputs = step_state.outputs
+            
+            input_records = []
+            output_records = []
+            
+            # Since preview node is the terminal node of the pruned DAG, its intercepting_generator
+            # will not be executed unless it has downstream nodes.
+            # Wait, if it has no downstream nodes, it IS terminal, meaning _execute_and_drain handles it.
+            # `outputs` contains `_preview_records`, `_preview_schema`, etc.
+            # Actually, `outputs` in the terminal node handles the outputs!
+            # What about the upstream nodes? They were non-terminal, so they were handled by intercepting_generator,
+            # which ALSO populates `_preview_records`!
+            # So `input_records` are the `_preview_records` of the UPSTREAM nodes.
+            
+            upstream_nodes = reverse_adj.get(request.preview_node_id, [])
+            input_schema = None
+            if upstream_nodes:
+                # Just take the first upstream for simple pipelines
+                up_id = upstream_nodes[0]
+                up_state = final_run_state.steps.get(up_id)
+                if up_state:
+                    input_records = up_state.outputs.get("_preview_records", [])
+                    input_schema = up_state.outputs.get("_preview_schema")
+            
+            # Output records are the node's own _preview_records (since it's terminal and we modified terminal drain)
+            output_records = outputs.get("_preview_records", [])
+            
+            # Check if preview node failed
+            if step_state.status == ExecutionState.FAILED:
+                return PreviewResponse(
+                    success=False,
+                    error_message=f"Execution failed: {step_state.error_message}"
+                )
+
+            return PreviewResponse(
+                success=True,
+                metrics=outputs.get("metrics", {}),
+                input_schema=input_schema,
+                output_schema=outputs.get("_preview_schema") or outputs.get("final_schema"),
+                input_records=input_records,
+                output_records=output_records,
+                errors=outputs.get("_preview_errors", [])
+            )
+            
+        except asyncio.TimeoutError:
+            coordinator.preview_context.cancellation_event.set()
+            return PreviewResponse(success=False, error_message="Preview execution timed out (exceeded 15s)")
+        except Exception as e:
+            coordinator.preview_context.cancellation_event.set()
+            import traceback
+            return PreviewResponse(success=False, error_message=f"Preview execution failed: {str(e)}\n{traceback.format_exc()}")

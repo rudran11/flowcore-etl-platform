@@ -16,7 +16,7 @@ export const Header: React.FC = () => {
   const { user, logout } = useAuthStore();
   
   return (
-    <header className="sticky top-0 z-40 flex h-[52px] w-full shrink-0 items-center justify-between gap-4 border-b border-border/50 bg-background px-4">
+    <header className="sticky top-0 z-40 flex h-[52px] w-full shrink-0 items-center justify-between gap-4 border-b border-border shadow-sm bg-background px-4">
       <div className="flex items-center gap-3">
         <WorkspaceSwitcher />
         <div className="h-4 w-px bg-border/50 hidden sm:block"></div>
@@ -46,7 +46,7 @@ export const Header: React.FC = () => {
           </kbd>
         </div>
         
-        <Button variant="default" size="sm" className="h-8 text-xs bg-primary hover:bg-primary/90 hidden sm:flex">
+        <Button variant="default" size="sm" className="h-8 text-xs bg-primary hover:bg-primary/90 hidden sm:flex shadow-surface">
           <Plus className="mr-1.5 h-3.5 w-3.5" /> New Pipeline
         </Button>
         

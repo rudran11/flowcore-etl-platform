@@ -96,7 +96,7 @@ const PipelineCanvasInner: React.FC = () => {
     
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [nodes, setNodes]);
+  }, [nodes, setNodes, validatePipeline]);
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
@@ -185,7 +185,7 @@ const PipelineCanvasInner: React.FC = () => {
             <Background color={isDark ? "#ffffff" : "#000000"} gap={24} size={1.5} variant={BackgroundVariant.Dots} className={isDark ? "opacity-5" : "opacity-[0.03]"} />
             
             <Controls 
-              className="bg-card/80 backdrop-blur-md border-border/50 shadow-sm rounded-md overflow-hidden fill-foreground !flex !flex-col" 
+              className="bg-card/90 backdrop-blur-md border border-border shadow-surface rounded-md overflow-hidden fill-foreground !flex !flex-col" 
               showInteractive={false}
             />
             
@@ -195,8 +195,8 @@ const PipelineCanvasInner: React.FC = () => {
                 if (n.data?.error) return isDark ? '#f43f5e' : '#e11d48';
                 return isDark ? '#a1a1aa' : '#71717a';
               }}
-              maskColor={isDark ? "rgba(0, 0, 0, 0.7)" : "rgba(255, 255, 255, 0.7)"}
-              className="bg-card/80 backdrop-blur-md border border-border/50 shadow-sm rounded-md overflow-hidden"
+              maskColor={isDark ? "rgba(0, 0, 0, 0.8)" : "rgba(255, 255, 255, 0.8)"}
+              className="bg-card/90 backdrop-blur-md border border-border shadow-surface rounded-md overflow-hidden"
               style={{ width: 150, height: 100 }}
               pannable
               zoomable
@@ -207,7 +207,7 @@ const PipelineCanvasInner: React.FC = () => {
 
           {contextMenu.show && (
             <div 
-              className="fixed z-50 bg-card border border-border/50 shadow-xl rounded-xl py-1.5 w-48 text-sm text-foreground backdrop-blur-xl"
+              className="fixed z-50 bg-card border border-border shadow-surface-elevated rounded-lg py-1.5 w-48 text-sm text-foreground backdrop-blur-xl"
               style={{ top: contextMenu.y, left: contextMenu.x }}
               onClick={(e) => e.stopPropagation()}
             >

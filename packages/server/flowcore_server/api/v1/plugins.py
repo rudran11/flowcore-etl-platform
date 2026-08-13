@@ -6,30 +6,32 @@ from flowcore_server.models.plugin import (
     PluginResponse, PluginStatsResponse, PluginHealthResponse,
     PluginValidationRequest, PluginValidationResponse
 )
-from flowcore_server.dependencies.auth import require_permissions, UserInDB
+from flowcore_server.dependencies.auth import require_permissions
+from flowcore_shared.schemas.auth import Principal
+from flowcore_shared.schemas.auth import UserInDB, Principal
 
 router = APIRouter(prefix="/plugins", tags=["Plugins"])
 
 @router.get("", response_model=List[PluginResponse], summary="List Plugins")
-async def list_plugins(app: PluginApplication = Depends(get_plugin_application), user: UserInDB = Depends(require_permissions(["plugin:view"]))):
+async def list_plugins(app: PluginApplication = Depends(get_plugin_application), principal: Principal = Depends(require_permissions(["plugin:view"]))):
     return app.list_plugins()
 
 @router.get("/categories", response_model=List[str], summary="Get Categories")
-async def get_categories(app: PluginApplication = Depends(get_plugin_application), user: UserInDB = Depends(require_permissions(["plugin:view"]))):
+async def get_categories(app: PluginApplication = Depends(get_plugin_application), principal: Principal = Depends(require_permissions(["plugin:view"]))):
     return app.get_categories()
 
 @router.get("/stats", response_model=PluginStatsResponse, summary="Get Stats")
-async def get_stats(app: PluginApplication = Depends(get_plugin_application), user: UserInDB = Depends(require_permissions(["plugin:view"]))):
+async def get_stats(app: PluginApplication = Depends(get_plugin_application), principal: Principal = Depends(require_permissions(["plugin:view"]))):
     return app.get_stats()
 
 @router.get("/{plugin_id}", response_model=PluginResponse, summary="Get Plugin")
-async def get_plugin(plugin_id: str, app: PluginApplication = Depends(get_plugin_application), user: UserInDB = Depends(require_permissions(["plugin:view"]))):
+async def get_plugin(plugin_id: str, app: PluginApplication = Depends(get_plugin_application), principal: Principal = Depends(require_permissions(["plugin:view"]))):
     return app.get_plugin(plugin_id)
 
 @router.get("/{plugin_id}/health", response_model=PluginHealthResponse, summary="Get Plugin Health")
-async def get_health(plugin_id: str, app: PluginApplication = Depends(get_plugin_application), user: UserInDB = Depends(require_permissions(["plugin:view"]))):
+async def get_health(plugin_id: str, app: PluginApplication = Depends(get_plugin_application), principal: Principal = Depends(require_permissions(["plugin:view"]))):
     return app.get_health(plugin_id)
 
 @router.post("/validate", response_model=PluginValidationResponse, summary="Validate Plugin Configuration")
-async def validate_plugin(request: PluginValidationRequest, app: PluginApplication = Depends(get_plugin_application), user: UserInDB = Depends(require_permissions(["plugin:view"]))):
+async def validate_plugin(request: PluginValidationRequest, app: PluginApplication = Depends(get_plugin_application), principal: Principal = Depends(require_permissions(["plugin:view"]))):
     return app.validate_plugin(request.plugin_id, request.config)

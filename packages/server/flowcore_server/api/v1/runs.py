@@ -2,7 +2,9 @@ from fastapi import APIRouter, Depends, Path, Query, status
 from flowcore_server.models.execution import ExecutionResponse, ExecutionListResponse
 from flowcore_server.application.execution_app import ExecutionApp
 from flowcore_server.dependencies.execution import get_execution_app
-from flowcore_server.dependencies.auth import require_permissions, UserInDB
+from flowcore_server.dependencies.auth import require_permissions
+from flowcore_shared.schemas.auth import Principal
+from flowcore_shared.schemas.auth import UserInDB, Principal
 from typing import Optional
 
 router = APIRouter(prefix="/runs", tags=["Runs"])
@@ -19,7 +21,7 @@ async def list_runs(
     limit: int = Query(25, ge=1, le=100),
     skip: int = Query(0, ge=0),
     app: ExecutionApp = Depends(get_execution_app),
-    user: UserInDB = Depends(require_permissions([]))
+    principal: Principal = Depends(require_permissions([]))
 ):
     """
     Retrieves a paginated list of execution runs.
@@ -40,7 +42,7 @@ async def list_runs(
 async def get_run_status(
     run_id: str = Path(..., description="The ID of the execution run"),
     app: ExecutionApp = Depends(get_execution_app),
-    user: UserInDB = Depends(require_permissions([]))
+    principal: Principal = Depends(require_permissions([]))
 ):
     """
     Retrieves the current state and outputs of an execution run.
@@ -56,7 +58,7 @@ async def get_run_status(
 async def cancel_run(
     run_id: str = Path(..., description="The ID of the execution run to cancel"),
     app: ExecutionApp = Depends(get_execution_app),
-    user: UserInDB = Depends(require_permissions(["pipeline:execute"]))
+    principal: Principal = Depends(require_permissions(["pipeline:execute"]))
 ):
     """
     Cancels an ongoing execution run.

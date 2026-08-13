@@ -8,6 +8,7 @@ import { useTheme } from 'next-themes';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../components/ui/tabs';
 import { ScrollArea } from '../../../components/ui/scroll-area';
 import { SchemaForm } from './SchemaForm';
+import { PreviewPanel } from './PreviewPanel';
 import { toast } from 'sonner';
 import { pluginsApi } from '../../../api/plugins';
 
@@ -26,7 +27,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => 
   const { theme } = useTheme();
   const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
   
-  const [activeTab, setActiveTab] = useState<'config' | 'docs' | 'schema' | 'json'>('config');
+  const [activeTab, setActiveTab] = useState<'config' | 'docs' | 'schema' | 'json' | 'preview'>('config');
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isFormValid, setIsFormValid] = useState(true);
@@ -208,8 +209,9 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => 
       <div className="flex-1 overflow-hidden flex flex-col relative bg-zinc-950/50">
         <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="flex-1 flex flex-col h-full overflow-hidden">
           <div className="px-4 py-2 border-b border-white/5 bg-zinc-950/80 sticky top-0 z-10 backdrop-blur-md">
-              <TabsList className="grid w-full grid-cols-4 bg-zinc-900 border border-white/10 p-1 h-9">
+              <TabsList className="grid w-full grid-cols-5 bg-zinc-900 border border-white/10 p-1 h-9">
                 <TabsTrigger value="config" className="text-[11px] data-[state=active]:bg-primary/20 data-[state=active]:text-primary rounded-sm h-7">Config</TabsTrigger>
+                <TabsTrigger value="preview" className="text-[11px] data-[state=active]:bg-primary/20 data-[state=active]:text-primary rounded-sm h-7">Preview</TabsTrigger>
                 <TabsTrigger value="docs" className="text-[11px] data-[state=active]:bg-primary/20 data-[state=active]:text-primary rounded-sm h-7">Docs</TabsTrigger>
                 <TabsTrigger value="schema" className="text-[11px] data-[state=active]:bg-primary/20 data-[state=active]:text-primary rounded-sm h-7">Schema</TabsTrigger>
                 <TabsTrigger value="json" className="text-[11px] data-[state=active]:bg-primary/20 data-[state=active]:text-primary rounded-sm h-7">JSON</TabsTrigger>
@@ -265,6 +267,10 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => 
                     )}
                   </div>
                 </ScrollArea>
+              </TabsContent>
+
+              <TabsContent value="preview" className="h-full m-0 data-[state=inactive]:hidden flex flex-col">
+                <PreviewPanel nodeId={nodeId} isActive={activeTab === 'preview'} />
               </TabsContent>
 
               <TabsContent value="docs" className="h-full m-0 data-[state=inactive]:hidden p-4">
@@ -324,7 +330,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => 
           <Button 
             className="flex-1 h-9 text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90"
             onClick={handleApply}
-            disabled={isRunning || !isFormValid || (activeTab === 'config' && !hasUnsavedChanges && !error && Object.keys(node?.data?.config || {}).length > 0)}
+            disabled={isRunning || (activeTab === 'config' && !isFormValid) || (activeTab === 'config' && !hasUnsavedChanges && !error && Object.keys(node?.data?.config || {}).length > 0)}
           >
             {hasUnsavedChanges || Object.keys(node?.data?.config || {}).length === 0 ? 'Apply Changes' : 'Applied'}
           </Button>

@@ -23,8 +23,16 @@ async def lifespan(app: FastAPI):
     # Run startup seed logic
     uow = _repository_factory.get_unit_of_work()
     await seed_default_data(uow)
+    
+    # Initialize Scheduler
+    from flowcore_server.dependencies.core import get_scheduler_service
+    scheduler_service = get_scheduler_service()
+    await scheduler_service.initialize_schedules()
+    
     yield
+    
     # Cleanup on shutdown
+    scheduler_service.shutdown()
 
 def create_app() -> FastAPI:
     app = FastAPI(

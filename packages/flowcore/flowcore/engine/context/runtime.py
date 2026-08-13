@@ -6,6 +6,20 @@ from pydantic import BaseModel, ConfigDict, Field
 from typing import Dict, Any
 from datetime import datetime
 import logging
+import threading
+
+class PreviewExecutionContext(BaseModel):
+    """
+    Context object to signal bounded preview constraints.
+    """
+    is_preview: bool = Field(default=False, description="True if this is a preview execution.")
+    record_limit: int = Field(default=50, description="The maximum number of records to process.")
+    
+    # Internal flag used by engine to gracefully signal cancellation
+    # We use a primitive dict since threading.Event cannot be easily validated by Pydantic's frozen model without custom validators.
+    # Alternatively we can just use arbitrary types.
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    cancellation_event: threading.Event = Field(default_factory=threading.Event, description="Event to signal graceful termination.")
 
 class RuntimeContext(BaseModel):
     """
@@ -34,6 +48,9 @@ class RuntimeContext(BaseModel):
     # Lineage tracking
     input_datasets: list = Field(default_factory=list, description="List of input datasets reported by the plugin")
     output_datasets: list = Field(default_factory=list, description="List of output datasets reported by the plugin")
+    
+    # Preview context
+    preview_context: PreviewExecutionContext = Field(default_factory=PreviewExecutionContext, description="Preview constraints")
 
     def report_input_dataset(self, name: str, dataset_type: str, columns: list = None):
         """Plugin authors can call this to report a dataset read"""

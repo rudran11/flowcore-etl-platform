@@ -35,3 +35,28 @@ def get_background_strategy(bt: BackgroundTasks) -> BackgroundExecutionStrategy:
     Wraps FastAPI's BackgroundTasks automatically.
     """
     return FastAPIBackgroundStrategy(bt)
+
+_scheduler_instance = None
+
+def get_scheduler_service():
+    global _scheduler_instance
+    if _scheduler_instance is None:
+        from flowcore_server.services.scheduler import SchedulerService
+        from flowcore_server.services.execution_service import ExecutionService
+        from flowcore_server.application.background import AsyncioBackgroundStrategy
+        from flowcore_server.dependencies.engine import get_plugin_manager
+        
+        uow = _repository_factory.get_unit_of_work()
+        pm = get_plugin_manager()
+        
+        exec_service = ExecutionService(
+            uow=uow,
+            engine_factory=_engine_factory_instance,
+            cancellation_strategy=_cancellation_instance,
+            background_strategy=AsyncioBackgroundStrategy(),
+            plugin_manager=pm,
+            event_dispatcher=_event_dispatcher_instance
+        )
+        _scheduler_instance = SchedulerService(uow, execution_service=exec_service)
+        
+    return _scheduler_instance

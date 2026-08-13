@@ -53,6 +53,12 @@ class InMemoryPipelineRepository(AbstractPipelineRepository):
             return True
         return False
 
+    async def set_favorite(self, pipeline_id: str, is_favorite: bool) -> bool:
+        if pipeline_id in self._pipelines:
+            self._pipelines[pipeline_id].is_favorite = is_favorite
+            return True
+        return False
+
     async def create_pipeline_version(self, version: PipelineVersion) -> PipelineVersion:
         self._versions[(version.pipeline_id, version.version)] = version
         return version

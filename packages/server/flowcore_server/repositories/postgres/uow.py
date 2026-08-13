@@ -11,7 +11,9 @@ from flowcore_server.repositories.postgres.auth import (
     AsyncSqlAlchemyOrganizationRepository,
     AsyncSqlAlchemyWorkspaceRepository,
     AsyncSqlAlchemyRoleRepository,
-    AsyncSqlAlchemyWorkspaceMemberRepository
+    AsyncSqlAlchemyWorkspaceMemberRepository,
+    AsyncSqlAlchemyApiKeyRepository,
+    AsyncSqlAlchemyAuditLogRepository
 )
 from flowcore_server.config.database import AsyncSessionLocal
 
@@ -32,6 +34,8 @@ class AsyncSqlAlchemyUnitOfWork(AbstractUnitOfWork):
         self._workspaces = AsyncSqlAlchemyWorkspaceRepository(self.session)
         self._roles = AsyncSqlAlchemyRoleRepository(self.session)
         self._workspace_members = AsyncSqlAlchemyWorkspaceMemberRepository(self.session)
+        self._api_keys = AsyncSqlAlchemyApiKeyRepository(self.session)
+        self._audit_logs = AsyncSqlAlchemyAuditLogRepository(self.session)
         return await super().__aenter__()
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -79,6 +83,14 @@ class AsyncSqlAlchemyUnitOfWork(AbstractUnitOfWork):
     @property
     def workspace_members(self):
         return self._workspace_members
+
+    @property
+    def api_keys(self):
+        return self._api_keys
+
+    @property
+    def audit_logs(self):
+        return self._audit_logs
 
     @property
     def environments(self):

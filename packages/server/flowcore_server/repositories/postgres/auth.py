@@ -1,5 +1,5 @@
 import uuid
-from typing import List, Optional
+from typing import List, Optional, Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -328,3 +328,109 @@ class AsyncSqlAlchemyWorkspaceMemberRepository(WorkspaceMemberRepository):
             role_id=str(m.role_id),
             created_at=m.created_at
         ) for m in result.scalars().all()]
+
+    async def update_role(self, user_id: str, workspace_id: str, role_id: str) -> Optional[WorkspaceMember]:
+        stmt = select(WorkspaceMemberModel).where(
+            WorkspaceMemberModel.user_id == uuid.UUID(user_id),
+            WorkspaceMemberModel.workspace_id == uuid.UUID(workspace_id)
+        )
+        result = await self.session.execute(stmt)
+        db_member = result.scalars().first()
+        if db_member:
+            db_member.role_id = uuid.UUID(role_id)
+            await self.session.flush()
+            return WorkspaceMember(
+                user_id=str(db_member.user_id),
+                workspace_id=str(db_member.workspace_id),
+                role_id=str(db_member.role_id),
+                created_at=db_member.created_at
+            )
+        return None
+
+    async def remove_member(self, user_id: str, workspace_id: str) -> bool:
+        stmt = select(WorkspaceMemberModel).where(
+            WorkspaceMemberModel.user_id == uuid.UUID(user_id),
+            WorkspaceMemberModel.workspace_id == uuid.UUID(workspace_id)
+        )
+        result = await self.session.execute(stmt)
+        db_member = result.scalars().first()
+        if db_member:
+            await self.session.delete(db_member)
+            return True
+        return False
+
+class AsyncSqlAlchemyApiKeyRepository:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def create(self, workspace_id: str, name: str, key_hash: str, prefix: str, scopes: List[str], created_by: Optional[str]) -> Any:
+        from flowcore_server.db.auth_models import ApiKey as ApiKeyModel
+        import datetime
+        db_key = ApiKeyModel(
+            workspace_id=uuid.UUID(workspace_id),
+            name=name,
+            key_hash=key_hash,
+            prefix=prefix,
+            scopes=scopes,
+            created_by=uuid.UUID(created_by) if created_by else None,
+            created_at=datetime.datetime.utcnow(),
+            updated_at=datetime.datetime.utcnow()
+        )
+        self.session.add(db_key)
+        await self.session.flush()
+        return db_key
+
+    async def get_by_hash(self, key_hash: str) -> Optional[Any]:
+        from flowcore_server.db.auth_models import ApiKey as ApiKeyModel
+        stmt = select(ApiKeyModel).where(ApiKeyModel.key_hash == key_hash, ApiKeyModel.revoked_at.is_(None))
+        result = await self.session.execute(stmt)
+        return result.scalars().first()
+
+    async def list_by_workspace(self, workspace_id: str) -> List[Any]:
+        from flowcore_server.db.auth_models import ApiKey as ApiKeyModel
+        stmt = select(ApiKeyModel).where(ApiKeyModel.workspace_id == uuid.UUID(workspace_id))
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def delete(self, key_id: str, workspace_id: str) -> bool:
+        from flowcore_server.db.auth_models import ApiKey as ApiKeyModel
+        stmt = select(ApiKeyModel).where(ApiKeyModel.id == uuid.UUID(key_id), ApiKeyModel.workspace_id == uuid.UUID(workspace_id))
+        result = await self.session.execute(stmt)
+        db_key = result.scalars().first()
+        if db_key:
+            import datetime
+            db_key.revoked_at = datetime.datetime.utcnow()
+            return True
+        return False
+
+    async def record_usage(self, key_id: str) -> None:
+        from flowcore_server.db.auth_models import ApiKey as ApiKeyModel
+        stmt = select(ApiKeyModel).where(ApiKeyModel.id == uuid.UUID(key_id))
+        result = await self.session.execute(stmt)
+        db_key = result.scalars().first()
+        if db_key:
+            import datetime
+            db_key.last_used_at = datetime.datetime.utcnow()
+
+class AsyncSqlAlchemyAuditLogRepository:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def create(self, entity_id: str, entity_type: str, action: str, details: dict) -> Any:
+        from flowcore_server.db.models import AuditLog as AuditLogModel
+        db_log = AuditLogModel(
+            entity_id=uuid.UUID(entity_id),
+            entity_type=entity_type,
+            action=action,
+            details=details
+        )
+        self.session.add(db_log)
+        await self.session.flush()
+        return db_log
+
+    async def list_by_entity(self, entity_id: str) -> List[Any]:
+        from flowcore_server.db.models import AuditLog as AuditLogModel
+        stmt = select(AuditLogModel).where(AuditLogModel.entity_id == uuid.UUID(entity_id)).order_by(AuditLogModel.created_at.desc())
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+

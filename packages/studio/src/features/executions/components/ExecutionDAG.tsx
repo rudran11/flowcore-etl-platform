@@ -44,7 +44,7 @@ export const ExecutionDAG: React.FC<ExecutionDAGProps> = ({ run }) => {
     }
     
     const dsl = currentVersion.dsl_definition;
-    const triggerData = dsl.trigger || { type: 'manual' };
+    const triggerType = run.parameters?.trigger_type || 'MANUAL';
     
     let newNodes: any[] = [];
     const newEdges: any[] = [];
@@ -56,8 +56,8 @@ export const ExecutionDAG: React.FC<ExecutionDAGProps> = ({ run }) => {
       position: { x: 0, y: 0 },
       data: { 
         label: 'Trigger', 
-        type: triggerData.type, 
-        schedule: triggerData.schedule,
+        type: triggerType, 
+        schedule: dsl.trigger?.schedule,
         status: run.status.toLowerCase(), // mapping to custom nodes status format
       }
     });

@@ -21,6 +21,7 @@ export const ScheduleFormDialog: React.FC<ScheduleFormDialogProps> = ({ onClose,
   const [retryDelaySeconds, setRetryDelaySeconds] = useState(initialData?.retry_delay_seconds || 300);
   const [holidayCalendar, setHolidayCalendar] = useState<string>(initialData?.holiday_calendar || '');
   const [blackoutWindows] = useState<any[]>(initialData?.blackout_windows || []);
+  const [timezone, setTimezone] = useState(initialData?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC');
   
   const createMutation = useCreateSchedule();
   const { data: pipelines } = usePipelines();
@@ -34,7 +35,7 @@ export const ScheduleFormDialog: React.FC<ScheduleFormDialogProps> = ({ onClose,
         pipeline_id: pipelineId,
         type,
         expression,
-        timezone: 'UTC',
+        timezone,
         max_retries: maxRetries,
         retry_delay_seconds: retryDelaySeconds,
         holiday_calendar: holidayCalendar || undefined,
@@ -96,6 +97,29 @@ export const ScheduleFormDialog: React.FC<ScheduleFormDialogProps> = ({ onClose,
                   onChange={e => setDescription(e.target.value)} 
                   className="bg-zinc-900 border-white/10"
                 />
+              </div>
+              <div>
+                <label className="block text-sm text-zinc-400 mb-1">Timezone</label>
+                <select
+                  required
+                  value={timezone}
+                  onChange={e => setTimezone(e.target.value)}
+                  className="w-full h-10 px-3 rounded-md bg-zinc-900 border border-white/10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="UTC">UTC (Coordinated Universal Time)</option>
+                  <option value="America/New_York">Eastern Time (US & Canada)</option>
+                  <option value="America/Chicago">Central Time (US & Canada)</option>
+                  <option value="America/Denver">Mountain Time (US & Canada)</option>
+                  <option value="America/Los_Angeles">Pacific Time (US & Canada)</option>
+                  <option value="Europe/London">London (GMT/BST)</option>
+                  <option value="Europe/Paris">Central European Time (CET/CEST)</option>
+                  <option value="Asia/Tokyo">Japan Standard Time (JST)</option>
+                  <option value="Asia/Kolkata">India Standard Time (IST)</option>
+                  <option value="Australia/Sydney">Australian Eastern Time (AET)</option>
+                  <option value={Intl.DateTimeFormat().resolvedOptions().timeZone}>
+                    Local Time ({Intl.DateTimeFormat().resolvedOptions().timeZone})
+                  </option>
+                </select>
               </div>
             </div>
           </div>

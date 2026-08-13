@@ -53,9 +53,14 @@ class FlowCore:
         print("[OK] Pipeline validated successfully.")
         return pv
 
-    def run(self, pipeline_path: str):
+    def run(self, pipeline_path: str = None, pipeline_version: PipelineVersion = None):
         print("Loading pipeline...")
-        pv = self.validate(pipeline_path)
+        if pipeline_version:
+            pv = pipeline_version
+        elif pipeline_path:
+            pv = self.validate(pipeline_path)
+        else:
+            raise ValueError("Must provide pipeline_path or pipeline_version")
         
         # Build dependency graph
         graph = DependencyGraph(nodes={}, edges=[])
@@ -83,9 +88,10 @@ class FlowCore:
         print("[OK] Executing DAG\n")
         import time
         start = time.time()
-        runner.run()
+        result = runner.run()
         duration = time.time() - start
         print(f"\nFinished\nDuration: {duration:.2f} seconds")
+        return result
 
     def compile(self, pipeline_path: str):
         pass
@@ -93,3 +99,83 @@ class FlowCore:
     def list_plugins(self):
         return self.plugin_manager.get_all_plugins()
 
+
+class PipelineBuilder:
+    """Fluent API for programmatic pipeline generation."""
+    def __init__(self, name: str):
+        self.name = name
+        self.steps = []
+        self._last_step_id = None
+        self._step_counter = 0
+
+    def source(self, plugin_id: str, **kwargs) -> 'PipelineBuilder':
+        step_id = f"source_{self._step_counter}"
+        self._step_counter += 1
+        
+        # Sources typically have no depends_on in a linear flow
+        self.steps.append({
+            "step_id": step_id,
+            "connector_id": plugin_id,
+            "depends_on": [],
+            "parameters": kwargs
+        })
+        self._last_step_id = step_id
+        return self
+
+    def transform(self, plugin_id: str, **kwargs) -> 'PipelineBuilder':
+        step_id = f"transform_{self._step_counter}"
+        self._step_counter += 1
+        
+        # Ensure 'transform-' prefix is handled implicitly or explicitly
+        actual_plugin = plugin_id if plugin_id.startswith("transform-") else f"transform-{plugin_id}"
+        
+        depends_on = [self._last_step_id] if self._last_step_id else []
+        self.steps.append({
+            "step_id": step_id,
+            "connector_id": actual_plugin,
+            "depends_on": depends_on,
+            "parameters": kwargs
+        })
+        self._last_step_id = step_id
+        return self
+
+    def destination(self, plugin_id: str, **kwargs) -> 'PipelineBuilder':
+        step_id = f"destination_{self._step_counter}"
+        self._step_counter += 1
+        
+        depends_on = [self._last_step_id] if self._last_step_id else []
+        self.steps.append({
+            "step_id": step_id,
+            "connector_id": plugin_id,
+            "depends_on": depends_on,
+            "parameters": kwargs
+        })
+        self._last_step_id = step_id
+        return self
+
+    def compile(self) -> dict:
+        """Returns the canonical dictionary representing the pipeline DSL."""
+        return {
+            "version": "1.0",
+            "pipeline": {
+                "name": self.name,
+                "owner": "sdk_user"
+            },
+            "steps": self.steps
+        }
+
+    def run(self, flowcore_client: FlowCore = None):
+        """Compiles and executes the pipeline."""
+        if not flowcore_client:
+            flowcore_client = FlowCore()
+        
+        from flowcore.parsing.parser import DSLParser
+        pipeline, steps = DSLParser.parse_pipeline_dsl(self.compile())
+        
+        pv = PipelineVersion(
+            id=str(uuid.uuid4()),
+            pipeline_id=pipeline.id,
+            version="local",
+            steps=steps
+        )
+        return flowcore_client.run(pipeline_version=pv)

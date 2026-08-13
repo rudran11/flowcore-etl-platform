@@ -23,6 +23,7 @@ export interface ExecutionResponse {
     duration_ms?: number;
     error?: string;
     outputs: Record<string, any>;
+    parameters?: Record<string, any>;
     steps: Record<string, ExecutionStepResponse>;
 }
 

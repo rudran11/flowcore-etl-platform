@@ -49,26 +49,27 @@ export const AnimatedEdge = ({
           strokeWidth: selected ? 2.5 : 1.5,
           stroke: strokeColor,
           transition: 'stroke 0.3s ease, stroke-width 0.3s ease',
-          ...(isRunning ? {
-            strokeDasharray: '5, 5',
-            animation: 'dashdraw 1s linear infinite',
-            stroke: 'hsl(var(--primary))',
-          } : {}),
           ...(hasError ? {
-            strokeDasharray: '5, 5',
+            strokeDasharray: '4 4',
             animation: 'dashdraw 1s linear infinite reverse',
-            stroke: 'hsl(var(--destructive))',
+            stroke: 'hsl(var(--status-error))',
           } : {}),
         }}
         id={id}
       />
       
-      {/* Data flowing particles effect when running */}
+      {/* Premium Data flowing particles effect when running */}
       {isRunning && (
-        <circle r="4" fill="hsl(var(--primary))">
-          <animateMotion dur="2s" repeatCount="indefinite" path={edgePath} />
-        </circle>
+        <>
+          <circle r="3" fill="hsl(var(--status-running))" filter="drop-shadow(0 0 4px hsl(var(--status-running)))">
+            <animateMotion dur="1.5s" repeatCount="indefinite" path={edgePath} />
+          </circle>
+          <circle r="2" fill="#fff">
+            <animateMotion dur="1.5s" repeatCount="indefinite" path={edgePath} />
+          </circle>
+        </>
       )}
+
 
       {/* Optional: Add a label or status badge on the edge itself via EdgeLabelRenderer */}
       {data?.label && (

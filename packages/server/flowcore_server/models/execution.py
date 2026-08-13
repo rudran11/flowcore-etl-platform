@@ -34,6 +34,7 @@ class ExecutionResponse(BaseModel):
     duration_ms: Optional[int] = Field(None, description="Total execution duration in milliseconds.")
     error: Optional[str] = Field(None, description="Error message if the execution failed.")
     outputs: Dict[str, Any] = Field(default_factory=dict, description="Outputs collected from the execution steps.")
+    parameters: Dict[str, Any] = Field(default_factory=dict, description="Execution parameters like trigger_type.")
     steps: Dict[str, ExecutionStepResponse] = Field(default_factory=dict, description="Execution status for each step.")
     links: Dict[str, str] = Field(default_factory=dict, description="HATEOAS navigation links.")
 
@@ -45,3 +46,26 @@ class ExecutionListResponse(BaseModel):
     total: int
     limit: int
     skip: int
+
+from flowcore_server.models.pipeline_version import PipelineVersionCreate
+
+class PreviewRequest(BaseModel):
+    """
+    DTO for initiating a preview execution.
+    """
+    pipeline: PipelineVersionCreate = Field(..., description="The unsaved draft pipeline definition.")
+    preview_node_id: str = Field(..., description="The step ID to preview.")
+    limit: int = Field(50, le=100, description="Max number of records to process.")
+
+class PreviewResponse(BaseModel):
+    """
+    DTO for returning the results of a preview execution.
+    """
+    success: bool
+    metrics: Dict[str, Any] = Field(default_factory=dict)
+    input_schema: Optional[Dict[str, Any]] = None
+    output_schema: Optional[Dict[str, Any]] = None
+    input_records: list[Dict[str, Any]] = Field(default_factory=list)
+    output_records: list[Dict[str, Any]] = Field(default_factory=list)
+    errors: list[str] = Field(default_factory=list)
+    error_message: Optional[str] = None

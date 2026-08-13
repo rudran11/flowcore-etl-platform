@@ -24,6 +24,10 @@ def get_plugin_manager() -> PluginManager:
                 base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
                 mock_plugins_dir = os.path.join(base_dir, "mock_plugins")
                 
-                _plugin_manager_instance.discover_plugins([mock_plugins_dir])
+                # Real plugins
+                flowcore_dir = os.path.dirname(os.path.dirname(base_dir))
+                real_plugins_dir = os.path.join(flowcore_dir, "packages", "flowcore", "flowcore", "plugins")
+                
+                _plugin_manager_instance.discover_plugins([mock_plugins_dir, real_plugins_dir])
     
     return _plugin_manager_instance

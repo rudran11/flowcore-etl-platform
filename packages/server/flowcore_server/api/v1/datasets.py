@@ -5,6 +5,7 @@ from flowcore_server.dependencies.lineage import get_lineage_service
 from flowcore_server.dependencies.auth import get_current_user, require_permissions
 from flowcore_server.services.lineage_service import LineageService
 from flowcore_shared.schemas.auth.user import UserInDB
+from flowcore_shared.schemas.auth import Principal
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
 
@@ -13,7 +14,7 @@ async def create_dataset(
     data: DatasetCreate,
     x_workspace_id: str = Header(...),
     service: LineageService = Depends(get_lineage_service),
-    user: UserInDB = Depends(require_permissions(["dataset:create"]))
+    principal: Principal = Depends(require_permissions(["dataset:create"]))
 ):
     return await service.create_dataset(x_workspace_id, data)
 
@@ -21,7 +22,7 @@ async def create_dataset(
 async def list_datasets(
     x_workspace_id: str = Header(...),
     service: LineageService = Depends(get_lineage_service),
-    user: UserInDB = Depends(require_permissions(["dataset:read"]))
+    principal: Principal = Depends(require_permissions(["dataset:read"]))
 ):
     return await service.list_datasets(x_workspace_id)
 
@@ -30,7 +31,7 @@ async def get_dataset(
     dataset_id: str,
     x_workspace_id: str = Header(...),
     service: LineageService = Depends(get_lineage_service),
-    user: UserInDB = Depends(require_permissions(["dataset:read"]))
+    principal: Principal = Depends(require_permissions(["dataset:read"]))
 ):
     dataset = await service.get_dataset(dataset_id)
     if not dataset or dataset.workspace_id != x_workspace_id:
@@ -43,7 +44,7 @@ async def update_dataset(
     data: DatasetUpdate,
     x_workspace_id: str = Header(...),
     service: LineageService = Depends(get_lineage_service),
-    user: UserInDB = Depends(require_permissions(["dataset:edit"]))
+    principal: Principal = Depends(require_permissions(["dataset:edit"]))
 ):
     return await service.update_dataset(dataset_id, data)
 
@@ -52,6 +53,6 @@ async def delete_dataset(
     dataset_id: str,
     x_workspace_id: str = Header(...),
     service: LineageService = Depends(get_lineage_service),
-    user: UserInDB = Depends(require_permissions(["dataset:delete"]))
+    principal: Principal = Depends(require_permissions(["dataset:delete"]))
 ):
     await service.delete_dataset(dataset_id)

@@ -90,7 +90,7 @@ class ExecutionCoordinator:
             # Failsafe
             return None
             
-        from flowcore.engine.context.runtime import RuntimeContext
+        from flowcore.engine.context.runtime import RuntimeContext, PreviewExecutionContext
         from flowcore.engine.runner.models import ExecutionTask
         from datetime import datetime
         import logging
@@ -121,7 +121,8 @@ class ExecutionCoordinator:
             secrets=getattr(self, 'env_secrets', {}),
             logger=logging.getLogger(f"flowcore.step.{step_id}"),
             message_stream=message_stream,
-            state=step_state
+            state=step_state,
+            preview_context=getattr(self, 'preview_context', PreviewExecutionContext())
         )
         
         return ExecutionTask(
@@ -170,11 +171,23 @@ class ExecutionCoordinator:
         else:
             self._step_outputs[step_id] = plugin_output
             if isinstance(plugin_output, dict):
-                outputs = plugin_output
+                outputs = plugin_output.copy()
             elif hasattr(plugin_output, '__dict__'):
                 outputs = plugin_output.__dict__.copy()
             else:
                 outputs = {"result": plugin_output}
+            
+            # If the engine extracted metrics or schema from a drained stream, they are in the result dict
+            if isinstance(plugin_output, dict) and plugin_output.get("status") == "drained":
+                if "metrics" in plugin_output and plugin_output["metrics"]:
+                    outputs["metrics"] = plugin_output["metrics"]
+                if "final_schema" in plugin_output and plugin_output["final_schema"]:
+                    # Ensure schema is recorded for lineage
+                    outputs["final_schema"] = plugin_output["final_schema"]
+        
+        # Capture metrics if they were attached to ExecutionResult directly
+        if hasattr(payload, 'metrics') and payload.metrics:
+            outputs["metrics"] = {**outputs.get("metrics", {}), **payload.metrics}
             
         # Capture lineage datasets
         lineage = {

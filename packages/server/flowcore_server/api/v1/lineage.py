@@ -5,6 +5,7 @@ from flowcore_server.dependencies.lineage import get_lineage_service
 from flowcore_server.dependencies.auth import get_current_user, require_permissions
 from flowcore_server.services.lineage_service import LineageService
 from flowcore_shared.schemas.auth.user import UserInDB
+from flowcore_shared.schemas.auth import Principal
 
 router = APIRouter(prefix="/lineage", tags=["lineage"])
 
@@ -13,7 +14,7 @@ async def get_dataset_lineage(
     dataset_id: str,
     x_workspace_id: str = Header(...),
     service: LineageService = Depends(get_lineage_service),
-    user: UserInDB = Depends(require_permissions(["dataset:read"]))
+    principal: Principal = Depends(require_permissions(["dataset:read"]))
 ):
     # Full recursive graph traversal
     dataset = await service.get_dataset(dataset_id)
@@ -28,7 +29,7 @@ async def get_dataset_impact(
     dataset_id: str,
     x_workspace_id: str = Header(...),
     service: LineageService = Depends(get_lineage_service),
-    user: UserInDB = Depends(require_permissions(["dataset:read"]))
+    principal: Principal = Depends(require_permissions(["dataset:read"]))
 ):
     dataset = await service.get_dataset(dataset_id)
     if not dataset or dataset.workspace_id != x_workspace_id:

@@ -75,22 +75,7 @@ export const validatePipelineGraph = (nodes: Node[], edges: Edge[]): ValidationR
       }
     });
 
-    // 4. Missing Configuration
-    nodes.forEach(n => {
-      if (n.type === 'stepNode') {
-        const config = n.data.config as any;
-        if (!config || Object.keys(config).length === 0) {
-          issues.push({
-            id: `missing_config_${n.id}`,
-            severity: 'error',
-            title: 'Missing Configuration',
-            description: 'Connector requires configuration to run.',
-            nodeId: n.id,
-            quickFix: 'open_config'
-          });
-        }
-      }
-    });
+    // 4. Missing Configuration (Removed to allow plugins with no config like test-source)
 
     // 5. Connectivity & Unused Nodes (Orphaned/Disconnected)
     nodes.forEach(n => {

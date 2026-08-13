@@ -43,6 +43,19 @@ class SlackPlugin(BasePlugin):
         context.report_input_dataset(name="sales_extracted", dataset_type="FILE")
         context.report_output_dataset(name="slack_alerts", dataset_type="API")
         
+        # Drain the message stream so transformers actually execute
+        stream = getattr(context, "message_stream", None)
+        if stream:
+            print("SLACK PLUGIN: stream is present", flush=True)
+            count = 0
+            for msg in stream:
+                count += 1
+                if hasattr(msg, 'type') and hasattr(msg, 'log') and msg.log:
+                    print(f"SLACK PLUGIN got log msg: {msg.log.message}", flush=True)
+            print(f"SLACK PLUGIN: stream fully iterated, count={count}", flush=True)
+        else:
+            print("SLACK PLUGIN: stream is NONE!", flush=True)
+        
         class MockResult:
             def __init__(self):
                 self.output = {"status": "success", "message": "Sent to Slack"}

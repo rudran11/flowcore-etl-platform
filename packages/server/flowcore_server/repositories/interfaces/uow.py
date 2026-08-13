@@ -11,7 +11,9 @@ from flowcore_server.repositories.interfaces.auth import (
     OrganizationRepository,
     WorkspaceRepository,
     RoleRepository,
-    WorkspaceMemberRepository
+    WorkspaceMemberRepository,
+    ApiKeyRepository,
+    AuditLogRepository
 )
 
 class AbstractUnitOfWork(abc.ABC):
@@ -96,4 +98,14 @@ class AbstractUnitOfWork(abc.ABC):
     @property
     @abc.abstractmethod
     def lineage(self) -> 'AbstractLineageRepository':
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def api_keys(self) -> 'ApiKeyRepository':
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def audit_logs(self) -> 'AuditLogRepository':
         raise NotImplementedError

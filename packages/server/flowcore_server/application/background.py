@@ -38,3 +38,17 @@ class FastAPIBackgroundStrategy:
     def shutdown(self) -> None:
         # FastAPI handles graceful shutdown of internal background tasks automatically
         pass
+
+import asyncio
+
+class AsyncioBackgroundStrategy(BackgroundExecutionStrategy):
+    """
+    Implementation of BackgroundExecutionStrategy that uses pure asyncio tasks.
+    Useful for background daemons like schedulers where no HTTP Request/BackgroundTasks exist.
+    """
+    def submit(self, run_id: str, func: Callable, *args: Any, **kwargs: Any) -> TaskHandle:
+        asyncio.create_task(func(*args, **kwargs))
+        return TaskHandle(task_id=f"asyncio-task-{run_id}")
+        
+    def shutdown(self) -> None:
+        pass

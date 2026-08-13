@@ -12,14 +12,8 @@ interface SchemaFormProps {
 export const SchemaForm: React.FC<SchemaFormProps> = ({ schema, formData, onChange, setIsValid }) => {
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
   
-  if (!schema || !schema.properties) {
-    // If no schema, valid by default
-    React.useEffect(() => { setIsValid?.(true); }, [setIsValid]);
-    return <div className="text-sm text-muted-foreground p-4">No configuration schema available.</div>;
-  }
-
-  const properties = schema.properties;
-  const requiredFields = schema.required || [];
+  const properties = schema?.properties || {};
+  const requiredFields = schema?.required || [];
   
   let hasErrors = false;
 
@@ -135,12 +129,21 @@ export const SchemaForm: React.FC<SchemaFormProps> = ({ schema, formData, onChan
 
   const fields = renderFields();
   
+  // Unconditionally called useEffect
   React.useEffect(() => {
-    setIsValid?.(!hasErrors);
-  }, [hasErrors, setIsValid]);
+    if (!schema || !schema.properties) {
+      setIsValid?.(true);
+    } else {
+      setIsValid?.(!hasErrors);
+    }
+  }, [schema, hasErrors, setIsValid]);
+
+  if (!schema || !schema.properties) {
+    return <div className="text-sm text-muted-foreground p-4">No configuration schema available.</div>;
+  }
 
   return (
-    <div className="space-y-5 p-4">
+    <div className="space-y-6 p-4">
       {fields}
     </div>
   );

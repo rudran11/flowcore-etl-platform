@@ -10,6 +10,7 @@ from flowcore.engine.plugins.manager import PluginManager
 from flowcore.engine.executor.base import AbstractExecutor
 from flowcore.engine.executor.models import ExecutionResult
 from flowcore_shared.plugins.cdk.messages import FlowCoreMessage, MessageType
+from flowcore_shared.schemas.base.enums import ExecutionState
 from .models import ExecutionTask
 from .events import ExecutionEventType
 
@@ -68,6 +69,8 @@ class EngineRunner:
             # 4. Enforce timeouts on running tasks
             # FUTURE ENHANCEMENT: Enforce timeout logic here by inspecting duration
             # Currently just relying on the executor or native cancellation mechanisms.
+            
+        return self.coordinator._run
 
     def _submit_available_tasks(self) -> None:
         """Drains the coordinator's available tasks and submits them to the executor."""
@@ -86,17 +89,98 @@ class EngineRunner:
             def _execute_and_drain(plugin_instance, context, terminal: bool, pipeline_id: str, step_id: str):
                 result = plugin_instance.execute(context)
                 
+                metrics = {}
+                final_schema = None
+                
+                # Preview tracking
+                preview_records = []
+                preview_schema = None
+                preview_errors = []
+                is_preview = context.preview_context.is_preview
+                limit = context.preview_context.record_limit
+                cancellation_event = context.preview_context.cancellation_event
+                
+                print(f"[PREVIEW DEBUG] Processing step {step_id}, is_preview: {is_preview}")
+                
                 import inspect
-                if terminal and (inspect.isgenerator(result) or (hasattr(result, '__iter__') and not isinstance(result, (dict, list, str, tuple, set)))):
-                    for msg in result:
-                        if isinstance(msg, FlowCoreMessage):
-                            if msg.type == MessageType.STATE and msg.state and self.state_store:
-                                # Currently we associate state with the source's step_id, but the pipeline_id is known.
-                                # Since the generator bubbled up, we persist it under the pipeline_id.
-                                # (In a real system, state might track which source step it belongs to)
+                if terminal:
+                    if inspect.isgenerator(result) or (hasattr(result, '__iter__') and not isinstance(result, (dict, list, str, tuple, set))):
+                        for msg in result:
+                            if cancellation_event.is_set():
+                                break
+                                
+                            if getattr(msg, 'type', None) == MessageType.STATE and getattr(msg, 'state', None) and self.state_store:
                                 self.state_store.set_state(pipeline_id, step_id, msg.state.state_data)
-                    return {"status": "drained"}
-                return result
+                            elif getattr(msg, 'type', None) == MessageType.SCHEMA and getattr(msg, 'schema_info', None):
+                                final_schema = msg.schema_info.schema_data
+                                if is_preview:
+                                    preview_schema = final_schema
+                            elif getattr(msg, 'type', None) == MessageType.LOG and getattr(msg, 'log', None):
+                                if "metrics:" in msg.log.message:
+                                    metrics[msg.log.message.split("metrics:")[0].strip()] = msg.log.message.split("metrics:")[1].strip()
+                                elif is_preview and getattr(msg.log, 'level', 'INFO') == 'ERROR':
+                                    preview_errors.append(msg.log.message)
+                            elif getattr(msg, 'type', None) == MessageType.RECORD and getattr(msg, 'record', None):
+                                if is_preview:
+                                    if len(preview_records) < limit:
+                                        preview_records.append(msg.record.data)
+                                    else:
+                                        cancellation_event.set()
+                                        break
+                                        
+                        # Update step state with preview data if applicable
+                        if is_preview and self.coordinator._run and step_id in self.coordinator._run.steps:
+                            step_run = self.coordinator._run.steps[step_id]
+                            print(f"[PREVIEW DEBUG] Terminal node {step_id} drained {len(preview_records)} records")
+                            new_outputs = {
+                                **step_run.outputs, 
+                                "metrics": {**(step_run.outputs.get("metrics") or {}), **metrics},
+                                "_preview_records": preview_records,
+                                "_preview_schema": preview_schema,
+                                "_preview_errors": preview_errors
+                            }
+                            self.coordinator._run.steps[step_id] = step_run.model_copy(update={"outputs": new_outputs})
+                            
+                        return {"status": "drained", "metrics": metrics, "final_schema": final_schema, "_preview_records": preview_records}
+                    return result
+                else:
+                    if inspect.isgenerator(result) or (hasattr(result, '__iter__') and not isinstance(result, (dict, list, str, tuple, set))):
+                        def intercepting_generator():
+                            for msg in result:
+                                if cancellation_event.is_set():
+                                    break
+                                    
+                                if getattr(msg, 'type', None) == MessageType.SCHEMA and getattr(msg, 'schema_info', None) and is_preview:
+                                    preview_schema = msg.schema_info.schema_data
+                                elif getattr(msg, 'type', None) == MessageType.LOG and getattr(msg, 'log', None):
+                                    if "metrics:" in msg.log.message:
+                                        k = msg.log.message.split("metrics:")[0].strip()
+                                        v = msg.log.message.split("metrics:")[1].strip()
+                                        metrics[k] = v
+                                    elif is_preview and getattr(msg.log, 'level', 'INFO') == 'ERROR':
+                                        preview_errors.append(msg.log.message)
+                                elif getattr(msg, 'type', None) == MessageType.RECORD and getattr(msg, 'record', None) and is_preview:
+                                    if len(preview_records) < limit:
+                                        preview_records.append(msg.record.data)
+                                        
+                                yield msg
+                                
+                            if is_preview and self.coordinator._run and step_id in self.coordinator._run.steps:
+                                step_run = self.coordinator._run.steps[step_id]
+                                print(f"[PREVIEW DEBUG] Non-terminal node {step_id} intercepted {len(preview_records)} records")
+                                new_outputs = {
+                                    **step_run.outputs, 
+                                    "metrics": {**(step_run.outputs.get("metrics") or {}), **metrics},
+                                    "_preview_records": preview_records,
+                                    "_preview_schema": preview_schema,
+                                    "_preview_errors": preview_errors
+                                }
+                                self.coordinator._run.steps[step_id] = step_run.model_copy(update={"outputs": new_outputs})
+                                if self.coordinator.state_change_callback:
+                                    self.coordinator.state_change_callback()
+                                    
+                        return intercepting_generator()
+                    return result
 
             # Submit to executor
             future = self.executor.submit(
@@ -123,8 +207,14 @@ class EngineRunner:
             if result.success:
                 self.coordinator.handle_event(ExecutionEventType.TASK_COMPLETED, task, payload=result)
             else:
+                import traceback
+                if result.exception:
+                    print(f"[PREVIEW DEBUG] Task {task.step_id} failed natively with error: {str(result.exception)}")
                 self.coordinator.handle_event(ExecutionEventType.TASK_FAILED, task, payload=result.exception)
                 
         except Exception as e:
             # Trapping any unexpected exceptions from the future itself
+            import traceback
+            traceback.print_exc()
+            print(f"[PREVIEW DEBUG] Task {task.step_id} failed with error: {str(e)}")
             self.coordinator.handle_event(ExecutionEventType.TASK_FAILED, task, payload=e)

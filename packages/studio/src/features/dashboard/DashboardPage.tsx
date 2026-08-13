@@ -5,7 +5,7 @@ import { useDatasets } from '../datasets/hooks/useDatasets';
 import { DashboardCard } from './components/DashboardCard';
 import { ExecutionTrendChart } from './components/ExecutionTrendChart';
 import { ExecutionTable } from '../executions/components/ExecutionTable';
-import { Activity, Clock, PlayCircle, ServerCog, AlertOctagon, Database, Sparkles, ArrowRight } from 'lucide-react';
+import { Activity, Clock, PlayCircle, ServerCog, AlertOctagon, Database, ArrowRight } from 'lucide-react';
 import { Skeleton } from '../../components/ui/skeleton';
 import { Button } from '../../components/ui/button';
 import { toast } from 'sonner';
@@ -78,60 +78,54 @@ export const DashboardPage: React.FC = () => {
       animate="show"
       className="p-6 md:p-8 max-w-[1400px] mx-auto space-y-8"
     >
-      {/* Hero Section */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border border-primary/10 p-8 sm:p-10">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+      {/* Operational Control Center Header */}
+      <div className="relative overflow-hidden rounded-xl bg-card border border-border shadow-surface p-6 sm:p-8">
+        <div className="absolute inset-0 bg-dot-topology opacity-30 pointer-events-none" />
+        <div className="relative z-10 flex flex-col md:flex-row md:items-start justify-between gap-6">
           <div className="space-y-4 max-w-2xl">
-            <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary backdrop-blur-sm">
-              <Sparkles className="mr-2 h-3 w-3" />
-              FlowCore Studio v1.0
-            </div>
-            <h1 className="text-4xl font-bold tracking-tight text-foreground">
-              Welcome back to your Workspace
+            <h1 className="text-2xl font-bold tracking-tight text-foreground uppercase">
+              Platform Health & Telemetry
             </h1>
-            <p className="text-muted-foreground text-lg leading-relaxed">
-              You have <span className="font-medium text-foreground">{data.statistics.total_pipelines} active pipelines</span> and <span className="font-medium text-foreground">{datasets?.length || 0} datasets</span> registered. System health is optimal with a {(metrics?.success_rate ? metrics.success_rate * 100 : 98).toFixed(1)}% execution success rate today.
+            <p className="text-muted-foreground text-sm leading-relaxed max-w-lg">
+              System health is optimal. Currently monitoring <span className="font-medium text-foreground">{data.statistics.total_pipelines} active pipelines</span> and <span className="font-medium text-foreground">{datasets?.length || 0} registered datasets</span>. Overall execution success rate is <span className="font-mono text-foreground">{(metrics?.success_rate ? metrics.success_rate * 100 : 98).toFixed(1)}%</span> today.
             </p>
             <div className="flex items-center gap-3 pt-2">
-              <Button onClick={() => navigate('/pipelines')} className="shadow-md">
-                View Pipelines <ArrowRight className="ml-2 h-4 w-4" />
+              <Button onClick={() => navigate('/pipelines')} size="sm" className="shadow-surface font-semibold">
+                Configure Pipelines
               </Button>
-              <Button variant="outline" onClick={() => navigate('/runs')} className="bg-background/50 backdrop-blur">
-                Recent Executions
+              <Button variant="outline" size="sm" onClick={() => navigate('/runs')} className="bg-background font-semibold">
+                Trace Executions
               </Button>
             </div>
           </div>
           
-          <div className="hidden lg:flex flex-col gap-3 p-6 rounded-xl bg-background/50 border border-border/50 backdrop-blur-sm min-w-[280px]">
-            <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-1">System Status</h3>
+          <div className="flex flex-col gap-3 p-5 rounded-lg bg-accent/20 border border-border shadow-sm min-w-[280px]">
+            <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">Core Engine Status</h3>
             {data.health.server === 'healthy' ? (
-              <div className="flex items-center text-sm font-medium text-emerald-500 bg-emerald-500/10 py-2 px-3 rounded-md border border-emerald-500/20">
+              <div className="flex items-center text-sm font-semibold text-status-success">
                 <span className="relative flex h-2 w-2 mr-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-success opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-status-success"></span>
                 </span>
-                Core Engine Online
+                Online & Accepting Jobs
               </div>
             ) : (
-              <div className="flex items-center text-sm font-medium text-destructive bg-destructive/10 py-2 px-3 rounded-md border border-destructive/20">
-                <span className="relative flex h-2 w-2 mr-3 rounded-full bg-destructive"></span>
+              <div className="flex items-center text-sm font-semibold text-status-error">
+                <span className="relative flex h-2 w-2 mr-3 rounded-full bg-status-error"></span>
                 System Offline
               </div>
             )}
-            <div className="flex items-center justify-between text-sm py-1">
+            <div className="w-full h-px bg-border my-1" />
+            <div className="flex items-center justify-between text-[11px] font-mono py-1">
               <span className="text-muted-foreground">Queue Length</span>
-              <span className="font-medium">{metrics?.queue_length ?? 0}</span>
+              <span className="font-bold text-foreground">{metrics?.queue_length ?? 0}</span>
             </div>
-            <div className="flex items-center justify-between text-sm py-1">
+            <div className="flex items-center justify-between text-[11px] font-mono py-1">
               <span className="text-muted-foreground">Scheduler</span>
-              <span className="font-medium text-emerald-500">Active</span>
+              <span className="font-bold text-status-success">ACTIVE</span>
             </div>
           </div>
         </div>
-        
-        {/* Decorative background elements */}
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute -bottom-32 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-purple-500/10 blur-3xl" />
       </div>
       
       {/* Primary KPI Grid */}

@@ -10,7 +10,7 @@ import { useAuthStore } from '../../stores/authStore';
 
 
 const navItems = [
-  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/pipelines', label: 'Pipelines', icon: GitMerge },
   { path: '/environments', label: 'Environments', icon: Server },
   { path: '/datasets', label: 'Data Catalog', icon: Database },
@@ -27,17 +27,17 @@ export const Sidebar: React.FC = () => {
   return (
     <div
       className={cn(
-        "relative flex flex-col border-r bg-card transition-all duration-300 border-border/50",
+        "relative flex flex-col border-r bg-card transition-all duration-300 border-border shadow-sm z-20",
         isCollapsed ? "w-[72px]" : "w-[240px]"
       )}
     >
       <div className="flex h-[52px] items-center justify-between border-b border-border/50 px-4">
         {!isCollapsed && (
           <div className="flex items-center gap-2 font-semibold tracking-tight text-foreground">
-            <div className="flex h-6 w-6 items-center justify-center rounded bg-primary text-primary-foreground shadow-sm">
+            <div className="flex h-6 w-6 items-center justify-center rounded bg-primary text-primary-foreground shadow-surface">
               <Box className="h-4 w-4" />
             </div>
-            <span className="text-[14px]">FlowCore</span>
+            <span className="text-[14px] font-mono tracking-tight font-bold">FLOWCORE</span>
           </div>
         )}
         {isCollapsed && (
@@ -65,9 +65,9 @@ export const Sidebar: React.FC = () => {
                     to={item.path}
                     className={({ isActive }) =>
                       cn(
-                        "flex items-center gap-3 rounded-md px-3 py-2 text-[13px] font-medium transition-colors group relative overflow-hidden",
+                        "flex items-center gap-3 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-all group relative overflow-hidden",
                         isActive
-                          ? "bg-accent/70 text-foreground font-semibold"
+                          ? "bg-accent text-foreground font-semibold shadow-surface"
                           : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
                         isCollapsed && "justify-center px-0 py-2.5"
                       )

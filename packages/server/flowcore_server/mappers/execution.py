@@ -46,6 +46,7 @@ def map_execution_to_response(run: ExecutionRun, outputs: Optional[Dict[str, Any
         duration_ms=duration_ms,
         error=run.error_message or error,
         outputs=run.outputs or outputs or {},
+        parameters={"trigger_type": getattr(run, "trigger_type", "MANUAL")},
         steps=mapped_steps,
         links=links
     )

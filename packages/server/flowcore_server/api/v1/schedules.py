@@ -4,25 +4,18 @@ from flowcore_server.models.schedule import Schedule, ScheduleCreate, ScheduleUp
 from flowcore_server.services.scheduler import SchedulerService
 from flowcore_server.repositories.factory import RepositoryFactory
 from flowcore_server.repositories.interfaces.uow import AbstractUnitOfWork
-from flowcore_server.dependencies.auth import require_permissions, UserInDB
+from flowcore_server.dependencies.auth import require_permissions
+from flowcore_shared.schemas.auth import Principal
+from flowcore_shared.schemas.auth import UserInDB, Principal
 
 router = APIRouter(prefix="/schedules", tags=["Schedules"])
 
-def get_uow() -> AbstractUnitOfWork:
-    factory = RepositoryFactory(use_postgres=True)
-    return factory.get_unit_of_work()
-
-def get_scheduler_service(uow: AbstractUnitOfWork = Depends(get_uow)) -> SchedulerService:
-    # Normally this would be a singleton, but for this MVP we'll instantiate it here.
-    # It will use the same APScheduler instance under the hood if it's singleton-like,
-    # but AsyncIOScheduler instances are independent.
-    # We should have initialized this at app startup, but this will do for basic CRUD.
-    return SchedulerService(uow)
+from flowcore_server.dependencies.core import get_scheduler_service
 
 @router.get("/metrics", response_model=SchedulerMetrics, summary="Get scheduler metrics")
 async def get_metrics(
     service: SchedulerService = Depends(get_scheduler_service),
-    user: UserInDB = Depends(require_permissions([]))
+    principal: Principal = Depends(require_permissions([]))
 ):
     # Mock metrics for now, as we don't have historical data or queue systems implemented yet
     from datetime import datetime
@@ -39,7 +32,7 @@ async def get_metrics(
 async def create_schedule(
     schedule_in: ScheduleCreate,
     service: SchedulerService = Depends(get_scheduler_service),
-    user: UserInDB = Depends(require_permissions(["schedule:create"]))
+    principal: Principal = Depends(require_permissions(["schedule:create"]))
 ):
     return await service.create_schedule(schedule_in)
 
@@ -48,7 +41,7 @@ async def list_schedules(
     skip: int = 0,
     limit: int = 100,
     service: SchedulerService = Depends(get_scheduler_service),
-    user: UserInDB = Depends(require_permissions([]))
+    principal: Principal = Depends(require_permissions([]))
 ):
     return await service.list_schedules(skip=skip, limit=limit)
 
@@ -56,7 +49,7 @@ async def list_schedules(
 async def get_schedule(
     schedule_id: str,
     service: SchedulerService = Depends(get_scheduler_service),
-    user: UserInDB = Depends(require_permissions([]))
+    principal: Principal = Depends(require_permissions([]))
 ):
     schedule = await service.get_schedule(schedule_id)
     if not schedule:
@@ -68,7 +61,7 @@ async def update_schedule(
     schedule_id: str,
     schedule_in: ScheduleUpdate,
     service: SchedulerService = Depends(get_scheduler_service),
-    user: UserInDB = Depends(require_permissions(["schedule:update"]))
+    principal: Principal = Depends(require_permissions(["schedule:update"]))
 ):
     schedule = await service.update_schedule(schedule_id, schedule_in)
     if not schedule:
@@ -79,7 +72,7 @@ async def update_schedule(
 async def delete_schedule(
     schedule_id: str,
     service: SchedulerService = Depends(get_scheduler_service),
-    user: UserInDB = Depends(require_permissions(["schedule:update"]))
+    principal: Principal = Depends(require_permissions(["schedule:update"]))
 ):
     success = await service.delete_schedule(schedule_id)
     if not success:
@@ -89,7 +82,7 @@ async def delete_schedule(
 async def pause_schedule(
     schedule_id: str,
     service: SchedulerService = Depends(get_scheduler_service),
-    user: UserInDB = Depends(require_permissions(["schedule:update"]))
+    principal: Principal = Depends(require_permissions(["schedule:update"]))
 ):
     schedule = await service.pause_schedule(schedule_id)
     if not schedule:
@@ -100,7 +93,7 @@ async def pause_schedule(
 async def resume_schedule(
     schedule_id: str,
     service: SchedulerService = Depends(get_scheduler_service),
-    user: UserInDB = Depends(require_permissions(["schedule:update"]))
+    principal: Principal = Depends(require_permissions(["schedule:update"]))
 ):
     schedule = await service.resume_schedule(schedule_id)
     if not schedule:
@@ -111,7 +104,7 @@ async def resume_schedule(
 async def trigger_schedule(
     schedule_id: str,
     service: SchedulerService = Depends(get_scheduler_service),
-    user: UserInDB = Depends(require_permissions(["schedule:update"]))
+    principal: Principal = Depends(require_permissions(["schedule:update"]))
 ):
     success = await service.trigger_now(schedule_id)
     if not success:

@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { Database, File, Cloud, LayoutGrid, List as ListIcon, Search, AlertCircle, DatabaseBackup } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
+import { EmptyState } from '../../components/ui/empty-state';
+import { IllustrationNoDatasets } from '../../components/ui/FlowCoreIllustrations';
 
 export const DatasetsPage: React.FC = () => {
   const { data: datasets, isLoading, error } = useDatasets();
@@ -59,11 +61,11 @@ export const DatasetsPage: React.FC = () => {
   return (
     <div className="p-8 h-full overflow-auto space-y-6">
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-2">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
           <Database className="h-8 w-8 text-primary" />
           Data Catalog
         </h1>
-        <p className="text-slate-400">
+        <p className="text-muted-foreground">
           Discover, understand, and manage your organization's data assets.
         </p>
       </div>
@@ -97,11 +99,11 @@ export const DatasetsPage: React.FC = () => {
       </div>
 
       {filteredDatasets.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-slate-500 border border-dashed border-white/10 rounded-xl">
-          <Database className="h-16 w-16 mb-4 opacity-50" />
-          <p className="text-lg font-medium">No datasets found</p>
-          <p className="text-sm">Try adjusting your search criteria</p>
-        </div>
+        <EmptyState
+          illustration={<IllustrationNoDatasets className="w-full h-full text-primary" />}
+          title="No datasets found"
+          description={searchQuery ? `No datasets match "${searchQuery}".` : "Your data catalog is currently empty."}
+        />
       ) : (
         <motion.div 
           className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" : "flex flex-col gap-4"}

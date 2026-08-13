@@ -2,7 +2,9 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status, Header
 from pydantic import BaseModel
 
-from flowcore_server.dependencies.auth import require_permissions, UserInDB
+from flowcore_server.dependencies.auth import require_permissions
+from flowcore_shared.schemas.auth import Principal
+from flowcore_shared.schemas.auth import UserInDB, Principal
 from flowcore_server.dependencies.core import get_uow
 from flowcore_server.repositories.interfaces.uow import AbstractUnitOfWork
 from flowcore_server.services.environment_service import EnvironmentService
@@ -17,7 +19,7 @@ router = APIRouter(prefix="/environments", tags=["Environments"])
 @router.get("", response_model=List[Environment])
 async def list_environments(
     x_workspace_id: str = Header(...),
-    user: UserInDB = Depends(require_permissions(["environment:view"])),
+    principal: Principal = Depends(require_permissions(["environment:view"])),
     uow: AbstractUnitOfWork = Depends(get_uow)
 ):
     async with uow:
@@ -29,7 +31,7 @@ import uuid
 async def create_environment(
     data: EnvironmentCreate,
     x_workspace_id: str = Header(...),
-    user: UserInDB = Depends(require_permissions(["environment:edit"])),
+    principal: Principal = Depends(require_permissions(["environment:edit"])),
     uow: AbstractUnitOfWork = Depends(get_uow)
 ):
     async with uow:
@@ -46,7 +48,7 @@ async def create_environment(
 async def get_environment(
     environment_id: str,
     x_workspace_id: str = Header(...),
-    user: UserInDB = Depends(require_permissions(["environment:view"])),
+    principal: Principal = Depends(require_permissions(["environment:view"])),
     uow: AbstractUnitOfWork = Depends(get_uow)
 ):
     async with uow:
@@ -60,7 +62,7 @@ async def update_environment(
     environment_id: str,
     data: EnvironmentUpdate,
     x_workspace_id: str = Header(...),
-    user: UserInDB = Depends(require_permissions(["environment:edit"])),
+    principal: Principal = Depends(require_permissions(["environment:edit"])),
     uow: AbstractUnitOfWork = Depends(get_uow)
 ):
     async with uow:
@@ -78,7 +80,7 @@ async def update_environment(
 async def delete_environment(
     environment_id: str,
     x_workspace_id: str = Header(...),
-    user: UserInDB = Depends(require_permissions(["environment:edit"])),
+    principal: Principal = Depends(require_permissions(["environment:edit"])),
     uow: AbstractUnitOfWork = Depends(get_uow)
 ):
     async with uow:
@@ -93,7 +95,7 @@ async def add_variable(
     environment_id: str,
     data: EnvironmentVariableCreate,
     x_workspace_id: str = Header(...),
-    user: UserInDB = Depends(require_permissions(["environment:edit"])),
+    principal: Principal = Depends(require_permissions(["environment:edit"])),
     uow: AbstractUnitOfWork = Depends(get_uow)
 ):
     if data.is_secret:
@@ -117,7 +119,7 @@ async def update_variable(
     variable_id: str,
     data: EnvironmentVariableUpdate,
     x_workspace_id: str = Header(...),
-    user: UserInDB = Depends(require_permissions(["environment:edit"])),
+    principal: Principal = Depends(require_permissions(["environment:edit"])),
     uow: AbstractUnitOfWork = Depends(get_uow)
 ):
     async with uow:
@@ -134,7 +136,7 @@ async def delete_variable(
     environment_id: str,
     variable_id: str,
     x_workspace_id: str = Header(...),
-    user: UserInDB = Depends(require_permissions(["environment:edit"])),
+    principal: Principal = Depends(require_permissions(["environment:edit"])),
     uow: AbstractUnitOfWork = Depends(get_uow)
 ):
     async with uow:
@@ -153,7 +155,7 @@ async def clone_environment(
     environment_id: str,
     data: CloneRequest,
     x_workspace_id: str = Header(...),
-    user: UserInDB = Depends(require_permissions(["environment:edit"])),
+    principal: Principal = Depends(require_permissions(["environment:edit"])),
     uow: AbstractUnitOfWork = Depends(get_uow)
 ):
     async with uow:
@@ -172,7 +174,7 @@ async def import_env(
     environment_id: str,
     data: ImportRequest,
     x_workspace_id: str = Header(...),
-    user: UserInDB = Depends(require_permissions(["environment:edit"])),
+    principal: Principal = Depends(require_permissions(["environment:edit"])),
     uow: AbstractUnitOfWork = Depends(get_uow)
 ):
     async with uow:
@@ -188,7 +190,7 @@ async def import_env(
 async def export_env(
     environment_id: str,
     x_workspace_id: str = Header(...),
-    user: UserInDB = Depends(require_permissions(["environment:view"])),
+    principal: Principal = Depends(require_permissions(["environment:view"])),
     uow: AbstractUnitOfWork = Depends(get_uow)
 ):
     async with uow:
@@ -204,7 +206,7 @@ async def export_env(
 async def bind_pipeline(
     data: PipelineEnvironmentBinding,
     x_workspace_id: str = Header(...),
-    user: UserInDB = Depends(require_permissions(["environment:edit"])),
+    principal: Principal = Depends(require_permissions(["environment:edit"])),
     uow: AbstractUnitOfWork = Depends(get_uow)
 ):
     async with uow:
@@ -216,7 +218,7 @@ async def bind_pipeline(
 async def unbind_pipeline(
     data: PipelineEnvironmentBinding,
     x_workspace_id: str = Header(...),
-    user: UserInDB = Depends(require_permissions(["environment:edit"])),
+    principal: Principal = Depends(require_permissions(["environment:edit"])),
     uow: AbstractUnitOfWork = Depends(get_uow)
 ):
     async with uow:

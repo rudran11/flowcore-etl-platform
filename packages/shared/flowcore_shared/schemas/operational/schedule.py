@@ -29,8 +29,17 @@ class ScheduleBase(BaseModel):
     holiday_calendar: Optional[str] = None # e.g. 'US', 'UK'
     blackout_windows: Optional[list] = None # List of time ranges
 
-class ScheduleCreate(ScheduleBase):
-    pass
+class ScheduleCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    pipeline_id: str
+    type: ScheduleType
+    expression: Optional[str] = None
+    timezone: str = "UTC"
+    max_retries: int = 0
+    retry_delay_seconds: int = 300
+    holiday_calendar: Optional[str] = None
+    blackout_windows: Optional[list] = None
 
 class ScheduleUpdate(BaseModel):
     name: Optional[str] = None
@@ -39,6 +48,8 @@ class ScheduleUpdate(BaseModel):
     expression: Optional[str] = None
     timezone: Optional[str] = None
     status: Optional[ScheduleStatus] = None
+    next_run_at: Optional[datetime] = None
+    last_run_at: Optional[datetime] = None
 
 class Schedule(ScheduleBase):
     id: str

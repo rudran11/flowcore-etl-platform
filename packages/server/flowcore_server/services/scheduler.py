@@ -1,6 +1,6 @@
 import logging
 from typing import List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
@@ -11,12 +11,21 @@ from flowcore_shared.schemas.operational.schedule import (
 )
 from flowcore_server.repositories.interfaces.uow import AbstractUnitOfWork
 
+from flowcore_server.dependencies.context import workspace_context
+
 logger = logging.getLogger(__name__)
 
 class SchedulerService:
-    def __init__(self, uow: AbstractUnitOfWork):
+    def __init__(self, uow: AbstractUnitOfWork, execution_service: Optional[Any] = None):
         self.uow = uow
-        self.scheduler = AsyncIOScheduler()
+        self.execution_service = execution_service
+        self.scheduler = AsyncIOScheduler(
+            job_defaults={
+                'coalesce': True,
+                'max_instances': 1,
+                'misfire_grace_time': 300
+            }
+        )
         
     def start(self):
         if not self.scheduler.running:
@@ -28,31 +37,61 @@ class SchedulerService:
             self.scheduler.shutdown(wait=False)
             logger.info("Scheduler shut down.")
 
-    async def _execute_pipeline_job(self, schedule_id: str, pipeline_id: str):
+    async def _execute_pipeline_job(self, schedule_id: str, pipeline_id: str, workspace_id: str, manual: bool = False):
         """
         Job executed by APScheduler.
-        It enqueues a pipeline execution using the ExecutionService logic,
-        but since we are inside the SchedulerService, we'll just interact with the UoW directly
-        or ideally call ExecutionService. 
-        For now, let's just create an execution run in the DB.
+        It enqueues a pipeline execution using the ExecutionService.
         """
-        logger.info(f"Executing scheduled job for schedule_id={schedule_id}")
-        async with self.uow:
-            schedule = await self.uow.schedules.get_schedule(schedule_id)
-            if not schedule or schedule.status != ScheduleStatus.ACTIVE:
-                logger.warning(f"Schedule {schedule_id} is not active or found. Skipping.")
-                return
+        logger.info(f"Executing scheduled job for schedule_id={schedule_id} in workspace {workspace_id}")
+        
+        token = workspace_context.set(str(workspace_id))
+        try:
+            async with self.uow:
+                schedule = await self.uow.schedules.get_schedule(schedule_id)
+                if not schedule:
+                    logger.warning(f"Schedule {schedule_id} not found. Skipping.")
+                    return
+                if schedule.status != ScheduleStatus.ACTIVE and not manual:
+                    logger.warning(f"Schedule {schedule_id} is not active. Skipping.")
+                    return
 
-            # Note: We would ideally use the ExecutionService here. 
-            # We'll need a way to trigger pipelines properly, perhaps by importing it or via HTTP.
-            # For this MVP, we'll log it, and maybe update the last_run_at of the schedule.
+                if not self.execution_service:
+                    logger.error("ExecutionService not injected into SchedulerService!")
+                    return
+                
+                pipeline = await self.uow.pipelines.get_pipeline(pipeline_id)
+                if not pipeline:
+                    logger.error(f"Pipeline {pipeline_id} not found. Skipping execution.")
+                    return
+                    
+                versions = await self.uow.pipelines.list_pipeline_versions(pipeline_id)
+                if not versions:
+                    logger.error(f"No versions found for pipeline {pipeline_id}. Skipping execution.")
+                    return
             
-            # Update last_run_at
-            update_data = ScheduleUpdate(last_run_at=datetime.utcnow())
-            await self.uow.schedules.update_schedule(schedule_id, update_data)
-            await self.uow.commit()
+            trigger_type = "MANUAL" if manual else "SCHEDULED"
+            run = await self.execution_service.start_execution(
+                pipeline_id=pipeline_id,
+                version=versions[0].version,
+                trigger_type=trigger_type,
+                parameters={"schedule_id": schedule_id}
+            )
             
-            logger.info(f"Triggered execution for schedule {schedule_id}")
+            async with self.uow:
+                await self.uow.schedules.create_run_history(
+                    schedule_id=schedule_id,
+                    execution_id=run.id,
+                    status=run.status.value
+                )
+                
+                await self.uow.schedules.update_last_run_at(schedule_id, datetime.now(timezone.utc))
+                await self.uow.commit()
+                
+                logger.info(f"Triggered execution {run.id} for schedule {schedule_id}")
+        except Exception as e:
+            logger.error(f"Error executing scheduled job {schedule_id}: {str(e)}", exc_info=True)
+        finally:
+            workspace_context.reset(token)
 
     def _add_job_to_scheduler(self, schedule: Schedule):
         """Add a job to APScheduler based on Schedule entity"""
@@ -98,18 +137,28 @@ class SchedulerService:
                 self._execute_pipeline_job,
                 trigger=trigger,
                 id=job_id,
-                args=[schedule.id, schedule.pipeline_id]
+                args=[schedule.id, schedule.pipeline_id, str(schedule.workspace_id), False]
             )
             logger.info(f"Added job {job_id} to scheduler.")
 
     async def initialize_schedules(self):
         """Load all active schedules from DB and add to APScheduler"""
         self.start()
+        
+        from sqlalchemy.future import select
+        from flowcore_server.db.models import Schedule as OrmSchedule
+        from flowcore_server.repositories.mappers.schedule import map_orm_to_schedule
+        
         async with self.uow:
-            schedules = await self.uow.schedules.list_schedules(limit=1000)
-            for schedule in schedules:
-                if schedule.status == ScheduleStatus.ACTIVE:
-                    self._add_job_to_scheduler(schedule)
+            stmt = select(OrmSchedule).where(OrmSchedule.status == ScheduleStatus.ACTIVE.value)
+            result = await self.uow.session.execute(stmt)
+            orm_schedules = result.scalars().all()
+            
+            for obj in orm_schedules:
+                schedule = map_orm_to_schedule(obj)
+                self._add_job_to_scheduler(schedule)
+                
+            logger.info(f"Initialized {len(orm_schedules)} active schedules across all workspaces.")
                     
     async def get_schedule(self, schedule_id: str) -> Optional[Schedule]:
         async with self.uow:
@@ -162,6 +211,6 @@ class SchedulerService:
         self.scheduler.add_job(
             self._execute_pipeline_job,
             id=f"{schedule_id}_manual_{datetime.utcnow().timestamp()}",
-            args=[schedule.id, schedule.pipeline_id]
+            args=[schedule.id, schedule.pipeline_id, str(schedule.workspace_id), True]
         )
         return True

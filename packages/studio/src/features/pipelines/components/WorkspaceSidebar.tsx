@@ -7,13 +7,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '../../../components/ui/input';
 
 interface SidebarItemProps {
-  icon: React.ElementType;
+  icon: React.ComponentType<any>;
   label: string;
   count?: number;
   isActive?: boolean;
   onClick?: () => void;
   className?: string;
-  actionIcon?: React.ElementType;
+  actionIcon?: React.ComponentType<any>;
   onAction?: () => void;
 }
 

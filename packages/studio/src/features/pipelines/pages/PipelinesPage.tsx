@@ -9,6 +9,7 @@ import { Button } from '../../../components/ui/button';
 import { ChevronLeft, ChevronRight, Filter, GitMerge, Plus, LayoutGrid, List } from 'lucide-react';
 import { PageHeader } from '../../../components/ui/page-header';
 import { EmptyState } from '../../../components/ui/empty-state';
+import { IllustrationNoPipelines } from '../../../components/ui/FlowCoreIllustrations';
 import { toast } from 'sonner';
 import { Skeleton } from '../../../components/ui/skeleton';
 import { CreatePipelineDialog } from '../components/CreatePipelineDialog';
@@ -164,7 +165,7 @@ export const PipelinesPage: React.FC = () => {
             </div>
           ) : data?.items?.length === 0 ? (
             <EmptyState
-              icon={GitMerge}
+              illustration={<IllustrationNoPipelines className="w-full h-full text-primary" />}
               title="No pipelines found"
               description="You don't have any data pipelines matching your query in this view."
               action={

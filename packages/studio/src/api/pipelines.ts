@@ -40,6 +40,11 @@ export const pipelinesApi = {
     return data;
   },
 
+  previewPipeline: async (payload: { pipeline: any; preview_node_id: string; limit: number }) => {
+    const { data } = await apiClient.post(`/pipelines/preview`, payload);
+    return data;
+  },
+
   toggleFavorite: async (pipelineId: string, is_favorite: boolean) => {
     const { data } = await apiClient.post(`/pipelines/${pipelineId}/favorite`, null, {
       params: { is_favorite }

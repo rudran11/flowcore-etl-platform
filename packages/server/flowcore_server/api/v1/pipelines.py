@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, Path, status
 from flowcore_server.models.execution import ExecutionRequest, ExecutionResponse
 from flowcore_server.application.execution_app import ExecutionApp
 from flowcore_server.dependencies.execution import get_execution_app
-from flowcore_server.dependencies.auth import require_permissions, UserInDB
+from flowcore_server.dependencies.auth import require_permissions, get_current_user
+from flowcore_shared.schemas.auth import UserInDB, Principal
 
 router = APIRouter(prefix="/pipelines", tags=["Pipelines"])
 
@@ -17,13 +18,34 @@ async def execute_pipeline(
     pipeline_id: str = Path(..., description="The ID of the pipeline to execute"),
     version: str = Path(..., description="The specific version of the pipeline"),
     app: ExecutionApp = Depends(get_execution_app),
-    user: UserInDB = Depends(require_permissions(["pipeline:execute"]))
+    principal: Principal = Depends(require_permissions(["pipeline:execute"]))
 ):
     """
     Asynchronously executes a specific version of a pipeline with the provided runtime parameters.
     Returns a 202 Accepted status along with the run ID for status tracking.
     """
     return await app.start_pipeline_execution(pipeline_id, version, request)
+
+from flowcore_server.models.execution import PreviewRequest, PreviewResponse
+from flowcore_server.dependencies.execution import get_execution_service
+
+@router.post(
+    "/preview",
+    response_model=PreviewResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Preview pipeline execution"
+)
+async def preview_pipeline(
+    request: PreviewRequest,
+    service: "ExecutionService" = Depends(get_execution_service),
+    principal: Principal = Depends(require_permissions(["pipeline:execute"]))
+):
+    """
+    Synchronously executes a partial pipeline for previewing transformations.
+    """
+    workspace_id = getattr(principal, "workspace_id", "default")
+    return await service.preview_execution(request, workspace_id)
+
 
 from typing import Optional, List
 from fastapi import Query
@@ -41,12 +63,12 @@ from flowcore_server.dependencies.pipeline import get_pipeline_service
 async def create_pipeline(
     request: PipelineCreate,
     service: PipelineService = Depends(get_pipeline_service),
-    user: UserInDB = Depends(require_permissions(["pipeline:create"]))
+    principal: Principal = Depends(require_permissions(["pipeline:create"]))
 ):
     """
     Creates a new pipeline.
     """
-    return await service.create_pipeline(request, user.username)
+    return await service.create_pipeline(request, principal.name)
 
 @router.put(
     "/{pipeline_id}",
@@ -58,7 +80,7 @@ async def update_pipeline(
     request: PipelineUpdate,
     pipeline_id: str = Path(..., description="The ID of the pipeline"),
     service: PipelineService = Depends(get_pipeline_service),
-    user: UserInDB = Depends(require_permissions(["pipeline:update"]))
+    principal: Principal = Depends(require_permissions(["pipeline:update"]))
 ):
     """
     Updates pipeline metadata.
@@ -73,7 +95,7 @@ async def update_pipeline(
 async def delete_pipeline(
     pipeline_id: str = Path(..., description="The ID of the pipeline"),
     service: PipelineService = Depends(get_pipeline_service),
-    user: UserInDB = Depends(require_permissions(["pipeline:delete"]))
+    principal: Principal = Depends(require_permissions(["pipeline:delete"]))
 ):
     """
     Deletes a pipeline.
@@ -98,7 +120,7 @@ async def list_pipelines(
     sort_by: Optional[str] = Query(None, description="Field to sort by"),
     sort_order: Optional[str] = Query("desc", description="Sort order (asc/desc)"),
     service: PipelineService = Depends(get_pipeline_service),
-    user: UserInDB = Depends(require_permissions([]))
+    principal: Principal = Depends(require_permissions([]))
 ):
     """
     Retrieves a paginated list of pipelines.
@@ -107,7 +129,7 @@ async def list_pipelines(
     return await service.list_pipelines(
         skip=skip, limit=limit, search=search, tags=tags, 
         folder_id=folder_id, is_archived=is_archived, is_favorite=is_favorite, 
-        user_id=str(user.id), sort_by=sort_by, sort_order=sort_order
+        user_id=principal.identity_id if not principal.is_api_key else None, sort_by=sort_by, sort_order=sort_order
     )
 
 @router.get(
@@ -155,7 +177,7 @@ class BulkActionRequest(BaseModel):
 async def bulk_action(
     request: BulkActionRequest,
     service: PipelineService = Depends(get_pipeline_service),
-    user: UserInDB = Depends(require_permissions(["pipeline:update"]))
+    principal: Principal = Depends(require_permissions(["pipeline:update"]))
 ):
     if request.action == "delete":
         count = await service.bulk_delete(request.pipeline_ids)
@@ -175,7 +197,10 @@ async def toggle_favorite(
     pipeline_id: str = Path(...),
     is_favorite: bool = Query(...),
     service: PipelineService = Depends(get_pipeline_service),
-    user: UserInDB = Depends(require_permissions([]))
+    principal: Principal = Depends(require_permissions([]))
 ):
-    await service.toggle_favorite(pipeline_id, str(user.id), is_favorite)
+    if principal.is_api_key:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail="API Keys cannot favorite pipelines")
+    await service.toggle_favorite(pipeline_id, principal.identity_id, is_favorite)
     return {"success": True}

@@ -36,34 +36,44 @@ export const TriggerNode = memo(({ id, data, selected }: any) => {
   
   return (
     <div 
-      className="group"
+      className="group relative"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <NodeToolbarActions id={id} data={data} isHovered={isHovered || selected} />
-      {hasError && (
-        <div className="absolute -inset-1.5 bg-red-500/20 rounded-2xl animate-pulse pointer-events-none" />
-      )}
+      
+      {/* Running/Error Pulses */}
+      {hasError && <div className="absolute -inset-2 rounded-2xl bg-status-error/20 blur-md animate-pulse pointer-events-none" />}
+      {data.status === 'running' && <div className="absolute -inset-2 rounded-2xl bg-status-running/20 blur-md animate-pulse pointer-events-none" />}
+      
+      <div className="absolute top-0 inset-x-0 h-1 bg-emerald-500 z-10" />
+
       <motion.div 
-        initial={{ opacity: 0, scale: 0.9 }}
+        initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        whileHover={{ y: -2 }}
-        className={`bg-card border-2 rounded-xl shadow-lg w-72 overflow-hidden transition-all duration-200 relative ${
-          selected ? 'border-primary ring-2 ring-primary/20 shadow-primary/10' : isFailed || hasError ? 'border-destructive shadow-destructive/20' : isWarning ? 'border-amber-500' : 'border-border/50 hover:border-border'
-        }`}
+        transition={{ duration: 0.15 }}
+        className={`bg-card rounded-xl w-72 overflow-hidden transition-all duration-200 relative hover:-translate-y-0.5 ${
+          selected 
+            ? 'shadow-[0_0_0_2px_hsl(var(--primary)),0_8px_24px_-4px_rgba(0,0,0,0.1)] border-transparent' 
+            : isFailed || hasError 
+              ? 'shadow-[0_0_0_2px_hsl(var(--status-error)),0_4px_12px_-2px_rgba(0,0,0,0.1)] border-transparent' 
+              : isWarning 
+                ? 'shadow-[0_0_0_2px_hsl(var(--status-warning)),0_4px_12px_-2px_rgba(0,0,0,0.1)] border-transparent' 
+                : 'shadow-surface-elevated border-border'
+        } border`}
       >
-        <div className="p-3.5 flex items-center gap-3 border-b border-border/50 bg-accent/30">
-          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+        <div className="p-3.5 flex items-center gap-3 border-b border-border bg-accent/20">
+          <div className="w-8 h-8 rounded-md bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shadow-sm">
             <Play className="w-4 h-4 text-emerald-500" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold text-foreground truncate">Pipeline Trigger</div>
-            <div className="text-xs text-muted-foreground truncate flex items-center gap-1 mt-0.5">
-              <span className="bg-accent px-1.5 py-0.5 rounded border border-border/50 text-[10px] uppercase font-medium">{data.type || 'Manual'}</span>
+            <div className="text-sm font-semibold text-foreground tracking-tight truncate">Pipeline Trigger</div>
+            <div className="text-[10px] text-muted-foreground font-mono truncate uppercase flex items-center gap-1 mt-0.5">
+              <span className="bg-background px-1.5 py-0.5 rounded shadow-sm border border-border">{data.type || 'Manual'}</span>
             </div>
           </div>
-          {isFailed && <AlertCircle className="w-4 h-4 text-destructive shrink-0" />}
-          {isWarning && <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />}
+          {isFailed && <AlertCircle className="w-4 h-4 text-status-error shrink-0" />}
+          {isWarning && <AlertCircle className="w-4 h-4 text-status-warning shrink-0" />}
         </div>
         
         <div className="p-3.5 text-xs text-muted-foreground flex items-center justify-between">
@@ -98,33 +108,44 @@ export const StepNode = memo(({ id, data, selected }: any) => {
       onMouseLeave={() => setIsHovered(false)}
     >
       <NodeToolbarActions id={id} data={data} isHovered={isHovered || selected} />
-      {hasError && (
-        <div className="absolute -inset-1.5 bg-red-500/20 rounded-2xl animate-pulse pointer-events-none" />
-      )}
+      
+      {/* Running/Error Pulses */}
+      {hasError && <div className="absolute -inset-2 rounded-2xl bg-status-error/20 blur-md animate-pulse pointer-events-none" />}
+      {isRunning && <div className="absolute -inset-2 rounded-2xl bg-status-running/20 blur-md animate-pulse pointer-events-none" />}
+      
+      {/* Band color based on plugin type */}
+      <div className={`absolute top-0 inset-x-0 h-1 z-10 ${data.plugin_id?.includes('source') ? 'bg-blue-500' : data.plugin_id?.includes('destination') ? 'bg-emerald-500' : 'bg-purple-500'}`} />
+
       <motion.div 
-        initial={{ opacity: 0, scale: 0.9 }}
+        initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        whileHover={{ y: -2 }}
-        className={`bg-card border-2 rounded-xl shadow-lg w-72 overflow-hidden transition-all duration-200 relative ${
-          selected ? 'border-primary ring-2 ring-primary/20 shadow-primary/10' : isFailed || hasError ? 'border-destructive shadow-destructive/10' : isWarning ? 'border-amber-500' : 'border-border/50 hover:border-border'
-        }`}
+        transition={{ duration: 0.15 }}
+        className={`bg-card rounded-xl w-72 overflow-hidden transition-all duration-200 relative hover:-translate-y-0.5 ${
+          selected 
+            ? 'shadow-[0_0_0_2px_hsl(var(--primary)),0_8px_24px_-4px_rgba(0,0,0,0.1)] border-transparent' 
+            : isFailed || hasError 
+              ? 'shadow-[0_0_0_2px_hsl(var(--status-error)),0_4px_12px_-2px_rgba(0,0,0,0.1)] border-transparent' 
+              : isWarning 
+                ? 'shadow-[0_0_0_2px_hsl(var(--status-warning)),0_4px_12px_-2px_rgba(0,0,0,0.1)] border-transparent' 
+                : 'shadow-surface-elevated border-border'
+        } border`}
       >
-        <Handle type="target" position={Position.Top} className={`w-4 h-4 bg-background border-2 ${isFailed || hasError ? 'border-destructive' : isWarning ? 'border-amber-500' : 'border-primary'} hover:scale-125 transition-transform`} />
+        <Handle type="target" position={Position.Top} className={`w-3 h-3 bg-background border-2 ${isFailed || hasError ? 'border-status-error' : isWarning ? 'border-status-warning' : 'border-primary'} hover:scale-125 transition-transform shadow-sm`} />
         
         {/* Header */}
-        <div className={`p-3.5 flex items-center gap-3 border-b border-border/50 ${isFailed || hasError ? 'bg-destructive/5' : isWarning ? 'bg-amber-500/5' : 'bg-accent/30'}`}>
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${isFailed || hasError ? 'bg-destructive/10 border-destructive/20 text-destructive' : isWarning ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-background border-border/50 shadow-sm text-primary'}`}>
+        <div className={`p-3.5 flex items-center gap-3 border-b border-border ${isFailed || hasError ? 'bg-status-error/5' : isWarning ? 'bg-status-warning/5' : 'bg-accent/20'}`}>
+          <div className={`w-8 h-8 rounded-md flex items-center justify-center border shadow-sm ${isFailed || hasError ? 'bg-status-error/10 border-status-error/20 text-status-error' : isWarning ? 'bg-status-warning/10 border-status-warning/20 text-status-warning' : 'bg-background border-border text-foreground'}`}>
             <Puzzle className="w-4 h-4" />
           </div>
           
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold text-foreground truncate">{data.label || 'Step'}</div>
-            <div className="text-[11px] text-muted-foreground truncate">{data.plugin_id || 'Unknown Plugin'}</div>
+            <div className="text-sm font-semibold tracking-tight text-foreground truncate">{data.label || 'Step'}</div>
+            <div className="text-[10px] text-muted-foreground font-mono truncate">{data.plugin_id || 'Unknown Plugin'}</div>
           </div>
           
           <button 
             onClick={(e) => { e.stopPropagation(); setIsCollapsed(!isCollapsed); }}
-            className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground transition-colors"
+            className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground transition-colors shadow-sm bg-background border border-border"
           >
             {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </button>

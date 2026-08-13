@@ -181,7 +181,9 @@ export const ExecutionDetailsPage: React.FC = () => {
                 </div>
                 <div className="p-4 flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">Trigger Type</span>
-                  <span className="text-sm font-medium flex items-center gap-1"><Play className="w-3 h-3"/> Manual</span>
+                  <span className="text-sm font-medium flex items-center gap-1">
+                    <Play className="w-3 h-3"/> {run.parameters?.trigger_type || 'MANUAL'}
+                  </span>
                 </div>
                 <div className="p-4 flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">Environment</span>
