@@ -12,6 +12,7 @@ from .datasets import router as datasets_router
 from .lineage import router as lineage_router
 from .folders import router as folders_router
 from .settings import router as settings_router
+from .webhooks import router as webhooks_router
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -28,3 +29,4 @@ api_router.include_router(datasets_router)
 api_router.include_router(lineage_router)
 api_router.include_router(folders_router)
 api_router.include_router(settings_router)
+api_router.include_router(webhooks_router)

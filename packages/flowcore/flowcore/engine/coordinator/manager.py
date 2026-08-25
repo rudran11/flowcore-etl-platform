@@ -95,35 +95,43 @@ class ExecutionCoordinator:
         from datetime import datetime
         import logging
         
-        # Inject message_stream if there's an upstream dependency (Linear pipeline assumption for now)
         upstream_ids = self._in_edges.get(step_id, [])
         message_stream = None
-        if upstream_ids:
-            upstream_id = upstream_ids[0]
+        message_streams = {}
+        for upstream_id in upstream_ids:
             if upstream_id in self._step_outputs:
-                message_stream = self._step_outputs[upstream_id]
+                message_streams[upstream_id] = self._step_outputs[upstream_id]
+                
+        if upstream_ids and upstream_ids[0] in message_streams:
+            message_stream = message_streams[upstream_ids[0]]
                 
         # Inject state from store if available
         step_state = {}
         if self.state_store:
             step_state = self.state_store.get_state(self.pipeline.pipeline_id, step_id) or {}
         
-        context = RuntimeContext(
-            run_id=self._run.id if self._run else "unknown",
-            pipeline_id=self.pipeline.pipeline_id,
-            step_id=step_id,
-            execution_start_time=datetime.now(),
-            environment=getattr(self, 'env_type', 'DEVELOPMENT'),
-            working_directory="/tmp/flowcore/work",
-            temporary_directory="/tmp/flowcore/temp",
-            parameters=step_metadata.parameters,
-            variables=getattr(self, 'env_vars', {}),
-            secrets=getattr(self, 'env_secrets', {}),
-            logger=logging.getLogger(f"flowcore.step.{step_id}"),
-            message_stream=message_stream,
-            state=step_state,
-            preview_context=getattr(self, 'preview_context', PreviewExecutionContext())
-        )
+        kwargs = {
+            "run_id": self._run.id if self._run else "unknown",
+            "pipeline_id": self.pipeline.pipeline_id,
+            "step_id": step_id,
+            "execution_start_time": datetime.now(),
+            "environment": getattr(self, 'env_type', 'DEVELOPMENT'),
+            "working_directory": "/tmp/flowcore/work",
+            "temporary_directory": "/tmp/flowcore/temp",
+            "parameters": step_metadata.parameters,
+            "variables": getattr(self, 'env_vars', {}),
+            "secrets": getattr(self, 'env_secrets', {}),
+            "logger": logging.getLogger(f"flowcore.step.{step_id}"),
+            "message_stream": message_stream,
+            "message_streams": message_streams,
+            "state": step_state,
+            "preview_context": getattr(self, 'preview_context', PreviewExecutionContext())
+        }
+        
+        if hasattr(self, 'cancellation_event') and self.cancellation_event is not None:
+            kwargs["cancellation_event"] = self.cancellation_event
+            
+        context = RuntimeContext(**kwargs)
         
         return ExecutionTask(
             step_id=step_id,
@@ -133,9 +141,10 @@ class ExecutionCoordinator:
             timeout_seconds=None # Future enhancement
         )
 
-    def handle_event(self, event_type: "ExecutionEventType", task: "ExecutionTask", payload: Any = None) -> None:
+    def handle_event(self, event_type: "ExecutionEventType", task: "ExecutionTask", payload: Any = None) -> Optional[float]:
         """
         Consumes lightweight internal events emitted by the EngineRunner.
+        Returns backoff duration if the task failed and will be retried.
         """
         from flowcore.engine.runner.events import ExecutionEventType
         
@@ -145,11 +154,13 @@ class ExecutionCoordinator:
             self.on_step_completed(task, payload)
         elif event_type == ExecutionEventType.TASK_FAILED:
             # payload is the EngineError
-            self.on_step_failed(task.step_id, payload)
+            return self.on_step_failed(task.step_id, payload)
         elif event_type == ExecutionEventType.TASK_TIMEOUT:
             # Future enhancement
             from flowcore.engine.exceptions.plugin import RecoverablePluginError
-            self.on_step_failed(task.step_id, RecoverablePluginError("Task timeout exceeded"))
+            return self.on_step_failed(task.step_id, RecoverablePluginError("Task timeout exceeded"))
+            
+        return None
 
     def on_step_started(self, step_id: str) -> None:
         """Called when an executor acquires a step."""

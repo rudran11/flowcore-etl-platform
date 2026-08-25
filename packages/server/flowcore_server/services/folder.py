@@ -3,7 +3,7 @@ import uuid
 from flowcore.models.workspace import Folder
 from flowcore_server.repositories.interfaces.uow import AbstractUnitOfWork
 from flowcore_server.schemas.workspace import FolderCreate, FolderUpdate, FolderResponse
-from fastapi import HTTPException, status
+
 from flowcore_server.dependencies.context import get_workspace_id
 
 class FolderService:
@@ -27,8 +27,8 @@ class FolderService:
         async with self.uow as uow:
             folder = await uow.folders.get_folder(folder_id)
             if not folder:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
+                raise ValueError(
+                    'Not found',
                     detail=f"Folder {folder_id} not found"
                 )
             
@@ -54,14 +54,14 @@ class FolderService:
             async with self.uow as uow:
                 folder = await uow.folders.get_folder(folder_id)
                 if not folder:
-                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+                    raise ValueError('Not found')
                 return folder
 
         async with self.uow as uow:
             updated_folder = await uow.folders.update_folder(folder_id, updates)
             if not updated_folder:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
+                raise ValueError(
+                    'Not found',
                     detail=f"Folder {folder_id} not found"
                 )
             await uow.commit()
@@ -72,15 +72,15 @@ class FolderService:
             # Check if there are pipelines inside
             pipelines = await uow.pipelines.list_pipelines(limit=1, folder_id=folder_id)
             if pipelines:
-                raise HTTPException(
+                raise ValueError(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Cannot delete folder containing pipelines"
                 )
 
             success = await uow.folders.delete_folder(folder_id)
             if not success:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
+                raise ValueError(
+                    'Not found',
                     detail=f"Folder {folder_id} not found"
                 )
             await uow.commit()

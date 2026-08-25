@@ -12,6 +12,7 @@ class InMemoryEventDispatcher(AbstractEventDispatcher):
     """
     def __init__(self):
         self.published_events: List[DomainEvent] = []
+        self._handlers = {}
 
     async def dispatch(self, event: DomainEvent) -> None:
         """
@@ -19,3 +20,21 @@ class InMemoryEventDispatcher(AbstractEventDispatcher):
         """
         logger.info(f"Dispatching DomainEvent: {event.event_type} (ID: {event.event_id})")
         self.published_events.append(event)
+        
+        # Invoke handlers
+        handlers = self._handlers.get(event.event_type, [])
+        for handler in handlers:
+            try:
+                import asyncio
+                if asyncio.iscoroutinefunction(handler):
+                    await handler(event)
+                else:
+                    handler(event)
+            except Exception as e:
+                logger.error(f"Error in event handler for {event.event_type}: {e}")
+
+    def register_handler(self, event_type: str, handler: callable):
+        """Register a handler for a specific event type."""
+        if event_type not in self._handlers:
+            self._handlers[event_type] = []
+        self._handlers[event_type].append(handler)

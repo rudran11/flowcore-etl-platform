@@ -5,6 +5,7 @@
 import os
 from typing import Any, Dict, Iterator, List, Optional
 from pathlib import Path
+from pydantic import BaseModel, Field
 
 import pyarrow.parquet as pq
 

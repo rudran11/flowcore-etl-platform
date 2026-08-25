@@ -1,0 +1,26 @@
+{
+  "pipeline": {
+    "name": "Preview",
+    "version_tag": "v-preview",
+    "steps": [
+      {
+        "step_id": "step_trigger",
+        "plugin_id": "test-source",
+        "depends_on": [],
+        "parameters": {},
+        "retry_policy": { "max_attempts": 0 }
+      },
+      {
+        "step_id": "step_filter",
+        "plugin_id": "transform-filter",
+        "depends_on": ["step_trigger"],
+        "parameters": {
+          "condition": "amount > 50"
+        },
+        "retry_policy": { "max_attempts": 0 }
+      }
+    ]
+  },
+  "preview_node_id": "step_filter",
+  "limit": 50
+}

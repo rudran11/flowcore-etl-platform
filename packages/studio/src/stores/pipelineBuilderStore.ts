@@ -101,6 +101,7 @@ const generateYamlFromGraph = (nodes: Node[], edges: Edge[], basePipeline: Pipel
 
   const obj = {
     description: basePipeline.description || '',
+    concurrency_policy: triggerNode?.data?.concurrency_policy || 'ALLOW',
     trigger: triggerNode ? {
       type: triggerNode.data.type || 'schedule',
       schedule: triggerNode.data.schedule || '0 0 * * *'
@@ -122,7 +123,12 @@ const buildGraphFromYaml = (yamlString: string) => {
     id: 'trigger',
     type: 'triggerNode',
     position: { x: 0, y: 0 },
-    data: { label: 'Trigger', type: triggerData.type, schedule: triggerData.schedule }
+    data: { 
+      label: 'Trigger', 
+      type: triggerData.type, 
+      schedule: triggerData.schedule,
+      concurrency_policy: parsed.concurrency_policy || 'ALLOW'
+    }
   });
 
   if (parsed.steps) {

@@ -16,7 +16,8 @@ class ExecutionApp:
             pipeline_id=pipeline_id,
             version=version,
             trigger_type="API",
-            parameters=request.parameters
+            parameters=request.parameters,
+            trigger_context=None
         )
         return map_execution_to_response(run)
 

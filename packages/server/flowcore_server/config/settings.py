@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     port: int = 8000
     environment: str = "dev"
     cors_origins: List[str] = ["*"]
+    secret_key: str | None = None
     
     # Database Settings
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/flowcore"

@@ -7,6 +7,14 @@ from flowcore_server.main import app
 
 # Patch seed_default_data
 patch("flowcore_server.main.seed_default_data", new_callable=AsyncMock).start()
+
+class MockSchedulerService:
+    async def initialize_schedules(self):
+        pass
+    def shutdown(self):
+        pass
+
+patch("flowcore_server.dependencies.core.get_scheduler_service", return_value=MockSchedulerService()).start()
 from flowcore_server.dependencies.auth import get_current_user
 from flowcore_shared.schemas.auth.user import UserInDB
 

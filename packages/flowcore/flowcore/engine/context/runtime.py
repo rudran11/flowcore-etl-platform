@@ -13,7 +13,8 @@ class PreviewExecutionContext(BaseModel):
     Context object to signal bounded preview constraints.
     """
     is_preview: bool = Field(default=False, description="True if this is a preview execution.")
-    record_limit: int = Field(default=50, description="The maximum number of records to process.")
+    record_limit: int = Field(default=50, description="The maximum number of records to process for UI display.")
+    execution_limit: int = Field(default=5000, description="The maximum number of records to execute before cancelling upstream.")
     
     # Internal flag used by engine to gracefully signal cancellation
     # We use a primitive dict since threading.Event cannot be easily validated by Pydantic's frozen model without custom validators.
@@ -42,6 +43,7 @@ class RuntimeContext(BaseModel):
     
     # Internal context for pipelines
     message_stream: Any = Field(None, description="Stream of messages from upstream plugin")
+    message_streams: Dict[str, Any] = Field(default_factory=dict, description="Dictionary of message streams from multiple upstreams (for Joins)")
     catalog: Any = Field(None, description="Catalog for discovery/sync")
     state: Dict[str, Any] = Field(default_factory=dict, description="Incremental state dictionary")
     
@@ -51,6 +53,9 @@ class RuntimeContext(BaseModel):
     
     # Preview context
     preview_context: PreviewExecutionContext = Field(default_factory=PreviewExecutionContext, description="Preview constraints")
+    
+    # Global cancellation event
+    cancellation_event: threading.Event = Field(default_factory=threading.Event, description="Event to signal graceful cancellation of the run")
 
     def report_input_dataset(self, name: str, dataset_type: str, columns: list = None):
         """Plugin authors can call this to report a dataset read"""

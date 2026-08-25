@@ -17,11 +17,14 @@ class RetryManager:
     """
 
     @classmethod
-    def should_retry(cls, error: EngineError, attempt: int, policy: RetryPolicy) -> bool:
+    def should_retry(cls, error: Exception, attempt: int, policy: RetryPolicy) -> bool:
         """
         Determines if a failure is eligible for another attempt based on error type
         and current attempt count.
         """
+        if isinstance(error, EngineError) and not error.is_retryable:
+            return False
+
         if isinstance(error, FatalPluginError):
             return False
             
@@ -31,20 +34,28 @@ class RetryManager:
         return True
 
     @classmethod
-    def calculate_backoff(cls, attempt: int, policy: RetryPolicy) -> float:
+    def calculate_backoff(cls, attempt: int, policy: RetryPolicy, error: Exception = None) -> float:
         """
         Calculates the required delay duration based on the configured strategy.
         Attempt is 0-indexed (0 means the first retry).
         """
-        if policy.strategy == RetryStrategy.FIXED:
-            delay = policy.initial_delay_seconds
+        strategy = policy.strategy
+        initial_delay = policy.initial_delay_seconds
+        
+        # Override with error-specific defaults if the policy is generic (or we want error to dictate)
+        if isinstance(error, EngineError):
+            strategy = error.default_strategy
+            initial_delay = error.default_delay
+
+        if strategy == RetryStrategy.FIXED:
+            delay = initial_delay
             
-        elif policy.strategy == RetryStrategy.LINEAR:
+        elif strategy == RetryStrategy.LINEAR:
             # Linear: initial, initial * 2, initial * 3...
-            delay = policy.initial_delay_seconds * (attempt + 1)
+            delay = initial_delay * (attempt + 1)
             
         else: # EXPONENTIAL
             # Exponential: initial * (factor ^ attempt)
-            delay = policy.initial_delay_seconds * (policy.backoff_factor ** attempt)
+            delay = initial_delay * (policy.backoff_factor ** attempt)
             
-        return min(delay, policy.max_delay_seconds)
+        return float(min(delay, policy.max_delay_seconds))

@@ -1,7 +1,7 @@
 import uuid
 from typing import Optional, List
 from datetime import datetime
-from sqlalchemy import String, Boolean, Integer, ForeignKey, DateTime
+from sqlalchemy import String, Boolean, Integer, Float, ForeignKey, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import JSONB
 
@@ -72,6 +72,7 @@ class Pipeline(Base):
     is_archived: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     version_number: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    concurrency_policy: Mapped[str] = mapped_column(String(50), default="ALLOW", nullable=False)
 
     # Relationships
     versions: Mapped[List["PipelineVersion"]] = relationship(
@@ -105,12 +106,19 @@ class ExecutionRun(Base):
     pipeline_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("pipeline_versions.id"), index=True, nullable=False)
     status: Mapped[str] = mapped_column(String(50), index=True, nullable=False)
     parameters: Mapped[dict] = mapped_column(JSONB, default={}, nullable=False)
+    trigger_context: Mapped[dict] = mapped_column(JSONB, default={}, nullable=False)
     
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     version_number: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     error_message: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     outputs: Mapped[dict] = mapped_column(JSONB, default={}, nullable=False)
+    
+    # Worker Queue Fields
+    attempt_number: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    worker_id: Mapped[Optional[str]] = mapped_column(String(255), index=True, nullable=True)
+    claimed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    lease_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     pipeline_version: Mapped["PipelineVersion"] = relationship("PipelineVersion", back_populates="runs")
@@ -126,6 +134,7 @@ class ExecutionStep(Base):
     status: Mapped[str] = mapped_column(String(50), nullable=False)
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    duration_ms: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     retry_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     error_message: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     outputs: Mapped[dict] = mapped_column(JSONB, default={}, nullable=False)
@@ -133,6 +142,23 @@ class ExecutionStep(Base):
 
     # Relationships
     run: Mapped["ExecutionRun"] = relationship("ExecutionRun", back_populates="steps")
+    attempts: Mapped[List["ExecutionAttempt"]] = relationship("ExecutionAttempt", back_populates="step", cascade="all, delete-orphan", lazy="selectin")
+
+class ExecutionAttempt(Base):
+    __tablename__ = "execution_attempts"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    workspace_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True, nullable=True)
+    step_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("execution_steps.id", ondelete="CASCADE"), index=True, nullable=False)
+    attempt_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    status: Mapped[str] = mapped_column(String(50), nullable=False)
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    error_message: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    error_category: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    
+    # Relationships
+    step: Mapped["ExecutionStep"] = relationship("ExecutionStep", back_populates="attempts")
 
 class AuditLog(Base):
     __tablename__ = "audit_logs"
@@ -181,6 +207,35 @@ class ScheduleRunHistory(Base):
     schedule: Mapped["Schedule"] = relationship("Schedule")
     execution: Mapped["ExecutionRun"] = relationship("ExecutionRun")
 
+class WebhookTrigger(Base):
+    __tablename__ = "webhook_triggers"
+    
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    workspace_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True, nullable=True)
+    pipeline_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("pipelines.id", ondelete="CASCADE"), index=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    secret_key_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
 from .auth_models import Organization, Workspace, User, Role, Permission, RolePermission, WorkspaceMember
 from .environment_models import Environment, EnvironmentVariable, PipelineEnvironmentBinding
 from .lineage_models import Dataset, DatasetVersion, DatasetColumn, LineageEdge, ExecutionLineage, DatasetTag, DatasetMetadata
+
+class WorkerNode(Base):
+    """
+    Represents an active worker process responsible for executing pipeline runs.
+    """
+    __tablename__ = "worker_nodes"
+
+    id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    status: Mapped[str] = mapped_column(String(50), nullable=False)
+    current_run_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("execution_runs.id"), nullable=True)
+    
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    last_heartbeat: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # Relationships
+    current_run = relationship("ExecutionRun", foreign_keys=[current_run_id], post_update=True)

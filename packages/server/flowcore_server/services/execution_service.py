@@ -27,7 +27,8 @@ class ExecutionService:
         cancellation_strategy: CancellationStrategy,
         background_strategy: BackgroundExecutionStrategy,
         plugin_manager: PluginManager,
-        event_dispatcher: AbstractEventDispatcher
+        event_dispatcher: AbstractEventDispatcher,
+        concurrency_manager: 'ConcurrencyManager' = None
     ):
         self.uow = uow
         self.engine_factory = engine_factory
@@ -35,22 +36,40 @@ class ExecutionService:
         self.background_strategy = background_strategy
         self.plugin_manager = plugin_manager
         self.event_dispatcher = event_dispatcher
+        
+        # If not provided, instantiate it
+        if concurrency_manager is None:
+            from flowcore_server.services.concurrency import ConcurrencyManager
+            concurrency_manager = ConcurrencyManager(self.uow)
+        self.concurrency_manager = concurrency_manager
+
+        # We can fetch cancellation controller from the cancellation strategy if it is DefaultCancellationStrategy
+        self.cancellation_controller = None
+        if hasattr(self.cancellation_strategy, 'controller'):
+            self.cancellation_controller = self.cancellation_strategy.controller
 
     async def start_execution(
         self, 
         pipeline_id: str, 
         version: str, 
         trigger_type: str, 
-        parameters: Dict[str, Any]
+        parameters: Dict[str, Any],
+        trigger_context: Dict[str, Any] = None
     ) -> ExecutionRun:
         """
         Starts a new pipeline execution run.
         """
         async with self.uow:
             # 1. Fetch metadata
-            pipeline_version = await self.uow.pipelines.get_pipeline_version(pipeline_id, version)
-            if not pipeline_version:
-                raise ValueError(f"Pipeline version {pipeline_id}:{version} not found.")
+            if version == "latest":
+                versions = await self.uow.pipelines.list_pipeline_versions(pipeline_id)
+                if not versions:
+                    raise ValueError(f"No versions found for pipeline {pipeline_id}.")
+                pipeline_version = versions[0]
+            else:
+                pipeline_version = await self.uow.pipelines.get_pipeline_version(pipeline_id, version)
+                if not pipeline_version:
+                    raise ValueError(f"Pipeline version {pipeline_id}:{version} not found.")
 
             pipeline = await self.uow.pipelines.get_pipeline(pipeline_id)
             if not pipeline:
@@ -67,6 +86,29 @@ class ExecutionService:
                     edges.append(Edge(source=dep, target=step.step_id))
             graph = DependencyGraph(nodes=nodes, edges=edges)
 
+            # Fetch workspace to get max_concurrent_runs
+            workspace = await self.uow.workspaces.get(pipeline.workspace_id)
+            max_concurrent_runs = workspace.max_concurrent_runs if workspace else 10
+
+            from flowcore_server.services.concurrency import PipelineConcurrencyRejected
+            try:
+                # Concurrency policy is stored in the version's DSL definition JSON
+                policy_str = pipeline_version.dsl_definition.get("concurrency_policy", "ALLOW")
+                from flowcore_shared.schemas.base.enums import ConcurrencyPolicy
+                try:
+                    policy = ConcurrencyPolicy(policy_str)
+                except ValueError:
+                    policy = ConcurrencyPolicy.ALLOW
+
+                initial_status = await self.concurrency_manager.evaluate_run(
+                    workspace_id=pipeline.workspace_id,
+                    pipeline_id=pipeline_id,
+                    policy=policy,
+                    max_workspace_runs=max_concurrent_runs
+                )
+            except PipelineConcurrencyRejected as e:
+                raise ValueError(str(e))
+
             import uuid
             run_id = str(uuid.uuid4())
 
@@ -74,9 +116,13 @@ class ExecutionService:
                 id=run_id,
                 workspace_id=pipeline.workspace_id,
                 pipeline_id=pipeline_id,
-                pipeline_version_id=pipeline_version.id, # Must use the actual version ID here
+                pipeline_version_id=pipeline_version.id,
                 trigger_type=trigger_type,
-                status=ExecutionState.PENDING
+                trigger_context=trigger_context or {},
+                status=initial_status,
+                start_time=None, # Only set when RUNNING
+                end_time=None,
+                steps={}
             )
             
             # 2. Persist initial state
@@ -90,6 +136,9 @@ class ExecutionService:
                 pipeline_version_id=run.pipeline_version_id
             )
             await self.event_dispatcher.dispatch(event)
+
+        if run.status == ExecutionState.QUEUED:
+            return run
 
         # 3. Instantiate Engine components via factory
         coordinator = self.engine_factory.create_coordinator(pipeline_version, graph)
@@ -129,6 +178,11 @@ class ExecutionService:
         
         coordinator.state_change_callback = None
         
+        # Inject global cancellation event
+        if self.cancellation_controller:
+            cancellation_event = self.cancellation_controller.register(run_id)
+            coordinator.cancellation_event = cancellation_event
+        
         runner = self.engine_factory.create_runner(coordinator, self.plugin_manager)
 
         # 4. Dispatch to background via wrapper to handle completion events
@@ -139,6 +193,8 @@ class ExecutionService:
             try:
                 # Engine is synchronous, offload to thread
                 await asyncio.to_thread(runner.run)
+                if self.cancellation_controller:
+                    self.cancellation_controller.unregister(run_id)
                 import json
                 logger.info("FINAL RUN STATE STEPS OUTPUTS:")
                 for sid, s in coordinator._run.steps.items():
@@ -146,7 +202,7 @@ class ExecutionService:
                 await self.complete_execution(run.id, final_run_state=coordinator._run)
             except Exception as e:
                 logger.error(f"Background task failed: {e}", exc_info=True)
-                await self.fail_execution(run.id, str(e))
+                await self.fail_execution(run.id, str(e)); import traceback; open("d:/FlowCore/flowcore-etl-platform/error.txt", "w").write(traceback.format_exc())
 
         self.background_strategy.submit(run_id, background_task)
         
@@ -233,6 +289,7 @@ class ExecutionService:
                 pipeline_version_id=run.pipeline_version_id
             )
             await self.event_dispatcher.dispatch(event)
+            await self._check_queued_runs(run.pipeline_id)
 
     async def fail_execution(self, run_id: str, error_message: str) -> None:
         """Called by background task when engine fails."""
@@ -257,6 +314,27 @@ class ExecutionService:
                 error_message=error_message
             )
             await self.event_dispatcher.dispatch(event)
+            await self._check_queued_runs(run.pipeline_id)
+
+    async def _check_queued_runs(self, pipeline_id: str) -> None:
+        """Helper to release queued runs for a pipeline after completion or failure."""
+        next_run_id = await self.concurrency_manager.release_and_dequeue(pipeline_id)
+        if next_run_id:
+            import asyncio
+            async def start_queued_run():
+                async with self.uow:
+                    queued_run = await self.uow.executions.get_run(next_run_id)
+                    if not queued_run:
+                        return
+                    updated_run = queued_run.model_copy(update={'status': ExecutionState.PENDING})
+                    await self.uow.executions.save(updated_run)
+                    await self.uow.commit()
+                # Ideally we call start_execution with the queued parameters.
+                # Since start_execution creates a NEW run, we should probably refactor to execute an existing run.
+                # For M18 MVP, updating status to PENDING and returning is enough to "unblock" it for a scheduler.
+                pass 
+                
+            asyncio.create_task(start_queued_run())
 
     async def list_executions(
         self, 

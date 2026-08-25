@@ -28,3 +28,9 @@ class RetryStrategy(str, Enum):
     FIXED = "FIXED"
     LINEAR = "LINEAR"
     EXPONENTIAL = "EXPONENTIAL"
+
+class ConcurrencyPolicy(str, Enum):
+    """Defines how simultaneous executions of the same pipeline are handled."""
+    ALLOW = "ALLOW"
+    QUEUE = "QUEUE"
+    REJECT = "REJECT"

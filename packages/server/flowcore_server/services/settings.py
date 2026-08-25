@@ -2,7 +2,7 @@ import uuid
 import secrets
 import hashlib
 from typing import List, Optional
-from fastapi import HTTPException
+
 from flowcore_server.repositories.interfaces.uow import AbstractUnitOfWork
 from flowcore_shared.schemas.auth import Workspace, WorkspaceMember, Role, ApiKeyResponse, ApiKeyCreate, ApiKeyCreateResponse
 
@@ -12,7 +12,7 @@ class SettingsService:
         async with uow:
             workspace = await uow.workspaces.get(workspace_id)
             if not workspace:
-                raise HTTPException(status_code=404, detail="Workspace not found")
+                raise ValueError("Workspace not found")
             return workspace
 
     @staticmethod
@@ -43,7 +43,7 @@ class SettingsService:
         async with uow:
             member = await uow.workspace_members.get_member(user_id, workspace_id)
             if not member:
-                raise HTTPException(status_code=404, detail="Member not found")
+                raise ValueError(status_code=404, detail="Member not found")
             
             # Check last admin if they are an admin and their role is changing
             old_role = await uow.roles.get(member.role_id)
@@ -57,7 +57,7 @@ class SettingsService:
                         admin_count += 1
                 
                 if admin_count <= 1:
-                    raise HTTPException(status_code=400, detail="Cannot change role of the last Workspace Admin")
+                    raise ValueError(status_code=400, detail="Cannot change role of the last Workspace Admin")
             
             updated_member = await uow.workspace_members.update_role(user_id, workspace_id, new_role_id)
             await uow.audit_logs.create(
@@ -74,7 +74,7 @@ class SettingsService:
         async with uow:
             member = await uow.workspace_members.get_member(user_id, workspace_id)
             if not member:
-                raise HTTPException(status_code=404, detail="Member not found")
+                raise ValueError(status_code=404, detail="Member not found")
             
             old_role = await uow.roles.get(member.role_id)
             if old_role and old_role.name == "Workspace Admin":
@@ -86,7 +86,7 @@ class SettingsService:
                         admin_count += 1
                 
                 if admin_count <= 1:
-                    raise HTTPException(status_code=400, detail="Cannot remove the last Workspace Admin")
+                    raise ValueError(status_code=400, detail="Cannot remove the last Workspace Admin")
             
             await uow.workspace_members.remove_member(user_id, workspace_id)
             await uow.audit_logs.create(
@@ -164,7 +164,7 @@ class SettingsService:
         async with uow:
             success = await uow.api_keys.delete(key_id, workspace_id)
             if not success:
-                raise HTTPException(status_code=404, detail="API Key not found or already revoked")
+                raise ValueError(status_code=404, detail="API Key not found or already revoked")
             
             await uow.audit_logs.create(
                 entity_id=workspace_id,

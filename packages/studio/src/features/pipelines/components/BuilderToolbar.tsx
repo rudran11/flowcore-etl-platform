@@ -7,13 +7,14 @@ import { toast } from 'sonner';
 import { usePipeline } from '../hooks/usePipeline';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '../../../components/ui/dropdown-menu';
 import { useParams } from 'react-router-dom';
-import { History, Maximize, Check, MoreHorizontal, Edit, Copy as CopyIcon, Trash, AlertCircle, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
+import { History, Maximize, Check, MoreHorizontal, Edit, Copy as CopyIcon, Trash, AlertCircle, AlertTriangle, CheckCircle2, Info, Link as LinkIcon } from 'lucide-react';
 import { apiClient } from '../../../api/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { RenamePipelineDialog } from './RenamePipelineDialog';
 import { DeletePipelineDialog } from './DeletePipelineDialog';
 import { DuplicatePipelineDialog } from './DuplicatePipelineDialog';
 import { CompareVersionsDialog } from './CompareVersionsDialog';
+import { WebhookSettingsDialog } from './WebhookSettingsDialog';
 import { ExecutionHistoryDrawer } from './ExecutionHistoryDrawer';
 import { PipelineVersion } from '../../../types/pipeline';
 
@@ -40,6 +41,7 @@ export const BuilderToolbar: React.FC = () => {
   const [compareVersion, setCompareVersion] = React.useState<PipelineVersion | null>(null);
   const [compareDialogOpen, setCompareDialogOpen] = React.useState(false);
   const [historyDrawerOpen, setHistoryDrawerOpen] = React.useState(false);
+  const [webhookDialogOpen, setWebhookDialogOpen] = React.useState(false);
 
   const handleSave = async () => {
     const criticalErrors = validationIssues.filter(i => ['empty_pipeline', 'missing_trigger', 'multiple_trigger'].some(id => i.id.startsWith(id)));
@@ -376,6 +378,9 @@ export const BuilderToolbar: React.FC = () => {
               <DropdownMenuItem onClick={handleDuplicate} className="gap-2 cursor-pointer">
                 <CopyIcon className="w-4 h-4" /> Duplicate
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setWebhookDialogOpen(true)} className="gap-2 cursor-pointer">
+                <LinkIcon className="w-4 h-4" /> Webhook Settings
+              </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-border/50" />
               <DropdownMenuItem onClick={handleDelete} className="gap-2 text-destructive focus:bg-destructive/10 cursor-pointer">
                 <Trash className="w-4 h-4" /> Delete Pipeline
@@ -416,6 +421,11 @@ export const BuilderToolbar: React.FC = () => {
             pipelineId={id}
             isOpen={historyDrawerOpen}
             onClose={() => setHistoryDrawerOpen(false)}
+          />
+          <WebhookSettingsDialog
+            pipelineId={id}
+            open={webhookDialogOpen}
+            onOpenChange={setWebhookDialogOpen}
           />
         </>
       )}

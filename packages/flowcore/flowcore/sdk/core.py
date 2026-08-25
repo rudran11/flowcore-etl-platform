@@ -16,7 +16,7 @@ import uuid
 class FlowCore:
     def __init__(self, plugin_dir: str = "plugins"):
         self.plugin_manager = PluginManager()
-        self.plugin_manager.discover_plugins([plugin_dir])
+        self.plugin_manager.discover_plugins([plugin_dir, "packages/flowcore/flowcore/plugins/transforms/"])
 
     def load_pipeline(self, pipeline_path: str):
         path = Path(pipeline_path)
@@ -135,6 +135,43 @@ class PipelineBuilder:
             "connector_id": actual_plugin,
             "depends_on": depends_on,
             "parameters": kwargs
+        })
+        self._last_step_id = step_id
+        return self
+
+    def aggregate(self, group_by: list, aggregations: list) -> 'PipelineBuilder':
+        return self.transform("aggregate", group_by=group_by, aggregations=aggregations)
+        
+    def sort(self, sort_by: list) -> 'PipelineBuilder':
+        return self.transform("sort", sort_by=sort_by)
+        
+    def deduplicate(self, keys: list, keep: str = "first") -> 'PipelineBuilder':
+        return self.transform("deduplicate", keys=keys, keep=keep)
+        
+    def join(self, right: 'PipelineBuilder', join_type: str, condition: str) -> 'PipelineBuilder':
+        for step in right.steps:
+            if step not in self.steps:
+                self.steps.append(step)
+                
+        step_id = f"transform_join_{self._step_counter}"
+        self._step_counter += 1
+        
+        depends_on = []
+        if self._last_step_id:
+            depends_on.append(self._last_step_id)
+        if right._last_step_id:
+            depends_on.append(right._last_step_id)
+            
+        self.steps.append({
+            "step_id": step_id,
+            "connector_id": "transform-join",
+            "depends_on": depends_on,
+            "parameters": {
+                "left_input": self._last_step_id,
+                "right_input": right._last_step_id,
+                "join_type": join_type,
+                "condition": condition
+            }
         })
         self._last_step_id = step_id
         return self

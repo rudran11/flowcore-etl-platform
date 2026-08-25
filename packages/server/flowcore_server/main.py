@@ -33,6 +33,8 @@ async def lifespan(app: FastAPI):
     
     # Cleanup on shutdown
     scheduler_service.shutdown()
+    from flowcore_server.config.database import engine
+    await engine.dispose()
 
 def create_app() -> FastAPI:
     app = FastAPI(

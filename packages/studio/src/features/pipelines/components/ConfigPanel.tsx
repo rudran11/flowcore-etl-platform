@@ -42,19 +42,24 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => 
   useEffect(() => {
     if (node) {
       if (node.type === 'triggerNode') {
-        const triggerData = { type: node.data.type || 'schedule', schedule: node.data.schedule || '0 0 * * *' };
+        const triggerData = { 
+          type: node.data.type || 'schedule', 
+          schedule: node.data.schedule || '0 0 * * *',
+          concurrency_policy: node.data.concurrency_policy || 'ALLOW'
+        };
         setEditorValue(JSON.stringify(triggerData, null, 2));
         setFormData(triggerData);
         setPluginMeta({
            name: 'Pipeline Trigger',
-           documentation: 'Configure how this pipeline is triggered.',
+           documentation: 'Configure how this pipeline is triggered and its concurrency behavior.',
            config_schema: {
              type: 'object',
              properties: {
                type: { type: 'string', enum: ['manual', 'schedule', 'webhook'] },
-               schedule: { type: 'string', description: 'Cron expression for schedule type' }
+               schedule: { type: 'string', description: 'Cron expression for schedule type' },
+               concurrency_policy: { type: 'string', enum: ['ALLOW', 'QUEUE', 'REJECT'], description: 'How to handle concurrent runs' }
              },
-             required: ['type']
+             required: ['type', 'concurrency_policy']
            }
         });
       } else {
@@ -138,7 +143,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => 
       setNodes(nodes.map(n => {
         if (n.id === nodeId) {
           if (n.type === 'triggerNode') {
-            return { ...n, data: { ...n.data, type: parsed.type, schedule: parsed.schedule, error: false } };
+            return { ...n, data: { ...n.data, type: parsed.type, schedule: parsed.schedule, concurrency_policy: parsed.concurrency_policy, error: false } };
           } else {
             let hasError = false;
             if (pluginMeta?.config_schema?.required) {

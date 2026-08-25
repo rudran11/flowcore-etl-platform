@@ -43,28 +43,40 @@ class EngineRunner:
         """
         Drives the execution loop until no pending work remains.
         """
-        while self.coordinator.has_pending_work():
+        self._retrying_futures = {}
+        
+        while self.coordinator.has_pending_work() or self._retrying_futures:
+            # Check for global cancellation
+            if hasattr(self.coordinator, 'cancellation_event') and self.coordinator.cancellation_event and self.coordinator.cancellation_event.is_set():
+                break
+
             # 1. Drain new tasks from the coordinator and submit them
             self._submit_available_tasks()
             
-            if not self._pending_futures:
+            if not self._pending_futures and not self._retrying_futures:
                 # Nothing is running and nothing is queued.
                 # If there's still "pending work", it means something is blocked or failed fast.
                 break
 
-            if self._pending_futures:
+            all_futures = list(self._pending_futures.keys()) + list(self._retrying_futures.keys())
+            if all_futures:
                 # 2. Wait for at least one future to complete or a short timeout tick (for timeouts)
                 done, not_done = concurrent.futures.wait(
-                    self._pending_futures.keys(),
+                    all_futures,
                     timeout=1.0,
                     return_when=concurrent.futures.FIRST_COMPLETED
                 )
                 
                 # 3. Process completed futures
                 for future in done:
-                    task = self._pending_futures.pop(future)
-                    del self._step_to_future[task.step_id]
-                    self._process_completed_future(future, task)
+                    if future in self._retrying_futures:
+                        task = self._retrying_futures.pop(future)
+                        # Re-submit to the queue (remains in RETRYING state until TASK_STARTED)
+                        self.coordinator.scheduler.submit_task(task.step_id)
+                    elif future in self._pending_futures:
+                        task = self._pending_futures.pop(future)
+                        del self._step_to_future[task.step_id]
+                        self._process_completed_future(future, task)
                 
             # 4. Enforce timeouts on running tasks
             # FUTURE ENHANCEMENT: Enforce timeout logic here by inspecting duration
@@ -98,7 +110,7 @@ class EngineRunner:
                 preview_errors = []
                 is_preview = context.preview_context.is_preview
                 limit = context.preview_context.record_limit
-                cancellation_event = context.preview_context.cancellation_event
+                cancellation_event = getattr(context, 'cancellation_event', context.preview_context.cancellation_event)
                 
                 print(f"[PREVIEW DEBUG] Processing step {step_id}, is_preview: {is_preview}")
                 
@@ -146,6 +158,8 @@ class EngineRunner:
                 else:
                     if inspect.isgenerator(result) or (hasattr(result, '__iter__') and not isinstance(result, (dict, list, str, tuple, set))):
                         def intercepting_generator():
+                            records_passed = 0
+                            preview_schema = None
                             for msg in result:
                                 if cancellation_event.is_set():
                                     break
@@ -162,8 +176,13 @@ class EngineRunner:
                                 elif getattr(msg, 'type', None) == MessageType.RECORD and getattr(msg, 'record', None) and is_preview:
                                     if len(preview_records) < limit:
                                         preview_records.append(msg.record.data)
+                                    records_passed += 1
                                         
                                 yield msg
+                                
+                                if is_preview and records_passed >= context.preview_context.execution_limit:
+                                    cancellation_event.set()
+                                    break
                                 
                             if is_preview and self.coordinator._run and step_id in self.coordinator._run.steps:
                                 step_run = self.coordinator._run.steps[step_id]
@@ -210,11 +229,21 @@ class EngineRunner:
                 import traceback
                 if result.exception:
                     print(f"[PREVIEW DEBUG] Task {task.step_id} failed natively with error: {str(result.exception)}")
-                self.coordinator.handle_event(ExecutionEventType.TASK_FAILED, task, payload=result.exception)
-                
+                backoff = self.coordinator.handle_event(ExecutionEventType.TASK_FAILED, task, payload=result.exception)
+                if backoff is not None:
+                    import time
+                    print(f"[PREVIEW DEBUG] Retrying Task {task.step_id} in {backoff} seconds...")
+                    retry_future = self.executor.submit(time.sleep, backoff)
+                    self._retrying_futures[retry_future] = task
+                    
         except Exception as e:
             # Trapping any unexpected exceptions from the future itself
             import traceback
             traceback.print_exc()
             print(f"[PREVIEW DEBUG] Task {task.step_id} failed with error: {str(e)}")
-            self.coordinator.handle_event(ExecutionEventType.TASK_FAILED, task, payload=e)
+            backoff = self.coordinator.handle_event(ExecutionEventType.TASK_FAILED, task, payload=e)
+            if backoff is not None:
+                import time
+                print(f"[PREVIEW DEBUG] Retrying Task {task.step_id} in {backoff} seconds...")
+                retry_future = self.executor.submit(time.sleep, backoff)
+                self._retrying_futures[retry_future] = task

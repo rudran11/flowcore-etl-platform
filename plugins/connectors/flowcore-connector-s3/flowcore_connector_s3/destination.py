@@ -3,7 +3,7 @@
 # See LICENSE file in the project root for full license information.
 
 import base64
-from typing import Any, Dict, Iterator
+from typing import Any, Dict, Iterator, Optional
 import boto3
 
 from flowcore_shared.plugins.cdk.destination import DestinationPlugin

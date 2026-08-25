@@ -13,6 +13,13 @@ _cancellation_instance = DefaultCancellationStrategy()
 _engine_factory_instance = DefaultExecutionEngineFactory()
 _event_dispatcher_instance = InMemoryEventDispatcher()
 
+async def alerting_handler(event):
+    import logging
+    logger = logging.getLogger("flowcore.alerting")
+    logger.critical(f"ALERT: Pipeline Run {event.run_id} failed! Message: {event.error_message}")
+
+_event_dispatcher_instance.register_handler("PipelineExecutionFailed", alerting_handler)
+
 async def get_uow() -> AbstractUnitOfWork:
     """Dependency yielding the Unit of Work."""
     uow = _repository_factory.get_unit_of_work()

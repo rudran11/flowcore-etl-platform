@@ -8,6 +8,7 @@ from typing import List, Optional
 from pydantic import Field
 from flowcore_shared.schemas.base.models import MetadataEntity
 
+from flowcore_shared.schemas.base.enums import ConcurrencyPolicy
 
 class Pipeline(MetadataEntity):
     """
@@ -24,3 +25,4 @@ class Pipeline(MetadataEntity):
     is_favorite: Optional[bool] = Field(None, description="Whether the pipeline is favorited by the current user.")
     icon: Optional[str] = Field(None, description="Icon identifier for UI.")
     color: Optional[str] = Field(None, description="Color code (hex) for UI.")
+    concurrency_policy: ConcurrencyPolicy = Field(default=ConcurrencyPolicy.ALLOW, description="Policy for handling simultaneous runs.")

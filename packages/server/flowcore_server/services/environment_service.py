@@ -9,13 +9,14 @@ from flowcore_shared.schemas.environment import (
     Environment, EnvironmentVariable, EnvironmentVariableCreate, EnvironmentVariableUpdate, EnvironmentType
 )
 from flowcore_server.repositories.interfaces.uow import AbstractUnitOfWork
+from flowcore_server.config.settings import settings
 
 class EnvironmentService:
     def __init__(self, uow: AbstractUnitOfWork):
         self.uow = uow
         
         # Load master key for Fernet. In production, this should come from FLOWCORE_SECRET_KEY
-        secret_key_b64 = os.environ.get("FLOWCORE_SECRET_KEY")
+        secret_key_b64 = settings.secret_key or os.environ.get("FLOWCORE_SECRET_KEY")
         if not secret_key_b64:
             # For development MVP, generate a temporary one if missing, but print a warning.
             # (Note: keys encrypted with a temporary key will be unreadable after restart)

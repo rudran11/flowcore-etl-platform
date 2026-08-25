@@ -85,3 +85,11 @@ class InMemoryUnitOfWork(AbstractUnitOfWork):
     @property
     def workspace_members(self):
         return self._workspace_members
+
+    @property
+    def api_keys(self):
+        return None
+        
+    @property
+    def audit_logs(self):
+        return None

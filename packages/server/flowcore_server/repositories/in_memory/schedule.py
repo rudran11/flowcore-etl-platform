@@ -44,3 +44,12 @@ class InMemoryScheduleRepository(AbstractScheduleRepository):
             del self._store[schedule_id]
             return True
         return False
+        
+    async def create_run_history(self, history):
+        pass
+        
+    async def update_last_run_at(self, schedule_id: str, last_run_at: datetime):
+        if schedule_id in self._store:
+            existing = self._store[schedule_id]
+            updated = existing.model_copy(update={"last_run_at": last_run_at})
+            self._store[schedule_id] = updated
